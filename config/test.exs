@@ -23,6 +23,9 @@ config :onesqlx, OnesqlxWeb.Endpoint,
   secret_key_base: "ePPDNnlnfv8VkseK7tP/E8ynnIT/DhZmS0rgbl1nctqGRjI34Hc6Fn1sJGQ7NSQe",
   server: false
 
+# Use manual testing mode for Oban to avoid starting full supervision tree
+config :onesqlx, Oban, testing: :manual
+
 # In test we don't send emails
 config :onesqlx, Onesqlx.Mailer, adapter: Swoosh.Adapters.Test
 
