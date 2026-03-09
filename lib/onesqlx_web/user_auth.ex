@@ -1,4 +1,8 @@
 defmodule OnesqlxWeb.UserAuth do
+  @moduledoc """
+  Handles user authentication plugs and helpers.
+  """
+
   use OnesqlxWeb, :verified_routes
 
   import Plug.Conn

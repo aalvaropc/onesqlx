@@ -1,8 +1,12 @@
 defmodule Onesqlx.Accounts.UserNotifier do
+  @moduledoc """
+  Delivers email notifications related to user accounts.
+  """
+
   import Swoosh.Email
 
-  alias Onesqlx.Mailer
   alias Onesqlx.Accounts.User
+  alias Onesqlx.Mailer
 
   # Delivers the email using the application mailer.
   defp deliver(recipient, subject, body) do

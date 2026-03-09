@@ -6,7 +6,7 @@ defmodule Onesqlx.Accounts do
   import Ecto.Query, warn: false
   alias Onesqlx.Repo
 
-  alias Onesqlx.Accounts.{User, UserToken, UserNotifier}
+  alias Onesqlx.Accounts.{User, UserNotifier, UserToken}
 
   ## Database getters
 

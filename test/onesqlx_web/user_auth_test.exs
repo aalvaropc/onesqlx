@@ -1,10 +1,10 @@
 defmodule OnesqlxWeb.UserAuthTest do
   use OnesqlxWeb.ConnCase, async: true
 
-  alias Phoenix.LiveView
   alias Onesqlx.Accounts
   alias Onesqlx.Accounts.Scope
   alias OnesqlxWeb.UserAuth
+  alias Phoenix.LiveView
 
   import Onesqlx.AccountsFixtures
 
