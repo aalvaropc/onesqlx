@@ -10,6 +10,7 @@ defmodule OnesqlxWeb.UserAuth do
 
   alias Onesqlx.Accounts
   alias Onesqlx.Accounts.Scope
+  alias Onesqlx.Workspaces
 
   # Make the remember me cookie valid for 14 days. This should match
   # the session validity setting in UserToken.
@@ -71,8 +72,13 @@ defmodule OnesqlxWeb.UserAuth do
   def fetch_current_scope_for_user(conn, _opts) do
     with {token, conn} <- ensure_user_token(conn),
          {user, token_inserted_at} <- Accounts.get_user_by_session_token(token) do
+      workspace_id = get_session(conn, :workspace_id)
+      workspace = Workspaces.get_workspace_for_scope(user, workspace_id)
+      scope = if workspace, do: Scope.for_user(user, workspace), else: Scope.for_user(user)
+
       conn
-      |> assign(:current_scope, Scope.for_user(user))
+      |> assign(:current_scope, scope)
+      |> put_session(:workspace_id, workspace && workspace.id)
       |> maybe_reissue_user_session_token(user, token_inserted_at)
     else
       nil -> assign(conn, :current_scope, Scope.for_user(nil))
@@ -146,10 +152,12 @@ defmodule OnesqlxWeb.UserAuth do
   #
   defp renew_session(conn, _user) do
     delete_csrf_token()
+    workspace_id = get_session(conn, :workspace_id)
 
     conn
     |> configure_session(renew: true)
     |> clear_session()
+    |> put_session(:workspace_id, workspace_id)
   end
 
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}, _),
@@ -256,8 +264,17 @@ defmodule OnesqlxWeb.UserAuth do
           Accounts.get_user_by_session_token(user_token)
         end || {nil, nil}
 
-      Scope.for_user(user)
+      build_scope(user, session["workspace_id"])
     end)
+  end
+
+  defp build_scope(nil, _workspace_id), do: Scope.for_user(nil)
+
+  defp build_scope(user, workspace_id) do
+    case Workspaces.get_workspace_for_scope(user, workspace_id) do
+      nil -> Scope.for_user(user)
+      workspace -> Scope.for_user(user, workspace)
+    end
   end
 
   @doc "Returns the path to redirect to after log in."

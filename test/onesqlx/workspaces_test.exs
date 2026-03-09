@@ -156,4 +156,27 @@ defmodule Onesqlx.WorkspacesTest do
       assert MapSet.disjoint?(workspace_ids_a, workspace_ids_b)
     end
   end
+
+  describe "workspace isolation" do
+    test "user A cannot see user B's workspace via list_workspaces_for_user" do
+      user_a = user_fixture()
+      user_b = user_fixture()
+
+      [ws_a] = Workspaces.list_workspaces_for_user(user_a)
+      [ws_b] = Workspaces.list_workspaces_for_user(user_b)
+
+      refute ws_a.id == ws_b.id
+    end
+
+    test "get_workspace_for_scope returns only accessible workspaces" do
+      user_a = user_fixture()
+      user_b = user_fixture()
+
+      [ws_b] = Workspaces.list_workspaces_for_user(user_b)
+
+      # user_a cannot access user_b's workspace; falls back to own
+      resolved = Workspaces.get_workspace_for_scope(user_a, ws_b.id)
+      refute resolved.id == ws_b.id
+    end
+  end
 end

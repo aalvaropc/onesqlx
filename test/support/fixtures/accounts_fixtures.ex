@@ -47,7 +47,8 @@ defmodule Onesqlx.AccountsFixtures do
   end
 
   def user_scope_fixture(user) do
-    Scope.for_user(user)
+    workspace = Onesqlx.Workspaces.get_workspace_for_scope(user)
+    if workspace, do: Scope.for_user(user, workspace), else: Scope.for_user(user)
   end
 
   def set_password(user) do

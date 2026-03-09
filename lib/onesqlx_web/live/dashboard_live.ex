@@ -12,7 +12,7 @@ defmodule OnesqlxWeb.DashboardLive do
       <.header>
         Dashboard
         <:subtitle>
-          Welcome to OneSQLx, {@current_scope.user.email}
+          Welcome to {@current_scope.workspace.name}
         </:subtitle>
       </.header>
     </Layouts.app>

@@ -47,16 +47,21 @@ defmodule OnesqlxWeb.ConnCase do
   def register_and_log_in_user(%{conn: conn} = context) do
     alias Onesqlx.Accounts.Scope
     alias Onesqlx.AccountsFixtures
+    alias Onesqlx.Workspaces
 
     user = AccountsFixtures.user_fixture()
-    scope = Scope.for_user(user)
+    workspace = Workspaces.get_workspace_for_scope(user)
+    scope = if workspace, do: Scope.for_user(user, workspace), else: Scope.for_user(user)
 
     opts =
       context
       |> Map.take([:token_authenticated_at])
       |> Enum.into([])
 
-    %{conn: log_in_user(conn, user, opts), user: user, scope: scope}
+    conn = log_in_user(conn, user, opts)
+    conn = if workspace, do: Plug.Conn.put_session(conn, :workspace_id, workspace.id), else: conn
+
+    %{conn: conn, user: user, scope: scope}
   end
 
   @doc """

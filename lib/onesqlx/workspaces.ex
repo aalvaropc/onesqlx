@@ -80,4 +80,35 @@ defmodule Onesqlx.Workspaces do
   def member?(workspace, user) do
     get_member_role(workspace, user) != nil
   end
+
+  @doc """
+  Resolves a workspace for building a scope.
+
+  If `workspace_id` is given and the user is a member, returns that workspace.
+  Otherwise returns the user's first workspace (by membership inserted_at).
+  """
+  def get_workspace_for_scope(user, workspace_id \\ nil)
+
+  def get_workspace_for_scope(user, workspace_id) when is_binary(workspace_id) do
+    Workspace
+    |> join(:inner, [w], wm in WorkspaceMember,
+      on: wm.workspace_id == w.id and wm.user_id == ^user.id
+    )
+    |> where([w, _wm], w.id == ^workspace_id)
+    |> Repo.one()
+    |> case do
+      nil -> get_workspace_for_scope(user, nil)
+      workspace -> workspace
+    end
+  end
+
+  def get_workspace_for_scope(user, _) do
+    Workspace
+    |> join(:inner, [w], wm in WorkspaceMember,
+      on: wm.workspace_id == w.id and wm.user_id == ^user.id
+    )
+    |> order_by([_w, wm], asc: wm.inserted_at)
+    |> limit(1)
+    |> Repo.one()
+  end
 end
