@@ -40,7 +40,7 @@ defmodule OnesqlxWeb.DataSourceLive.NewTest do
             port: 5432,
             database_name: "analytics",
             username: "reader",
-            password: "secret123"
+            password: "test_fixture_value"
           }
         )
         |> render_submit()

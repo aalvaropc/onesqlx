@@ -8,17 +8,20 @@ defmodule Onesqlx.DataSources.ConnectionTesterTest do
 
   @moduletag timeout: 30_000
 
+  defp repo_config, do: test_db_config()
+
   describe "test_connection/1" do
     test "connects to the local test database" do
       scope = user_scope_fixture()
+      config = repo_config()
 
       ds =
         data_source_fixture(scope, %{
-          host: "localhost",
-          port: 5432,
-          database_name: "onesqlx_test#{System.get_env("MIX_TEST_PARTITION")}",
-          username: "postgres",
-          password: "postgres"
+          host: config[:hostname],
+          port: config[:port] || 5432,
+          database_name: config[:database],
+          username: config[:username],
+          password: config[:password]
         })
 
       assert {:ok, %{latency_ms: latency}} = ConnectionTester.test_connection(ds)
@@ -29,12 +32,14 @@ defmodule Onesqlx.DataSources.ConnectionTesterTest do
 
   describe "test_connection_from_attrs/1" do
     test "connects with valid attributes" do
+      config = repo_config()
+
       attrs = %{
-        "host" => "localhost",
-        "port" => "5432",
-        "database_name" => "onesqlx_test#{System.get_env("MIX_TEST_PARTITION")}",
-        "username" => "postgres",
-        "password" => "postgres",
+        "host" => config[:hostname],
+        "port" => to_string(config[:port] || 5432),
+        "database_name" => config[:database],
+        "username" => config[:username],
+        "password" => config[:password],
         "ssl_enabled" => "false"
       }
 
@@ -43,12 +48,14 @@ defmodule Onesqlx.DataSources.ConnectionTesterTest do
     end
 
     test "returns error for invalid host" do
+      config = repo_config()
+
       attrs = %{
         "host" => "nonexistent.invalid.host",
         "port" => "5432",
         "database_name" => "test",
-        "username" => "postgres",
-        "password" => "postgres"
+        "username" => config[:username],
+        "password" => config[:password]
       }
 
       assert {:error, message} = ConnectionTester.test_connection_from_attrs(attrs)
@@ -56,12 +63,14 @@ defmodule Onesqlx.DataSources.ConnectionTesterTest do
     end
 
     test "returns error for invalid password" do
+      config = repo_config()
+
       attrs = %{
-        "host" => "localhost",
-        "port" => "5432",
-        "database_name" => "onesqlx_test#{System.get_env("MIX_TEST_PARTITION")}",
-        "username" => "postgres",
-        "password" => "wrong_password"
+        "host" => config[:hostname],
+        "port" => to_string(config[:port] || 5432),
+        "database_name" => config[:database],
+        "username" => config[:username],
+        "password" => "wrong_password_#{System.unique_integer([:positive])}"
       }
 
       assert {:error, message} = ConnectionTester.test_connection_from_attrs(attrs)
@@ -69,12 +78,14 @@ defmodule Onesqlx.DataSources.ConnectionTesterTest do
     end
 
     test "returns error for nonexistent database" do
+      config = repo_config()
+
       attrs = %{
-        "host" => "localhost",
-        "port" => "5432",
+        "host" => config[:hostname],
+        "port" => to_string(config[:port] || 5432),
         "database_name" => "nonexistent_db_#{System.unique_integer([:positive])}",
-        "username" => "postgres",
-        "password" => "postgres"
+        "username" => config[:username],
+        "password" => config[:password]
       }
 
       assert {:error, message} = ConnectionTester.test_connection_from_attrs(attrs)

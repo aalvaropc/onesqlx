@@ -6,14 +6,23 @@ defmodule Onesqlx.DataSourcesFixtures do
 
   alias Onesqlx.DataSources
 
+  @doc """
+  Returns the test database connection config from the Repo configuration.
+  """
+  def test_db_config do
+    Application.get_env(:onesqlx, Onesqlx.Repo)
+  end
+
   def valid_data_source_attributes(attrs \\ %{}) do
+    config = test_db_config()
+
     Enum.into(attrs, %{
       name: "test-db-#{System.unique_integer([:positive])}",
-      host: "localhost",
-      port: 5432,
+      host: config[:hostname],
+      port: config[:port] || 5432,
       database_name: "test_db",
-      username: "postgres",
-      password: "postgres"
+      username: config[:username],
+      password: config[:password]
     })
   end
 
