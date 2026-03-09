@@ -85,6 +85,15 @@ defmodule Onesqlx.AccountsTest do
       assert is_nil(user.confirmed_at)
       assert is_nil(user.password)
     end
+
+    test "creates a workspace with owner role on registration" do
+      {:ok, user} = Accounts.register_user(valid_user_attributes())
+
+      workspaces = Onesqlx.Workspaces.list_workspaces_for_user(user)
+      assert [workspace] = workspaces
+      assert workspace.name == "My Workspace"
+      assert Onesqlx.Workspaces.get_member_role(workspace, user) == "owner"
+    end
   end
 
   describe "sudo_mode?/2" do

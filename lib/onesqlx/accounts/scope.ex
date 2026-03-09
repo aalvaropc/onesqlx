@@ -17,8 +17,9 @@ defmodule Onesqlx.Accounts.Scope do
   """
 
   alias Onesqlx.Accounts.User
+  alias Onesqlx.Workspaces.Workspace
 
-  defstruct user: nil
+  defstruct user: nil, workspace: nil
 
   @doc """
   Creates a scope for the given user.
@@ -30,4 +31,11 @@ defmodule Onesqlx.Accounts.Scope do
   end
 
   def for_user(nil), do: nil
+
+  @doc """
+  Creates a scope for the given user and workspace.
+  """
+  def for_user(%User{} = user, %Workspace{} = workspace) do
+    %__MODULE__{user: user, workspace: workspace}
+  end
 end
