@@ -75,9 +75,13 @@ defmodule Onesqlx.Accounts do
 
   """
   def register_user(attrs) do
-    %User{}
-    |> User.email_changeset(attrs)
-    |> Repo.insert()
+    Repo.transact(fn ->
+      with {:ok, user} <- %User{} |> User.email_changeset(attrs) |> Repo.insert(),
+           {:ok, _workspace} <-
+             Onesqlx.Workspaces.create_workspace_with_owner(user, %{name: "My Workspace"}) do
+        {:ok, user}
+      end
+    end)
   end
 
   ## Settings

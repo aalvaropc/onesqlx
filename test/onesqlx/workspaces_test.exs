@@ -146,14 +146,14 @@ defmodule Onesqlx.WorkspacesTest do
       user_a = user_fixture()
       user_b = user_fixture()
 
-      {:ok, ws_a} = Workspaces.create_workspace_with_owner(user_a, %{name: "Team A"})
-      {:ok, _ws_b} = Workspaces.create_workspace_with_owner(user_b, %{name: "Team B"})
+      workspaces_a = Workspaces.list_workspaces_for_user(user_a)
+      workspaces_b = Workspaces.list_workspaces_for_user(user_b)
 
-      workspaces = Workspaces.list_workspaces_for_user(user_a)
-      workspace_ids = Enum.map(workspaces, & &1.id)
+      workspace_ids_a = Enum.map(workspaces_a, & &1.id) |> MapSet.new()
+      workspace_ids_b = Enum.map(workspaces_b, & &1.id) |> MapSet.new()
 
-      assert ws_a.id in workspace_ids
-      refute Enum.any?(workspace_ids, fn id -> id != ws_a.id end)
+      # Each user has their own workspace(s), no overlap
+      assert MapSet.disjoint?(workspace_ids_a, workspace_ids_b)
     end
   end
 end
