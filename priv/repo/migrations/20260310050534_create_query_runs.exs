@@ -4,7 +4,10 @@ defmodule Onesqlx.Repo.Migrations.CreateQueryRuns do
   def change do
     create table(:query_runs, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :workspace_id, references(:workspaces, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :workspace_id, references(:workspaces, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :user_id, references(:users, type: :binary_id, on_delete: :nilify_all)
       add :data_source_id, references(:data_sources, type: :binary_id, on_delete: :nilify_all)
       add :sql, :text, null: false

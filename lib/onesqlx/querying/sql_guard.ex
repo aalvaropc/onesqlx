@@ -118,9 +118,14 @@ defmodule Onesqlx.Querying.SqlGuard do
     end
   end
 
-  defp skip_balanced_parens(<<?(, rest::binary>>, depth), do: skip_balanced_parens(rest, depth + 1)
+  defp skip_balanced_parens(<<?(, rest::binary>>, depth),
+    do: skip_balanced_parens(rest, depth + 1)
+
   defp skip_balanced_parens(<<?), rest::binary>>, 1), do: {:ok, rest}
-  defp skip_balanced_parens(<<?), rest::binary>>, depth), do: skip_balanced_parens(rest, depth - 1)
+
+  defp skip_balanced_parens(<<?), rest::binary>>, depth),
+    do: skip_balanced_parens(rest, depth - 1)
+
   defp skip_balanced_parens(<<_, rest::binary>>, depth), do: skip_balanced_parens(rest, depth)
   defp skip_balanced_parens(<<>>, _depth), do: :error
 
