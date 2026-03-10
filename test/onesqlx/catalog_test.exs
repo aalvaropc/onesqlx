@@ -232,6 +232,36 @@ defmodule Onesqlx.CatalogTest do
     end
   end
 
+  describe "autocomplete_schema/2" do
+    test "returns schema.table and table to columns map", %{
+      scope: scope,
+      data_source: data_source
+    } do
+      schema = catalog_schema_fixture(data_source, %{name: "public"})
+      table = catalog_table_fixture(data_source, schema, %{name: "users"})
+      catalog_column_fixture(data_source, table, %{name: "id", ordinal_position: 1})
+      catalog_column_fixture(data_source, table, %{name: "email", ordinal_position: 2})
+
+      result = Catalog.autocomplete_schema(scope, data_source.id)
+
+      assert result["public.users"] == ["id", "email"]
+      assert result["users"] == ["id", "email"]
+    end
+
+    test "returns empty map when no catalog data", %{scope: scope, data_source: data_source} do
+      assert Catalog.autocomplete_schema(scope, data_source.id) == %{}
+    end
+
+    test "enforces workspace isolation", %{data_source: data_source} do
+      schema = catalog_schema_fixture(data_source, %{name: "public"})
+      table = catalog_table_fixture(data_source, schema, %{name: "users"})
+      catalog_column_fixture(data_source, table, %{name: "id", ordinal_position: 1})
+
+      other_scope = user_scope_fixture()
+      assert Catalog.autocomplete_schema(other_scope, data_source.id) == %{}
+    end
+  end
+
   describe "delete_catalog/1" do
     test "removes all catalog data for a data source", %{
       scope: scope,
