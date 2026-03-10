@@ -58,6 +58,7 @@ defmodule OnesqlxWeb.Router do
       live "/data-sources", DataSourceLive.Index, :index
       live "/data-sources/new", DataSourceLive.New, :new
       live "/data-sources/:data_source_id/catalog", CatalogLive.Explorer, :index
+      live "/sql-editor", SqlEditorLive, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password

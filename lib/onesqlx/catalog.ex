@@ -170,6 +170,34 @@ defmodule Onesqlx.Catalog do
   end
 
   @doc """
+  Returns a schema map for CodeMirror SQL autocomplete.
+
+  Returns `%{"schema.table" => [column_names], "table" => [column_names]}` —
+  the format CodeMirror's `sql()` `schema` option expects.
+  """
+  def autocomplete_schema(%Scope{} = scope, data_source_id) do
+    query =
+      from cs in CatalogSchema,
+        join: ds in DataSource,
+        on: cs.data_source_id == ds.id and ds.workspace_id == ^scope.workspace.id,
+        join: ct in CatalogTable,
+        on: ct.catalog_schema_id == cs.id,
+        join: cc in CatalogColumn,
+        on: cc.catalog_table_id == ct.id,
+        where: cs.data_source_id == ^data_source_id,
+        select: {cs.name, ct.name, cc.name},
+        order_by: [cs.name, ct.name, cc.ordinal_position]
+
+    query
+    |> Repo.all()
+    |> Enum.group_by(fn {schema, table, _col} -> {schema, table} end, fn {_s, _t, col} -> col end)
+    |> Enum.flat_map(fn {{schema, table}, columns} ->
+      [{schema <> "." <> table, columns}, {table, columns}]
+    end)
+    |> Map.new()
+  end
+
+  @doc """
   Deletes all catalog metadata for a data source.
   """
   def delete_catalog(%DataSource{} = data_source) do
