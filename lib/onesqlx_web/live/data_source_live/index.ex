@@ -38,6 +38,11 @@ defmodule OnesqlxWeb.DataSourceLive.Index do
             {ds.status}
           </span>
         </:col>
+        <:col :let={{_id, ds}} label="">
+          <.link navigate={~p"/data-sources/#{ds.id}/catalog"} class="link link-primary text-sm">
+            Explore
+          </.link>
+        </:col>
       </.table>
 
       <div :if={!@has_data_sources?} class="text-center py-12">
