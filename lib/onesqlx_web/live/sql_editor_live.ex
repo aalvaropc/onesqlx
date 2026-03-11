@@ -9,6 +9,8 @@ defmodule OnesqlxWeb.SqlEditorLive do
   alias Onesqlx.Catalog
   alias Onesqlx.DataSources
   alias Onesqlx.Querying
+  alias Onesqlx.SavedQueries
+  alias Onesqlx.SavedQueries.SavedQuery
 
   @impl true
   def render(assigns) do
@@ -43,6 +45,17 @@ defmodule OnesqlxWeb.SqlEditorLive do
           >
             <span :if={@running?} class="loading loading-spinner loading-xs"></span>
             {if @running?, do: "Running...", else: "Run"}
+          </button>
+
+          <button
+            phx-click="open_save_modal"
+            disabled={@selected_data_source_id == nil || @sql == ""}
+            class={[
+              "btn btn-sm",
+              (@selected_data_source_id == nil || @sql == "") && "btn-disabled"
+            ]}
+          >
+            Save
           </button>
 
           <span class="text-xs text-base-content/50">Ctrl+Enter to run</span>
@@ -174,6 +187,28 @@ defmodule OnesqlxWeb.SqlEditorLive do
           </div>
         </div>
       </div>
+      <%!-- Save Query Modal --%>
+      <div :if={@show_save_modal?} class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="fixed inset-0 bg-black/50" phx-click="close_save_modal"></div>
+        <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
+          <h3 class="text-lg font-semibold mb-4">Save Query</h3>
+          <.form
+            for={@save_form}
+            id="save-query-form"
+            phx-submit="save_query"
+            phx-change="validate_save"
+          >
+            <.input field={@save_form[:title]} type="text" label="Title" required />
+            <.input field={@save_form[:description]} type="textarea" label="Description (optional)" />
+            <div class="flex justify-end gap-2 mt-4">
+              <button type="button" phx-click="close_save_modal" class="btn btn-sm">
+                Cancel
+              </button>
+              <.button variant="primary" phx-disable-with="Saving...">Save</.button>
+            </div>
+          </.form>
+        </div>
+      </div>
     </Layouts.app>
     """
   end
@@ -192,7 +227,9 @@ defmodule OnesqlxWeb.SqlEditorLive do
         running?: false,
         result: nil,
         error: nil,
-        active_tab: :results
+        active_tab: :results,
+        show_save_modal?: false,
+        save_form: nil
       )
       |> stream(:history, [])
 
@@ -275,6 +312,47 @@ defmodule OnesqlxWeb.SqlEditorLive do
       end
 
     {:noreply, socket}
+  end
+
+  def handle_event("open_save_modal", _params, socket) do
+    changeset = SavedQueries.change_saved_query(%SavedQuery{})
+    form = to_form(changeset, as: "saved_query")
+    {:noreply, assign(socket, show_save_modal?: true, save_form: form)}
+  end
+
+  def handle_event("close_save_modal", _params, socket) do
+    {:noreply, assign(socket, show_save_modal?: false, save_form: nil)}
+  end
+
+  def handle_event("validate_save", %{"saved_query" => params}, socket) do
+    changeset =
+      %SavedQuery{}
+      |> SavedQueries.change_saved_query(params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, save_form: to_form(changeset, as: "saved_query"))}
+  end
+
+  def handle_event("save_query", %{"saved_query" => params}, socket) do
+    scope = socket.assigns.current_scope
+
+    attrs =
+      Map.merge(params, %{
+        "sql" => socket.assigns.sql,
+        "data_source_id" => socket.assigns.selected_data_source_id,
+        "user_id" => scope.user.id
+      })
+
+    case SavedQueries.create_saved_query(scope, attrs) do
+      {:ok, _saved_query} ->
+        {:noreply,
+         socket
+         |> assign(show_save_modal?: false, save_form: nil)
+         |> put_flash(:info, "Query saved successfully.")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, save_form: to_form(changeset, as: "saved_query"))}
+    end
   end
 
   @impl true

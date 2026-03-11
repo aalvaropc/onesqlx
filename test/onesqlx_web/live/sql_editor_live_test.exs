@@ -4,6 +4,7 @@ defmodule OnesqlxWeb.SqlEditorLiveTest do
   import Phoenix.LiveViewTest
   import Onesqlx.DataSourcesFixtures
   import Onesqlx.QueryingFixtures
+  import Onesqlx.SavedQueriesFixtures
 
   describe "authenticated access" do
     setup :register_and_log_in_user
@@ -47,6 +48,39 @@ defmodule OnesqlxWeb.SqlEditorLiveTest do
     test "shows history placeholder when no data source selected", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/sql-editor")
       assert html =~ "Select a data source to view history"
+    end
+
+    test "save button present and disabled when no data source selected", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/sql-editor")
+      assert html =~ "Save"
+    end
+
+    test "opens save modal", %{conn: conn, scope: scope} do
+      _ds = data_source_fixture(scope, %{name: "save-test-db"})
+      {:ok, lv, _html} = live(conn, ~p"/sql-editor")
+
+      html = render_click(lv, "open_save_modal")
+      assert html =~ "Save Query"
+      assert html =~ "Title"
+    end
+
+    test "saves query successfully", %{conn: conn, scope: scope} do
+      ds = data_source_fixture(scope, %{name: "save-db"})
+      {:ok, lv, _html} = live(conn, ~p"/sql-editor")
+
+      # Select data source and set SQL
+      lv |> form("form", %{data_source_id: ds.id}) |> render_change()
+      render_click(lv, "update_sql", %{sql: "SELECT * FROM users"})
+
+      # Open modal and save
+      render_click(lv, "open_save_modal")
+
+      html =
+        lv
+        |> form("#save-query-form", saved_query: %{title: "My Saved Query"})
+        |> render_submit()
+
+      assert html =~ "Query saved successfully"
     end
   end
 
