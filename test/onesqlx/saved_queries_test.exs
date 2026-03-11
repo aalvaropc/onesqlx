@@ -63,18 +63,21 @@ defmodule Onesqlx.SavedQueriesTest do
       scope: scope,
       data_source: data_source
     } do
-      q1 = saved_query_fixture(scope, data_source, %{title: "First"})
-      q2 = saved_query_fixture(scope, data_source, %{title: "Second"})
+      q1 = saved_query_fixture(scope, data_source, %{title: "Older"})
+      q2 = saved_query_fixture(scope, data_source, %{title: "Newer"})
 
-      # Touch q1 to make it most recently updated
-      {:ok, _} = SavedQueries.update_saved_query(scope, q1, %{description: "updated"})
+      # Force distinct timestamps since utc_datetime has second precision
+      past = DateTime.add(DateTime.utc_now(:second), -60, :second)
+
+      Repo.update_all(
+        from(sq in SavedQueries.SavedQuery, where: sq.id == ^q1.id),
+        set: [updated_at: past]
+      )
 
       result = SavedQueries.list_saved_queries(scope)
       assert [first, second] = result
-      assert first.title == "First"
-      assert second.title == "Second"
-      assert first.id == q1.id
-      assert second.id == q2.id
+      assert first.id == q2.id
+      assert second.id == q1.id
     end
 
     test "enforces workspace isolation", %{scope: scope, data_source: data_source} do

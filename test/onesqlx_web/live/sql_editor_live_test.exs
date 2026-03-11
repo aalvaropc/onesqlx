@@ -84,6 +84,30 @@ defmodule OnesqlxWeb.SqlEditorLiveTest do
     end
   end
 
+  describe "loading saved queries" do
+    setup :register_and_log_in_user
+
+    test "loads saved query from query params", %{conn: conn, scope: scope} do
+      ds = data_source_fixture(scope, %{name: "saved-query-db"})
+
+      saved_query =
+        saved_query_fixture(scope, ds, %{title: "My Query", sql: "SELECT * FROM users"})
+
+      {:ok, _lv, html} = live(conn, ~p"/sql-editor?saved_query_id=#{saved_query.id}")
+      assert html =~ "saved-query-db"
+    end
+
+    test "raises for saved query from different workspace", %{conn: conn} do
+      other_scope = Onesqlx.AccountsFixtures.user_scope_fixture()
+      other_ds = data_source_fixture(other_scope, %{name: "other-db"})
+      saved_query = saved_query_fixture(other_scope, other_ds, %{title: "Other", sql: "SELECT 1"})
+
+      assert_raise Ecto.NoResultsError, fn ->
+        live(conn, ~p"/sql-editor?saved_query_id=#{saved_query.id}")
+      end
+    end
+  end
+
   describe "unauthenticated access" do
     test "redirects to login", %{conn: conn} do
       assert {:error, redirect} = live(conn, ~p"/sql-editor")

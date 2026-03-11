@@ -237,6 +237,13 @@ defmodule OnesqlxWeb.SqlEditorLive do
   end
 
   @impl true
+  def handle_params(%{"saved_query_id" => id}, _uri, socket) do
+    {:noreply, load_saved_query(socket, id)}
+  end
+
+  def handle_params(_params, _uri, socket), do: {:noreply, socket}
+
+  @impl true
   def handle_event("select_data_source", %{"data_source_id" => ""}, socket) do
     socket =
       socket
@@ -381,6 +388,34 @@ defmodule OnesqlxWeb.SqlEditorLive do
       |> refresh_history()
 
     {:noreply, socket}
+  end
+
+  defp load_saved_query(socket, saved_query_id) do
+    scope = socket.assigns.current_scope
+    saved_query = SavedQueries.get_saved_query!(scope, saved_query_id)
+
+    socket =
+      socket
+      |> assign(sql: saved_query.sql)
+      |> push_event("set_sql", %{sql: saved_query.sql})
+
+    if saved_query.data_source_id do
+      ds_id = saved_query.data_source_id
+      runs = Querying.list_recent_runs(scope, ds_id)
+
+      schema_map =
+        case Catalog.autocomplete_schema(scope, ds_id) do
+          map when is_map(map) -> map
+          _ -> %{}
+        end
+
+      socket
+      |> assign(selected_data_source_id: ds_id, result: nil, error: nil)
+      |> stream(:history, runs, reset: true)
+      |> push_event("set_catalog", %{schema: schema_map})
+    else
+      socket
+    end
   end
 
   defp refresh_history(socket) do
