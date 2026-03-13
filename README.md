@@ -69,23 +69,26 @@ The domain is organized into 9 contexts under `lib/onesqlx/`:
 
 ### Prerequisites
 
-- Elixir >= 1.15
-- Erlang/OTP >= 26
-- PostgreSQL 17 (via Docker or local)
-- Node.js (for esbuild/tailwind, automatically installed by Mix)
+- **[asdf](https://asdf-vm.com/) or [mise](https://mise.jdx.dev/)** — version manager (versions pinned in `.tool-versions`)
+- **Docker & Docker Compose** — for PostgreSQL
+- **Make** — build automation (pre-installed on macOS/Linux)
 
-### Setup
+Install the correct tool versions:
 
 ```bash
-# 1. Start PostgreSQL with Docker
-docker-compose up -d
-
-# 2. Install dependencies, create DB, run migrations, and build assets
-mix setup
-
-# 3. Start the development server
-mix phx.server
+asdf install   # or: mise install
 ```
+
+### Quick Start
+
+```bash
+git clone https://github.com/aalvaropc/onesqlx.git
+cd onesqlx
+make setup
+make start
+```
+
+`make setup` will start PostgreSQL containers (dev + external test DB), configure git hooks, install dependencies, create and migrate the database, and build assets.
 
 The server will be available at [localhost:4000](http://localhost:4000).
 
@@ -93,19 +96,45 @@ The server will be available at [localhost:4000](http://localhost:4000).
 
 | Command | Description |
 |---|---|
-| `mix setup` | Full setup (deps, DB, migrations, assets) |
-| `mix phx.server` | Start development server |
-| `mix test` | Run all tests |
-| `mix test test/path_test.exs` | Run a specific test file |
-| `mix test --failed` | Re-run previously failed tests |
-| `mix precommit` | Local CI: compile, deps, format, credo, test |
-| `mix credo --strict` | Static analysis with Credo |
-| `mix ecto.migrate` | Run pending migrations |
-| `mix ecto.reset` | Drop and recreate the database |
-| `mix ecto.gen.migration name` | Generate a new migration |
-| `docker-compose up -d` | Start PostgreSQL 17 |
+| `make setup` | Full setup (Docker + deps + DB + assets + git hooks) |
+| `make start` | Start the Phoenix server |
+| `make test` | Run the test suite (unit tests) |
+| `make test.integration` | Run integration tests (requires Docker) |
+| `make lint` | Check formatting + Credo |
+| `make precommit` | Full check (compile + format + credo + test) |
+| `make cover` | Run tests with coverage report |
+| `make db` | Start database containers |
+| `make db.stop` | Stop database containers |
+| `make db.reset` | Drop and recreate the dev database |
+| `make help` | List all available commands |
+
+### Testing
+
+```bash
+# Unit tests (no Docker required — external connections are mocked)
+make test
+
+# Integration tests (requires Docker containers running)
+make test.integration
+
+# With coverage
+make cover
+```
+
+Tests use Ecto SQL Sandbox for isolation. Integration tests that connect to external databases are tagged with `@moduletag :integration` and excluded by default.
+
+### Git Hooks
+
+Pre-commit hooks are configured automatically by `make setup`. They check code formatting, compilation without warnings, and static analysis (`mix credo --strict`).
+
+To manually configure:
+```bash
+git config core.hooksPath .githooks
+```
 
 ### Environment Variables
+
+See `.env.example` for all available variables. Phoenix uses `config/runtime.exs` — no `.env` loader is needed.
 
 | Variable | Description | Default |
 |---|---|---|

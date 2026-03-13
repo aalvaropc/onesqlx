@@ -17,8 +17,7 @@ defmodule Onesqlx.Application do
       # Start to serve requests, typically the last entry
       OnesqlxWeb.Endpoint,
       {Finch, name: Onesqlx.Finch},
-      {Oban, Application.fetch_env!(:onesqlx, Oban)},
-
+      {Oban, Application.fetch_env!(:onesqlx, Oban)}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
