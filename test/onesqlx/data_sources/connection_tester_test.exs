@@ -6,7 +6,16 @@ defmodule Onesqlx.DataSources.ConnectionTesterTest do
   import Onesqlx.AccountsFixtures
   import Onesqlx.DataSourcesFixtures
 
+  @moduletag :integration
   @moduletag timeout: 30_000
+
+  setup do
+    Application.put_env(:onesqlx, :connection_module, Onesqlx.DataSources.Connection.Postgrex)
+
+    on_exit(fn ->
+      Application.put_env(:onesqlx, :connection_module, Onesqlx.DataSources.MockConnection)
+    end)
+  end
 
   defp repo_config, do: test_db_config()
 

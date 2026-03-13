@@ -1,12 +1,20 @@
 defmodule Onesqlx.Querying.ExecutorTest do
   use Onesqlx.DataCase, async: false
 
+  @moduletag :integration
+
   alias Onesqlx.Querying.Executor
 
   import Onesqlx.AccountsFixtures
   import Onesqlx.DataSourcesFixtures
 
   setup do
+    Application.put_env(:onesqlx, :connection_module, Onesqlx.DataSources.Connection.Postgrex)
+
+    on_exit(fn ->
+      Application.put_env(:onesqlx, :connection_module, Onesqlx.DataSources.MockConnection)
+    end)
+
     scope = user_scope_fixture()
 
     # Create a data source pointing at the test database itself

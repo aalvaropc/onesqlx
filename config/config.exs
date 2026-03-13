@@ -32,7 +32,8 @@ config :onesqlx, :scopes,
 
 config :onesqlx,
   ecto_repos: [Onesqlx.Repo],
-  generators: [timestamp_type: :utc_datetime, binary_id: true]
+  generators: [timestamp_type: :utc_datetime, binary_id: true],
+  connection_module: Onesqlx.DataSources.Connection.Postgrex
 
 # Configure the endpoint
 config :onesqlx, OnesqlxWeb.Endpoint,
