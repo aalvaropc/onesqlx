@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "🔍 Running pre-commit checks..."
+
+echo "  Checking formatting..."
+mix format --check-formatted
+
+echo "  Compiling (warnings as errors)..."
+mix compile --warnings-as-errors --all-warnings
+
+echo "  Running Credo..."
+mix credo --strict
+
+echo "✅ All pre-commit checks passed!"

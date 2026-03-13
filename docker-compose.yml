@@ -10,6 +10,29 @@ services:
       - "5432:5432"
     volumes:
       - onesqlx_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db_external:
+    image: postgres:17
+    container_name: onesqlx_db_external
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: external_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - onesqlx_pg_external_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   onesqlx_pg_data:
+  onesqlx_pg_external_data:
