@@ -13,10 +13,6 @@ defmodule Onesqlx.Dashboards do
   alias Onesqlx.Dashboards.DashboardCard
   alias Onesqlx.Repo
 
-  # ---------------------------------------------------------------------------
-  # Dashboard functions
-  # ---------------------------------------------------------------------------
-
   @doc """
   Lists all dashboards for the workspace, ordered by updated_at desc.
   """
@@ -81,10 +77,6 @@ defmodule Onesqlx.Dashboards do
   def change_dashboard(%Dashboard{} = dashboard, attrs \\ %{}) do
     Dashboard.changeset(dashboard, attrs)
   end
-
-  # ---------------------------------------------------------------------------
-  # DashboardCard functions
-  # ---------------------------------------------------------------------------
 
   @doc """
   Adds a card to a dashboard. Position is set to max(position) + 1.
@@ -188,10 +180,6 @@ defmodule Onesqlx.Dashboards do
   def change_card(%DashboardCard{} = card, attrs \\ %{}) do
     DashboardCard.changeset(card, attrs)
   end
-
-  # ---------------------------------------------------------------------------
-  # Private helpers
-  # ---------------------------------------------------------------------------
 
   defp ordered_cards_query do
     from(c in DashboardCard,

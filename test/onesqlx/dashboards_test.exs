@@ -13,10 +13,6 @@ defmodule Onesqlx.DashboardsTest do
     %{scope: scope}
   end
 
-  # ---------------------------------------------------------------------------
-  # Task 8.1 — Dashboard CRUD
-  # ---------------------------------------------------------------------------
-
   describe "create_dashboard/2" do
     test "creates with valid attributes", %{scope: scope} do
       attrs = valid_dashboard_attributes(%{title: "My Dashboard"})
@@ -129,10 +125,6 @@ defmodule Onesqlx.DashboardsTest do
       assert %Ecto.Changeset{} = changeset
     end
   end
-
-  # ---------------------------------------------------------------------------
-  # Task 8.2 — DashboardCard CRUD
-  # ---------------------------------------------------------------------------
 
   describe "add_card/3" do
     setup %{scope: scope} do
