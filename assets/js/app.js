@@ -24,13 +24,14 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/onesqlx"
 import {SqlEditor} from "./hooks/sql_editor"
+import {ChartCard} from "./hooks/chart_card"
 import topbar from "../vendor/topbar"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, SqlEditor},
+  hooks: {...colocatedHooks, SqlEditor, ChartCard},
 })
 
 // Show progress bar on live navigation and form submits
