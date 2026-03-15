@@ -56,7 +56,7 @@ defmodule OnesqlxWeb.UserLive.LoginTest do
 
       conn = submit_form(form, conn)
 
-      assert redirected_to(conn) == ~p"/dashboard"
+      assert redirected_to(conn) == ~p"/dashboards"
     end
 
     test "redirects to login page with a flash error if credentials are invalid", %{
