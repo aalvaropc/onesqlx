@@ -52,7 +52,8 @@ defmodule OnesqlxWeb.Router do
 
     live_session :require_authenticated_user,
       on_mount: [{OnesqlxWeb.UserAuth, :require_authenticated}] do
-      live "/dashboard", DashboardLive, :index
+      live "/dashboards", DashboardLive.Index, :index
+      live "/dashboards/:id", DashboardLive.Show, :show
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
       live "/data-sources", DataSourceLive.Index, :index
