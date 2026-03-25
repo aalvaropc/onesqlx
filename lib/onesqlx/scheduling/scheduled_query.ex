@@ -9,6 +9,8 @@ defmodule Onesqlx.Scheduling.ScheduledQuery do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Onesqlx.Scheduling.CronParser
+
   @valid_schedule_types ~w(hourly daily weekly cron)
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -74,8 +76,7 @@ defmodule Onesqlx.Scheduling.ScheduledQuery do
   end
 
   defp valid_cron_format?(expression) when is_binary(expression) do
-    parts = String.split(expression)
-    length(parts) == 5
+    CronParser.valid?(expression)
   end
 
   defp valid_cron_format?(_), do: false

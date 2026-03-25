@@ -10,6 +10,7 @@ defmodule Onesqlx.Scheduling do
 
   alias Onesqlx.Accounts.Scope
   alias Onesqlx.Repo
+  alias Onesqlx.Scheduling.CronParser
   alias Onesqlx.Scheduling.ScheduledQuery
   alias Onesqlx.Scheduling.ScheduledQueryRun
 
@@ -180,7 +181,7 @@ defmodule Onesqlx.Scheduling do
   end
 
   @doc false
-  def compute_next_run_at(schedule_type, _cron_expression \\ nil) do
+  def compute_next_run_at(schedule_type, cron_expression \\ nil) do
     now = DateTime.utc_now(:second)
 
     case schedule_type do
@@ -202,9 +203,11 @@ defmodule Onesqlx.Scheduling do
         |> Map.merge(%{hour: 0, minute: 0, second: 0})
         |> DateTime.truncate(:second)
 
-      "cron" ->
-        # Placeholder: will be replaced by CronParser in Task 9.4
-        now |> DateTime.add(3600, :second) |> DateTime.truncate(:second)
+      "cron" when is_binary(cron_expression) ->
+        case CronParser.next_occurrence(cron_expression, now) do
+          {:ok, next} -> next
+          {:error, _} -> now |> DateTime.add(3600, :second) |> DateTime.truncate(:second)
+        end
 
       _ ->
         now |> DateTime.add(86_400, :second) |> DateTime.truncate(:second)
