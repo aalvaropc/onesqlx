@@ -26,6 +26,7 @@ defmodule Onesqlx.Scheduling.ScheduledQuery do
     belongs_to :workspace, Onesqlx.Workspaces.Workspace
     belongs_to :user, Onesqlx.Accounts.User
     belongs_to :saved_query, Onesqlx.SavedQueries.SavedQuery
+    has_many :runs, Onesqlx.Scheduling.ScheduledQueryRun
 
     timestamps(type: :utc_datetime)
   end
