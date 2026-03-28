@@ -37,32 +37,89 @@ defmodule OnesqlxWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">OneSQLx</span>
-        </a>
+    <div :if={@current_scope && @current_scope.user} class="flex h-screen">
+      <nav class="w-56 flex-shrink-0 border-r border-base-300 flex flex-col bg-base-200">
+        <div class="p-4 border-b border-base-300">
+          <a href="/" class="flex items-center gap-2">
+            <img src={~p"/images/logo.svg"} width="28" />
+            <span class="text-sm font-bold">OneSQLx</span>
+          </a>
+          <p :if={@current_scope.workspace} class="text-xs text-base-content/50 mt-1 truncate">
+            {@current_scope.workspace.name}
+          </p>
+        </div>
+        <div class="flex-1 overflow-y-auto p-2 space-y-1">
+          <.nav_link href={~p"/sql-editor"} icon="hero-command-line" label="SQL Editor" />
+          <.nav_link href={~p"/saved-queries"} icon="hero-bookmark" label="Saved Queries" />
+          <.nav_link href={~p"/dashboards"} icon="hero-chart-bar-square" label="Dashboards" />
+          <.nav_link href={~p"/schedules"} icon="hero-clock" label="Schedules" />
+          <.nav_link href={~p"/data-sources"} icon="hero-circle-stack" label="Data Sources" />
+          <.nav_link href={~p"/analytics"} icon="hero-chart-pie" label="Analytics" />
+        </div>
+        <div class="p-2 border-t border-base-300 space-y-1">
+          <.nav_link href={~p"/workspace/settings"} icon="hero-cog-6-tooth" label="Workspace" />
+          <.nav_link href={~p"/settings/api-tokens"} icon="hero-key" label="API Tokens" />
+          <.nav_link href={~p"/users/settings"} icon="hero-user" label="Account" />
+          <div class="px-3 py-1">
+            <.link
+              href={~p"/users/log-out"}
+              method="delete"
+              class="text-xs text-base-content/50 hover:text-error"
+            >
+              Sign Out
+            </.link>
+          </div>
+        </div>
+      </nav>
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <main class="flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-8">
+          <div class={["mx-auto space-y-4", (@wide && "max-w-7xl") || "max-w-5xl"]}>
+            {render_slot(@inner_block)}
+          </div>
+        </main>
       </div>
-      <div class="flex-none">
-        <ul class="flex flex-column px-1 space-x-4 items-center">
-          <li>
-            <a href="https://github.com/aalvaropc/onesqlx" class="btn btn-ghost">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-        </ul>
-      </div>
-    </header>
+    </div>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class={["mx-auto space-y-4", (@wide && "max-w-7xl") || "max-w-2xl"]}>
-        {render_slot(@inner_block)}
-      </div>
-    </main>
+    <div :if={!@current_scope || !@current_scope.user}>
+      <header class="navbar px-4 sm:px-6 lg:px-8">
+        <div class="flex-1">
+          <a href="/" class="flex-1 flex w-fit items-center gap-2">
+            <img src={~p"/images/logo.svg"} width="36" />
+            <span class="text-sm font-semibold">OneSQLx</span>
+          </a>
+        </div>
+        <div class="flex-none">
+          <ul class="flex flex-column px-1 space-x-4 items-center">
+            <li>
+              <a href="https://github.com/aalvaropc/onesqlx" class="btn btn-ghost">GitHub</a>
+            </li>
+            <li>
+              <.theme_toggle />
+            </li>
+          </ul>
+        </div>
+      </header>
+
+      <main class="px-4 py-20 sm:px-6 lg:px-8">
+        <div class={["mx-auto space-y-4", (@wide && "max-w-7xl") || "max-w-2xl"]}>
+          {render_slot(@inner_block)}
+        </div>
+      </main>
+    </div>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  defp nav_link(assigns) do
+    ~H"""
+    <.link
+      navigate={@href}
+      class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-base-300 transition-colors"
+    >
+      <.icon name={@icon} class="size-4" />
+      <span>{@label}</span>
+    </.link>
     """
   end
 
