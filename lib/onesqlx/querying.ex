@@ -9,6 +9,7 @@ defmodule Onesqlx.Querying do
   import Ecto.Query
 
   alias Onesqlx.Accounts.Scope
+  alias Onesqlx.Audit
   alias Onesqlx.DataSources.DataSource
   alias Onesqlx.Querying.Executor
   alias Onesqlx.Querying.QueryRun
@@ -27,6 +28,8 @@ defmodule Onesqlx.Querying do
 
     run_attrs = build_run_attrs(scope, data_source, sql, result, duration_ms, started_at)
     {:ok, _run} = record_query_run(scope, run_attrs)
+
+    emit_audit(scope, data_source, sql, run_attrs)
 
     result
   end
@@ -66,6 +69,16 @@ defmodule Onesqlx.Querying do
     QueryRun
     |> where(workspace_id: ^scope.workspace.id, id: ^id)
     |> Repo.one!()
+  end
+
+  defp emit_audit(scope, data_source, sql, run_attrs) do
+    Task.start(fn ->
+      Audit.record_event(scope, "query.executed", %{
+        resource_type: "data_source",
+        resource_id: data_source.id,
+        metadata: %{sql_preview: String.slice(sql, 0, 200), status: run_attrs.status}
+      })
+    end)
   end
 
   defp build_run_attrs(scope, data_source, sql, result, duration_ms, started_at) do
