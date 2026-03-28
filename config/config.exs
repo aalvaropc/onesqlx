@@ -14,7 +14,8 @@ config :onesqlx, Oban,
     Oban.Plugins.Pruner,
     {Oban.Plugins.Cron,
      crontab: [
-       {"* * * * *", Onesqlx.Scheduling.EnqueueDueWorker}
+       {"* * * * *", Onesqlx.Scheduling.EnqueueDueWorker},
+       {"0 3 * * *", Onesqlx.Maintenance.CleanupWorker}
      ]}
   ],
   queues: [
