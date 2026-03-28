@@ -363,8 +363,10 @@ defmodule OnesqlxWeb.DashboardLive.Show do
   defp maybe_start_card_async(socket, card) do
     case card do
       %{saved_query: %{data_source: data_source, sql: sql}} when not is_nil(data_source) ->
+        params = get_in(card.config, ["params"]) || %{}
+
         start_async(socket, {:execute_card, card.id}, fn ->
-          Executor.execute(data_source, sql, [])
+          Executor.execute(data_source, sql, params: params)
         end)
 
       _ ->
