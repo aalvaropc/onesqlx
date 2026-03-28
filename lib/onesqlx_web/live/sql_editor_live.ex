@@ -59,6 +59,21 @@ defmodule OnesqlxWeb.SqlEditorLive do
             Save
           </button>
 
+          <form
+            :if={@result && @selected_data_source_id}
+            action={~p"/exports/csv"}
+            method="post"
+            class="inline"
+          >
+            <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+            <input type="hidden" name="data_source_id" value={@selected_data_source_id} />
+            <input type="hidden" name="sql" value={@sql} />
+            <input type="hidden" name="label" value="sql_editor" />
+            <button type="submit" class="btn btn-sm">
+              <.icon name="hero-arrow-down-tray" class="size-4" /> CSV
+            </button>
+          </form>
+
           <span class="text-xs text-base-content/50">Ctrl+Enter to run</span>
         </div>
 
