@@ -23,10 +23,14 @@ defmodule OnesqlxWeb.Router do
     get "/", PageController, :home
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", OnesqlxWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", OnesqlxWeb.Api do
+    pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth]
+
+    resources "/saved-queries", SavedQueryController, only: [:index, :show]
+    post "/saved-queries/:id/execute", SavedQueryController, :execute
+    resources "/dashboards", DashboardController, only: [:index, :show]
+    resources "/data-sources", DataSourceController, only: [:index]
+  end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:onesqlx, :dev_routes) do
