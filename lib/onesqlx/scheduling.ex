@@ -46,6 +46,19 @@ defmodule Onesqlx.Scheduling do
   end
 
   @doc """
+  Gets a scheduled query by ID without workspace scoping.
+
+  Used by system-level workers (Oban jobs) that don't have a user scope.
+  Preloads saved_query with data_source.
+  Raises `Ecto.NoResultsError` if not found.
+  """
+  def get_scheduled_query_for_execution!(id) do
+    ScheduledQuery
+    |> Repo.get!(id)
+    |> Repo.preload(saved_query: :data_source)
+  end
+
+  @doc """
   Creates a scheduled query for the workspace in the given scope.
 
   Sets workspace_id and user_id from scope. Computes initial next_run_at.
