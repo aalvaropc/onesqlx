@@ -17,6 +17,7 @@ defmodule Onesqlx.SavedQueries.SavedQuery do
     field :sql, :string
     field :tags, {:array, :string}, default: []
     field :is_favorite, :boolean, default: false
+    field :collection, :string
 
     belongs_to :workspace, Onesqlx.Workspaces.Workspace
     belongs_to :user, Onesqlx.Accounts.User
@@ -26,7 +27,7 @@ defmodule Onesqlx.SavedQueries.SavedQuery do
   end
 
   @required_fields [:title, :sql]
-  @optional_fields [:description, :tags, :is_favorite, :user_id, :data_source_id]
+  @optional_fields [:description, :tags, :is_favorite, :user_id, :data_source_id, :collection]
 
   def changeset(saved_query, attrs) do
     saved_query
