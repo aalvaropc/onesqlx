@@ -10,6 +10,13 @@ import Config
 config :onesqlx, Oban,
   engine: Oban.Engines.Basic,
   repo: Onesqlx.Repo,
+  plugins: [
+    Oban.Plugins.Pruner,
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"* * * * *", Onesqlx.Scheduling.EnqueueDueWorker}
+     ]}
+  ],
   queues: [
     default: 10,
     catalog_sync: 5,
