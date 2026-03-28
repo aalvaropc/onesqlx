@@ -30,6 +30,7 @@ defmodule Onesqlx.SavedQueries do
     |> maybe_filter_favorites(opts[:favorites_only])
     |> maybe_filter_data_source(opts[:data_source_id])
     |> maybe_filter_tag(opts[:tag])
+    |> maybe_filter_collection(opts[:collection])
     |> order_by(desc: :updated_at)
     |> preload(:data_source)
     |> Repo.all()
@@ -135,4 +136,22 @@ defmodule Onesqlx.SavedQueries do
 
   defp maybe_filter_tag(query, nil), do: query
   defp maybe_filter_tag(query, tag), do: where(query, [q], ^tag in q.tags)
+
+  defp maybe_filter_collection(query, nil), do: query
+
+  defp maybe_filter_collection(query, collection),
+    do: where(query, [q], q.collection == ^collection)
+
+  @doc """
+  Lists distinct collection names for the workspace.
+  """
+  def list_collections(%Scope{} = scope) do
+    SavedQuery
+    |> where(workspace_id: ^scope.workspace.id)
+    |> where([q], not is_nil(q.collection))
+    |> select([q], q.collection)
+    |> distinct(true)
+    |> order_by(:collection)
+    |> Repo.all()
+  end
 end
