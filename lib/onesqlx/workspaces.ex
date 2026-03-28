@@ -81,6 +81,32 @@ defmodule Onesqlx.Workspaces do
     get_member_role(workspace, user) != nil
   end
 
+  def update_workspace(%Workspace{} = workspace, attrs) do
+    workspace
+    |> Workspace.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def remove_member(%Workspace{} = workspace, %WorkspaceMember{} = member) do
+    if member.role == "owner" && owner_count(workspace) <= 1 do
+      {:error, :last_owner}
+    else
+      Repo.delete(member)
+    end
+  end
+
+  def update_member_role(%WorkspaceMember{} = member, new_role) do
+    member
+    |> WorkspaceMember.changeset(%{role: new_role})
+    |> Repo.update()
+  end
+
+  defp owner_count(workspace) do
+    WorkspaceMember
+    |> where(workspace_id: ^workspace.id, role: "owner")
+    |> Repo.aggregate(:count)
+  end
+
   @doc """
   Resolves a workspace for building a scope.
 
