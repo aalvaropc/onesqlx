@@ -9,6 +9,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
   alias Onesqlx.Catalog
   alias Onesqlx.DataSources
   alias Onesqlx.Querying
+  alias Onesqlx.Querying.Params
   alias Onesqlx.SavedQueries
   alias Onesqlx.SavedQueries.SavedQuery
 
@@ -72,6 +73,31 @@ defmodule OnesqlxWeb.SqlEditorLive do
               phx-update="ignore"
               class="border border-base-300 rounded-lg overflow-hidden h-48 flex-shrink-0"
             >
+            </div>
+
+            <%!-- Parameter input form --%>
+            <div :if={@show_params_form?} class="border border-base-300 rounded-lg p-4 mt-2">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-semibold">Query Parameters</h4>
+                <button phx-click="close_params_form" class="btn btn-xs btn-ghost">
+                  <.icon name="hero-x-mark" class="size-3" />
+                </button>
+              </div>
+              <div :for={param <- @query_params} class="flex items-center gap-2 mb-2">
+                <label class="text-sm font-mono w-32">:{param}</label>
+                <input
+                  type="text"
+                  phx-blur="update_param"
+                  phx-value-name={param}
+                  name={"params[#{param}]"}
+                  value={Map.get(@param_values, param, "")}
+                  phx-debounce="300"
+                  class="input input-bordered input-sm flex-1"
+                />
+              </div>
+              <button phx-click="execute_with_params" class="btn btn-primary btn-sm mt-2">
+                Run with Parameters
+              </button>
             </div>
 
             <%!-- Results area --%>
@@ -229,7 +255,10 @@ defmodule OnesqlxWeb.SqlEditorLive do
         error: nil,
         active_tab: :results,
         show_save_modal?: false,
-        save_form: nil
+        save_form: nil,
+        query_params: [],
+        param_values: %{},
+        show_params_form?: false
       )
       |> stream(:history, [])
 
@@ -283,18 +312,28 @@ defmodule OnesqlxWeb.SqlEditorLive do
     if ds_id == nil || String.trim(sql) == "" do
       {:noreply, socket}
     else
-      scope = socket.assigns.current_scope
-      data_source = DataSources.get_data_source!(scope, ds_id)
+      detected_params = Params.extract(sql)
 
-      socket =
-        socket
-        |> assign(running?: true, result: nil, error: nil)
-        |> start_async(:execute_query, fn ->
-          Querying.execute_query(scope, data_source, sql)
-        end)
-
-      {:noreply, socket}
+      if detected_params != [] && !socket.assigns.show_params_form? do
+        {:noreply,
+         assign(socket, query_params: detected_params, show_params_form?: true, param_values: %{})}
+      else
+        execute_sql(socket)
+      end
     end
+  end
+
+  def handle_event("update_param", %{"name" => name, "value" => value}, socket) do
+    param_values = Map.put(socket.assigns.param_values, name, value)
+    {:noreply, assign(socket, param_values: param_values)}
+  end
+
+  def handle_event("execute_with_params", _params, socket) do
+    {:noreply, execute_sql(socket) |> elem(1)}
+  end
+
+  def handle_event("close_params_form", _params, socket) do
+    {:noreply, assign(socket, show_params_form?: false, query_params: [], param_values: %{})}
   end
 
   def handle_event("set_tab", %{"tab" => tab}, socket) do
@@ -416,6 +455,23 @@ defmodule OnesqlxWeb.SqlEditorLive do
     else
       socket
     end
+  end
+
+  defp execute_sql(socket) do
+    scope = socket.assigns.current_scope
+    ds_id = socket.assigns.selected_data_source_id
+    sql = socket.assigns.sql
+    params = socket.assigns.param_values
+    data_source = DataSources.get_data_source!(scope, ds_id)
+
+    socket =
+      socket
+      |> assign(running?: true, result: nil, error: nil, show_params_form?: false)
+      |> start_async(:execute_query, fn ->
+        Querying.execute_query(scope, data_source, sql, params)
+      end)
+
+    {:noreply, socket}
   end
 
   defp refresh_history(socket) do
