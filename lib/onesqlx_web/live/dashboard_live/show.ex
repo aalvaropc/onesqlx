@@ -188,6 +188,20 @@ defmodule OnesqlxWeb.DashboardLive.Show do
       <p :if={length(@rows) < @total} class="text-xs text-base-content/50 mt-1">
         Showing {length(@rows)} of {@total} rows
       </p>
+      <form
+        :if={@card.saved_query && @card.saved_query.data_source_id}
+        action={~p"/exports/csv"}
+        method="post"
+        class="mt-2"
+      >
+        <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+        <input type="hidden" name="data_source_id" value={@card.saved_query.data_source_id} />
+        <input type="hidden" name="sql" value={@card.saved_query.sql} />
+        <input type="hidden" name="label" value={@card.title || @card.saved_query.title || "export"} />
+        <button type="submit" class="btn btn-xs">
+          <.icon name="hero-arrow-down-tray" class="size-3" /> CSV
+        </button>
+      </form>
     </div>
     """
   end
