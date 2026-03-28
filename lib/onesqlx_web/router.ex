@@ -68,6 +68,7 @@ defmodule OnesqlxWeb.Router do
       live "/schedules", ScheduledQueryLive.Index, :index
       live "/schedules/:id", ScheduledQueryLive.Show, :show
       live "/analytics", AnalyticsLive, :index
+      live "/settings/api-tokens", ApiTokenLive.Index, :index
     end
 
     post "/exports/csv", ExportController, :csv
