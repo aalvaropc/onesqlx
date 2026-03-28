@@ -9,6 +9,7 @@ defmodule Onesqlx.DataSources do
   import Ecto.Query
 
   alias Onesqlx.Accounts.Scope
+  alias Onesqlx.Audit
   alias Onesqlx.DataSources.ConnectionTester
   alias Onesqlx.DataSources.DataSource
   alias Onesqlx.DataSources.Encryption
@@ -39,9 +40,25 @@ defmodule Onesqlx.DataSources do
   Creates a data source for the workspace in the given scope.
   """
   def create_data_source(%Scope{} = scope, attrs) do
-    %DataSource{workspace_id: scope.workspace.id}
-    |> DataSource.changeset(attrs)
-    |> Repo.insert()
+    result =
+      %DataSource{workspace_id: scope.workspace.id}
+      |> DataSource.changeset(attrs)
+      |> Repo.insert()
+
+    case result do
+      {:ok, ds} ->
+        Task.start(fn ->
+          Audit.record_event(scope, "data_source.created", %{
+            resource_type: "data_source",
+            resource_id: ds.id
+          })
+        end)
+
+      _ ->
+        :ok
+    end
+
+    result
   end
 
   @doc """

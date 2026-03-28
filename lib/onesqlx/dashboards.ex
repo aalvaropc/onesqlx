@@ -9,6 +9,7 @@ defmodule Onesqlx.Dashboards do
   import Ecto.Query
 
   alias Onesqlx.Accounts.Scope
+  alias Onesqlx.Audit
   alias Onesqlx.Dashboards.Dashboard
   alias Onesqlx.Dashboards.DashboardCard
   alias Onesqlx.Repo
@@ -50,9 +51,25 @@ defmodule Onesqlx.Dashboards do
   Creates a dashboard for the workspace in the given scope.
   """
   def create_dashboard(%Scope{} = scope, attrs) do
-    %Dashboard{workspace_id: scope.workspace.id, user_id: scope.user.id}
-    |> Dashboard.changeset(attrs)
-    |> Repo.insert()
+    result =
+      %Dashboard{workspace_id: scope.workspace.id, user_id: scope.user.id}
+      |> Dashboard.changeset(attrs)
+      |> Repo.insert()
+
+    case result do
+      {:ok, d} ->
+        Task.start(fn ->
+          Audit.record_event(scope, "dashboard.created", %{
+            resource_type: "dashboard",
+            resource_id: d.id
+          })
+        end)
+
+      _ ->
+        :ok
+    end
+
+    result
   end
 
   @doc """
@@ -67,8 +84,23 @@ defmodule Onesqlx.Dashboards do
   @doc """
   Deletes a dashboard. Cascades to its cards.
   """
-  def delete_dashboard(%Scope{} = _scope, %Dashboard{} = dashboard) do
-    Repo.delete(dashboard)
+  def delete_dashboard(%Scope{} = scope, %Dashboard{} = dashboard) do
+    result = Repo.delete(dashboard)
+
+    case result do
+      {:ok, d} ->
+        Task.start(fn ->
+          Audit.record_event(scope, "dashboard.deleted", %{
+            resource_type: "dashboard",
+            resource_id: d.id
+          })
+        end)
+
+      _ ->
+        :ok
+    end
+
+    result
   end
 
   @doc """

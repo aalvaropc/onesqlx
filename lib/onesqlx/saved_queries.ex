@@ -9,6 +9,7 @@ defmodule Onesqlx.SavedQueries do
   import Ecto.Query
 
   alias Onesqlx.Accounts.Scope
+  alias Onesqlx.Audit
   alias Onesqlx.Repo
   alias Onesqlx.SavedQueries.SavedQuery
 
@@ -50,9 +51,25 @@ defmodule Onesqlx.SavedQueries do
   Creates a saved query for the workspace in the given scope.
   """
   def create_saved_query(%Scope{} = scope, attrs) do
-    %SavedQuery{workspace_id: scope.workspace.id}
-    |> SavedQuery.changeset(attrs)
-    |> Repo.insert()
+    result =
+      %SavedQuery{workspace_id: scope.workspace.id}
+      |> SavedQuery.changeset(attrs)
+      |> Repo.insert()
+
+    case result do
+      {:ok, sq} ->
+        Task.start(fn ->
+          Audit.record_event(scope, "query.saved", %{
+            resource_type: "saved_query",
+            resource_id: sq.id
+          })
+        end)
+
+      _ ->
+        :ok
+    end
+
+    result
   end
 
   @doc """
@@ -67,8 +84,23 @@ defmodule Onesqlx.SavedQueries do
   @doc """
   Deletes a saved query.
   """
-  def delete_saved_query(%Scope{} = _scope, %SavedQuery{} = saved_query) do
-    Repo.delete(saved_query)
+  def delete_saved_query(%Scope{} = scope, %SavedQuery{} = saved_query) do
+    result = Repo.delete(saved_query)
+
+    case result do
+      {:ok, sq} ->
+        Task.start(fn ->
+          Audit.record_event(scope, "query.deleted", %{
+            resource_type: "saved_query",
+            resource_id: sq.id
+          })
+        end)
+
+      _ ->
+        :ok
+    end
+
+    result
   end
 
   @doc """
