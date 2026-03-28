@@ -20,10 +20,10 @@ defmodule Onesqlx.Querying do
 
   Returns the result from `Executor.execute/2`.
   """
-  def execute_query(%Scope{} = scope, %DataSource{} = data_source, sql) do
+  def execute_query(%Scope{} = scope, %DataSource{} = data_source, sql, params \\ %{}) do
     started_at = DateTime.utc_now(:second)
     start_mono = System.monotonic_time(:millisecond)
-    result = Executor.execute(data_source, sql)
+    result = Executor.execute(data_source, sql, params: params)
     duration_ms = System.monotonic_time(:millisecond) - start_mono
 
     run_attrs = build_run_attrs(scope, data_source, sql, result, duration_ms, started_at)
