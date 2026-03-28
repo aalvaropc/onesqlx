@@ -6,7 +6,7 @@ defmodule Onesqlx.Accounts do
   import Ecto.Query, warn: false
   alias Onesqlx.Repo
 
-  alias Onesqlx.Accounts.{User, UserNotifier, UserToken}
+  alias Onesqlx.Accounts.{ApiToken, Scope, User, UserNotifier, UserToken}
 
   ## Database getters
 
@@ -297,5 +297,49 @@ defmodule Onesqlx.Accounts do
         {:ok, {user, tokens_to_expire}}
       end
     end)
+  end
+
+  ## API Tokens
+
+  @doc """
+  Creates an API token for the user in the given scope.
+
+  Returns `{:ok, raw_token, api_token}` on success. The `raw_token` is shown
+  once and cannot be recovered.
+  """
+  def create_api_token(%Scope{} = scope, name) do
+    {raw_token, api_token} = ApiToken.build_token(scope.user, scope.workspace, name)
+
+    case api_token |> ApiToken.changeset(%{name: name}) |> Repo.insert() do
+      {:ok, token} -> {:ok, raw_token, token}
+      {:error, changeset} -> {:error, changeset}
+    end
+  end
+
+  @doc """
+  Lists API tokens for the user in the given scope.
+  """
+  def list_api_tokens(%Scope{} = scope) do
+    ApiToken
+    |> where(user_id: ^scope.user.id, workspace_id: ^scope.workspace.id)
+    |> order_by(desc: :inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
+  Deletes an API token owned by the user.
+  """
+  def delete_api_token(%Scope{} = scope, token_id) do
+    ApiToken
+    |> where(user_id: ^scope.user.id, id: ^token_id)
+    |> Repo.one!()
+    |> Repo.delete()
+  end
+
+  @doc """
+  Returns a scope for the given raw API token, or `:error`.
+  """
+  def get_scope_by_api_token(raw_token) do
+    ApiToken.get_scope(raw_token)
   end
 end
