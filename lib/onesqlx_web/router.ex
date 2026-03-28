@@ -66,6 +66,7 @@ defmodule OnesqlxWeb.Router do
       live "/analytics", AnalyticsLive, :index
     end
 
+    post "/exports/csv", ExportController, :csv
     post "/users/update-password", UserSessionController, :update_password
   end
 
