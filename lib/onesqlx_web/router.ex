@@ -63,6 +63,7 @@ defmodule OnesqlxWeb.Router do
       live "/saved-queries", SavedQueryLive.Index, :index
       live "/schedules", ScheduledQueryLive.Index, :index
       live "/schedules/:id", ScheduledQueryLive.Show, :show
+      live "/analytics", AnalyticsLive, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password
