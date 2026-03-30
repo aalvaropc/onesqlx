@@ -221,6 +221,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
       |> assign(
         dashboard: dashboard,
         card_results: card_results,
+        card_timeouts: %{},
         editing?: false,
         show_add_card_modal?: false,
         add_card_form: nil,
@@ -240,6 +241,8 @@ defmodule OnesqlxWeb.DashboardLive.Show do
     scope = socket.assigns.current_scope
     dashboard = Dashboards.get_dashboard_with_cards!(scope, socket.assigns.dashboard.id)
 
+    cancel_all_card_timeouts(socket.assigns.card_timeouts)
+
     card_results =
       Map.new(dashboard.cards, fn card ->
         {card.id, initial_card_result(card)}
@@ -247,7 +250,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
 
     socket =
       socket
-      |> assign(dashboard: dashboard, card_results: card_results)
+      |> assign(dashboard: dashboard, card_results: card_results, card_timeouts: %{})
       |> start_card_async_tasks(dashboard.cards)
 
     {:noreply, socket}
@@ -355,16 +358,56 @@ defmodule OnesqlxWeb.DashboardLive.Show do
 
   @impl true
   def handle_async({:execute_card, id}, {:ok, {:ok, result}}, socket) do
-    {:noreply, update(socket, :card_results, &Map.put(&1, id, {:ok, result}))}
+    cancel_card_timeout(socket, id)
+
+    socket =
+      socket
+      |> update(:card_results, &Map.put(&1, id, {:ok, result}))
+      |> update(:card_timeouts, &Map.delete(&1, id))
+
+    {:noreply, socket}
   end
 
   def handle_async({:execute_card, id}, {:ok, {:error, _type, msg}}, socket) do
-    {:noreply, update(socket, :card_results, &Map.put(&1, id, {:error, msg}))}
+    cancel_card_timeout(socket, id)
+
+    socket =
+      socket
+      |> update(:card_results, &Map.put(&1, id, {:error, msg}))
+      |> update(:card_timeouts, &Map.delete(&1, id))
+
+    {:noreply, socket}
   end
 
   def handle_async({:execute_card, id}, {:exit, reason}, socket) do
+    cancel_card_timeout(socket, id)
     msg = "Query process crashed: #{inspect(reason)}"
-    {:noreply, update(socket, :card_results, &Map.put(&1, id, {:error, msg}))}
+
+    socket =
+      socket
+      |> update(:card_results, &Map.put(&1, id, {:error, msg}))
+      |> update(:card_timeouts, &Map.delete(&1, id))
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:card_timeout, card_id}, socket) do
+    case Map.get(socket.assigns.card_results, card_id) do
+      :loading ->
+        socket =
+          socket
+          |> update(
+            :card_results,
+            &Map.put(&1, card_id, {:error, "Query timed out after 60 seconds."})
+          )
+          |> update(:card_timeouts, &Map.delete(&1, card_id))
+
+        {:noreply, socket}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   defp initial_card_result(%{saved_query: %{data_source: %{}} = _sq}), do: :loading
@@ -378,14 +421,28 @@ defmodule OnesqlxWeb.DashboardLive.Show do
     case card do
       %{saved_query: %{data_source: data_source, sql: sql}} when not is_nil(data_source) ->
         params = get_in(card.config, ["params"]) || %{}
+        ref = Process.send_after(self(), {:card_timeout, card.id}, 60_000)
 
-        start_async(socket, {:execute_card, card.id}, fn ->
+        socket
+        |> update(:card_timeouts, &Map.put(&1, card.id, ref))
+        |> start_async({:execute_card, card.id}, fn ->
           Executor.execute(data_source, sql, params: params)
         end)
 
       _ ->
         socket
     end
+  end
+
+  defp cancel_card_timeout(socket, card_id) do
+    case Map.get(socket.assigns.card_timeouts, card_id) do
+      nil -> :ok
+      ref -> Process.cancel_timer(ref)
+    end
+  end
+
+  defp cancel_all_card_timeouts(card_timeouts) do
+    Enum.each(card_timeouts, fn {_id, ref} -> Process.cancel_timer(ref) end)
   end
 
   defp format_cell(nil), do: "NULL"

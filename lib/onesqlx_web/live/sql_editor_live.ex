@@ -273,7 +273,8 @@ defmodule OnesqlxWeb.SqlEditorLive do
         save_form: nil,
         query_params: [],
         param_values: %{},
-        show_params_form?: false
+        show_params_form?: false,
+        timeout_ref: nil
       )
       |> stream(:history, [])
 
@@ -418,30 +419,73 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
   @impl true
   def handle_async(:execute_query, {:ok, {:ok, result}}, socket) do
+    cancel_timeout(socket.assigns.timeout_ref)
+
     socket =
       socket
-      |> assign(running?: false, result: result, error: nil, active_tab: :results)
+      |> assign(
+        running?: false,
+        result: result,
+        error: nil,
+        active_tab: :results,
+        timeout_ref: nil
+      )
       |> refresh_history()
 
     {:noreply, socket}
   end
 
   def handle_async(:execute_query, {:ok, {:error, _type, message}}, socket) do
+    cancel_timeout(socket.assigns.timeout_ref)
+
     socket =
       socket
-      |> assign(running?: false, result: nil, error: message, active_tab: :messages)
+      |> assign(
+        running?: false,
+        result: nil,
+        error: message,
+        active_tab: :messages,
+        timeout_ref: nil
+      )
       |> refresh_history()
 
     {:noreply, socket}
   end
 
   def handle_async(:execute_query, {:exit, reason}, socket) do
+    cancel_timeout(socket.assigns.timeout_ref)
+
     socket =
       socket
-      |> assign(running?: false, result: nil, error: "Query process crashed: #{inspect(reason)}")
+      |> assign(
+        running?: false,
+        result: nil,
+        error: "Query process crashed: #{inspect(reason)}",
+        timeout_ref: nil
+      )
       |> refresh_history()
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info(:query_timeout, socket) do
+    if socket.assigns.running? do
+      socket =
+        socket
+        |> assign(
+          running?: false,
+          result: nil,
+          error:
+            "Query timed out after 60 seconds. The database may still be processing the query.",
+          active_tab: :messages,
+          timeout_ref: nil
+        )
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
   end
 
   defp load_saved_query(socket, saved_query_id) do
@@ -479,9 +523,18 @@ defmodule OnesqlxWeb.SqlEditorLive do
     params = socket.assigns.param_values
     data_source = DataSources.get_data_source!(scope, ds_id)
 
+    cancel_timeout(socket.assigns.timeout_ref)
+    timeout_ref = Process.send_after(self(), :query_timeout, 60_000)
+
     socket =
       socket
-      |> assign(running?: true, result: nil, error: nil, show_params_form?: false)
+      |> assign(
+        running?: true,
+        result: nil,
+        error: nil,
+        show_params_form?: false,
+        timeout_ref: timeout_ref
+      )
       |> start_async(:execute_query, fn ->
         Querying.execute_query(scope, data_source, sql, params)
       end)
@@ -500,6 +553,9 @@ defmodule OnesqlxWeb.SqlEditorLive do
         stream(socket, :history, runs, reset: true)
     end
   end
+
+  defp cancel_timeout(nil), do: :ok
+  defp cancel_timeout(ref), do: Process.cancel_timer(ref)
 
   defp format_cell(nil), do: "NULL"
   defp format_cell(true), do: "true"
