@@ -54,3 +54,7 @@ Thumbs.db
 .vscode/
 *.sublime-project
 *.sublime-workspace
+
+# Claude Code internal files.
+.claude/
+CLAUDE.md

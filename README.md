@@ -1,69 +1,161 @@
 # OneSQLx
 
-Open source, SQL-first analytics platform built with Elixir and Phoenix. Connect external PostgreSQL databases to explore schemas, run read-only queries, save queries, build dashboards, and automate background tasks.
+Open-source, SQL-first analytics platform built with Elixir and Phoenix. Connect external PostgreSQL databases to explore schemas, run read-only queries, save and organize analytical knowledge, build dashboards, automate scheduled reports, and monitor usage.
 
 - **SQL-first**: SQL is a core capability, not an afterthought.
-- **PostgreSQL-first**: the MVP focuses on doing one integration really well.
-- **Open source**: the product aims to be useful, transparent, and extensible.
+- **PostgreSQL-first**: deep integration with pg_catalog, introspection, and autocomplete.
+- **Open source**: useful, transparent, and extensible.
 - **Workspace-based**: analytical knowledge belongs to teams and workspaces.
-- **Automation-ready**: uses Oban for reliable background tasks.
+- **Automation-ready**: uses Oban for reliable background tasks, scheduled queries, and maintenance.
 
-## MVP
+## Features
 
-The first version of OneSQLx will include:
+### Data Sources
+- Connect multiple external PostgreSQL databases with encrypted credentials
+- Test connection before saving
+- SSL support and read-only enforcement
 
-- user authentication,
-- workspaces with memberships and roles,
-- external PostgreSQL database connections,
-- catalog synchronization (schemas, tables, columns),
-- visual catalog exploration,
-- SQL editor with read-only query execution,
-- saved queries organized by workspace,
-- basic dashboards with panels and visualizations,
-- scheduled query execution via Oban,
-- audit logging and basic usage metrics.
+### Catalog Explorer
+- Automatic schema, table, and column introspection via pg_catalog
+- Background sync with Oban (`catalog_sync` queue)
+- SQL autocomplete powered by catalog metadata
+
+### SQL Editor
+- CodeMirror 6 editor with SQL syntax highlighting
+- Autocomplete from catalog metadata (schemas, tables, columns)
+- Query execution with row limits, timeouts, and SQL guard (blocks writes)
+- Query history sidebar with re-execution
+- Named parameter support (`:param_name` syntax with input form)
+- CSV export of results
+
+### Saved Queries
+- Save queries with title, description, tags, and favorites
+- Organize into collections/folders
+- Search by title, filter by data source, tag, or collection
+- Open in SQL Editor for re-execution
+
+### Dashboards
+- Create dashboards with card-based layout
+- Card types: table, KPI, bar chart, line chart (Chart.js)
+- Async per-card query execution with loading states
+- Edit mode: add, remove, reorder cards
+- CSV export from table cards
+- Parameter defaults per card via config
+
+### Scheduled Queries
+- Schedule saved queries to run hourly, daily, weekly, or custom cron
+- Minimal 5-field cron parser (supports `*`, ranges, steps, lists)
+- Execution results stored with row count, duration, and error tracking
+- Run history with status badges
+- Manual "Run Now" from UI
+- Automatic enqueue via Oban cron plugin (every minute)
+
+### Usage Analytics
+- KPI dashboard: total queries, success rate, avg duration, active users
+- Slowest queries table
+- Recent activity stream from audit events
+- Date range filter (7d, 30d, 90d)
+
+### Audit Trail
+- Automatic event recording for query execution, saves, deletes, dashboard creation, data source creation
+- Fire-and-forget audit via `Task.start/1` (never blocks parent operation)
+
+### REST API
+- Bearer token authentication (SHA-256 hashed, shown once at creation)
+- Endpoints: saved queries (list, show, execute), dashboards (list, show with cards), data sources (list, no sensitive fields)
+- Token management UI at `/settings/api-tokens`
+
+### Workspace Management
+- Multi-workspace with roles: owner, admin, member
+- Workspace settings: rename, manage members, delete
+- Cannot remove last owner (safety check)
+
+### Maintenance
+- Automated cleanup worker (daily at 3 AM via Oban cron):
+  - Query runs > 90 days
+  - Audit events > 180 days
+  - Scheduled query runs > 30 days
+  - Expired API tokens
 
 ## Tech Stack
 
 | Technology | Purpose |
 |---|---|
-| Elixir | Primary language |
-| Erlang/OTP | Runtime platform |
+| Elixir 1.19 | Primary language |
+| Erlang/OTP 28 | Runtime platform |
 | Phoenix 1.8 | Web framework |
 | Phoenix LiveView 1.1 | Real-time, server-rendered UI |
 | Ecto | ORM and migrations (internal database) |
 | Postgrex | Direct connection to external PostgreSQL |
-| Oban | Background jobs |
+| Oban | Background jobs (4 queues) |
 | PostgreSQL 17 | Internal and external databases |
 | Tailwind CSS v4 + DaisyUI | Styling and UI components |
+| Chart.js | Bar and line chart rendering |
+| CodeMirror 6 | SQL editor with autocomplete |
 | Req | HTTP client |
+| Mox | Mock external connections in tests |
 | Credo | Static code analysis |
 
 ## Architecture
 
-OneSQLx starts as a **modular monolith**. This allows moving fast without losing internal order.
+OneSQLx is a **modular monolith** with two clearly separated database worlds:
 
-Two worlds are clearly separated:
+1. **Internal database** — managed with Ecto and migrations. Stores users, workspaces, saved queries, dashboards, schedules, audit events, API tokens, and connection settings.
 
-1. **Internal product database** — managed with Ecto and migrations. Stores users, workspaces, saved queries, dashboards, connection settings, and audit logs.
+2. **External PostgreSQL databases** — connected by users, accessed via Postgrex for catalog introspection and controlled read-only query execution.
 
-2. **External PostgreSQL databases connected by users** — accessed via Postgrex for catalog introspection and controlled read-only query execution.
-
-## Domain Contexts
-
-The domain is organized into 9 contexts under `lib/onesqlx/`:
+### Domain Contexts
 
 | Context | Module | Responsibility |
 |---|---|---|
-| Accounts | `Onesqlx.Accounts` | User authentication and management |
-| Workspaces | `Onesqlx.Workspaces` | Workspaces, memberships, and roles |
-| DataSources | `Onesqlx.DataSources` | External PostgreSQL connections |
-| Catalog | `Onesqlx.Catalog` | Synchronized metadata (schemas, tables, columns) |
-| Querying | `Onesqlx.Querying` | Read-only SQL execution against external sources |
-| SavedQueries | `Onesqlx.SavedQueries` | Query persistence and organization |
-| Dashboards | `Onesqlx.Dashboards` | Dashboards and panels with visualizations |
-| Scheduling | `Onesqlx.Scheduling` | Scheduled query execution via Oban |
-| Audit | `Onesqlx.Audit` | Activity tracking and system events |
+| Accounts | `Onesqlx.Accounts` | User auth, sessions, magic links, API tokens |
+| Workspaces | `Onesqlx.Workspaces` | Workspaces, memberships, roles |
+| DataSources | `Onesqlx.DataSources` | External PostgreSQL connections, encryption |
+| Catalog | `Onesqlx.Catalog` | Schema/table/column introspection, sync |
+| Querying | `Onesqlx.Querying` | SQL execution, SQL guard, parameter substitution |
+| SavedQueries | `Onesqlx.SavedQueries` | Query persistence, search, collections |
+| Dashboards | `Onesqlx.Dashboards` | Dashboards, cards, chart rendering |
+| Scheduling | `Onesqlx.Scheduling` | Scheduled queries, cron parser, execution |
+| Audit | `Onesqlx.Audit` | Event tracking, usage analytics |
+| Export | `Onesqlx.Export` | CSV generation |
+| Maintenance | `Onesqlx.Maintenance` | Automated data cleanup |
+
+### Oban Queues
+
+| Queue | Concurrency | Workers |
+|---|---|---|
+| `default` | 10 | General |
+| `catalog_sync` | 5 | `Catalog.SyncWorker` |
+| `scheduled_queries` | 10 | `ExecuteWorker`, `EnqueueDueWorker` |
+| `maintenance` | 5 | `CleanupWorker` |
+
+### Routes
+
+**Authenticated (LiveView):**
+- `/dashboards` — Dashboard listing and management
+- `/dashboards/:id` — Dashboard view with async card execution
+- `/sql-editor` — SQL Editor with CodeMirror
+- `/saved-queries` — Saved query browser
+- `/schedules` — Scheduled query management
+- `/schedules/:id` — Schedule details and run history
+- `/data-sources` — Data source connections
+- `/data-sources/new` — Add new data source
+- `/data-sources/:id/catalog` — Catalog explorer
+- `/analytics` — Usage analytics dashboard
+- `/workspace/settings` — Workspace settings and members
+- `/settings/api-tokens` — API token management
+- `/users/settings` — User account settings
+
+**REST API (Bearer token auth):**
+- `GET /api/saved-queries` — List saved queries
+- `GET /api/saved-queries/:id` — Show saved query
+- `POST /api/saved-queries/:id/execute` — Execute saved query
+- `GET /api/dashboards` — List dashboards
+- `GET /api/dashboards/:id` — Show dashboard with cards
+- `GET /api/data-sources` — List data sources (no sensitive fields)
+
+**Other:**
+- `POST /exports/csv` — Download query results as CSV
 
 ## Local Development
 
@@ -71,9 +163,7 @@ The domain is organized into 9 contexts under `lib/onesqlx/`:
 
 - **[asdf](https://asdf-vm.com/) or [mise](https://mise.jdx.dev/)** — version manager (versions pinned in `.tool-versions`)
 - **Docker & Docker Compose** — for PostgreSQL
-- **Make** — build automation (pre-installed on macOS/Linux)
-
-Install the correct tool versions:
+- **Make** — build automation
 
 ```bash
 asdf install   # or: mise install
@@ -88,88 +178,57 @@ make setup
 make start
 ```
 
-`make setup` will start PostgreSQL containers (dev + external test DB), configure git hooks, install dependencies, create and migrate the database, and build assets.
-
 The server will be available at [localhost:4000](http://localhost:4000).
 
-### Useful Commands
+### Commands
 
 | Command | Description |
 |---|---|
 | `make setup` | Full setup (Docker + deps + DB + assets + git hooks) |
 | `make start` | Start the Phoenix server |
-| `make test` | Run the test suite (unit tests) |
+| `make iex` | Start the server inside IEx |
+| `make console` | Open an IEx console (no server) |
+| `make test` | Run the test suite |
+| `make test.failed` | Re-run previously failed tests |
+| `make test.file F=path` | Run a single test file |
 | `make test.integration` | Run integration tests (requires Docker) |
-| `make lint` | Check formatting + Credo |
-| `make precommit` | Full check (compile + format + credo + test) |
 | `make cover` | Run tests with coverage report |
+| `make lint` | Check formatting + Credo strict |
+| `make precommit` | Full check (compile + format + credo + test) |
+| `make format` | Auto-format all files |
+| `make migrate` | Run pending migrations |
+| `make rollback` | Rollback the last migration |
+| `make routes` | List all application routes |
 | `make db` | Start database containers |
 | `make db.stop` | Stop database containers |
 | `make db.reset` | Drop and recreate the dev database |
-| `make help` | List all available commands |
+| `make clean` | Remove build artifacts |
 
 ### Testing
 
 ```bash
-# Unit tests (no Docker required — external connections are mocked)
-make test
-
-# Integration tests (requires Docker containers running)
-make test.integration
-
-# With coverage
-make cover
+make test               # Unit tests (external connections mocked)
+make test.integration   # Integration tests (requires Docker)
+make cover              # With coverage
 ```
 
-Tests use Ecto SQL Sandbox for isolation. Integration tests that connect to external databases are tagged with `@moduletag :integration` and excluded by default.
-
-### Git Hooks
-
-Pre-commit hooks are configured automatically by `make setup`. They check code formatting, compilation without warnings, and static analysis (`mix credo --strict`).
-
-To manually configure:
-```bash
-git config core.hooksPath .githooks
-```
-
-### Environment Variables
-
-See `.env.example` for all available variables. Phoenix uses `config/runtime.exs` — no `.env` loader is needed.
-
-| Variable | Description | Default |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection URL | `postgres://postgres:postgres@localhost/onesqlx_dev` |
-| `SECRET_KEY_BASE` | Phoenix secret key | Generated in `config/dev.exs` |
-| `PHX_HOST` | Server hostname | `localhost` |
-| `PORT` | HTTP port | `4000` |
+Tests use Ecto SQL Sandbox for isolation. Integration tests are tagged `@moduletag :integration` and excluded by default. External database connections use Mox (`MockConnection`).
 
 ### Development Tools
 
-- **LiveDashboard**: `/dev/dashboard` — metrics and observability
-- **Mailbox preview**: `/dev/mailbox` — email preview (Swoosh test adapter)
+- **LiveDashboard**: `/dev/dashboard`
+- **Mailbox preview**: `/dev/mailbox`
 
 ## Conventions
 
-- **binary_id (UUID)** as primary key in all Ecto schemas.
-- **Scope-based auth**: use `@current_scope` (never `@current_user`). Access the user via `@current_scope.user`.
-- **Oban** for background jobs with queues: `default(10)`, `catalog_sync(5)`, `scheduled_queries(10)`, `maintenance(5)`.
-- **Tailwind CSS v4** without `tailwind.config.js`. Custom components, don't use DaisyUI prebuilt ones.
-- **Req** as HTTP client — never HTTPoison, Tesla, or :httpc.
-- **`mix precommit`** required before every commit. Runs: compile with warnings-as-errors, deps check, format, credo strict, and tests.
-
-## Future Vision
-
-After the MVP, OneSQLx may evolve towards:
-
-- parameterized queries,
-- advanced dashboards with more visualization types,
-- advanced schedules with notifications,
-- result caching,
-- usage observability,
-- reusable models (SQL snippets),
-- dashboards as code,
-- support for multiple database engines,
-- external integrations (Slack, email, webhooks).
+- **binary_id (UUID)** primary keys in all schemas
+- **Scope-based auth**: `@current_scope` (never `@current_user`)
+- **Workspace isolation**: all queries filter by `scope.workspace.id`
+- **Streams** for collections in LiveView (never raw lists)
+- **to_form/2** for all forms
+- **Oban** for background jobs, scheduled execution, and maintenance
+- **Req** as HTTP client (never HTTPoison, Tesla, or :httpc)
+- **`mix precommit`** before every commit (compile warnings-as-errors, format, credo strict, test)
 
 ## License
 

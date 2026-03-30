@@ -56,7 +56,7 @@ defmodule Onesqlx.DataSourcesTest do
       assert {:ok, %DataSource{} = ds} = DataSources.create_data_source(scope, attrs)
       assert ds.name == "my-db"
       assert ds.host == "localhost"
-      assert ds.port == 5432
+      assert ds.port == Application.get_env(:onesqlx, Onesqlx.Repo)[:port] || 5432
       assert ds.database_name == "test_db"
       assert ds.username == "postgres"
       assert ds.workspace_id == scope.workspace.id
