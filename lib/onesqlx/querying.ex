@@ -8,8 +8,6 @@ defmodule Onesqlx.Querying do
 
   import Ecto.Query
 
-  require Logger
-
   alias Onesqlx.Accounts.Scope
   alias Onesqlx.Audit
   alias Onesqlx.DataSources.DataSource
@@ -74,13 +72,11 @@ defmodule Onesqlx.Querying do
   end
 
   defp emit_audit(scope, data_source, sql, run_attrs) do
-    Audit.record_event(scope, "query.executed", %{
+    Audit.safe_record_event(scope, "query.executed", %{
       resource_type: "data_source",
       resource_id: data_source.id,
       metadata: %{sql_preview: String.slice(sql, 0, 200), status: run_attrs.status}
     })
-  rescue
-    e -> Logger.warning("Audit event query.executed failed: #{Exception.message(e)}")
   end
 
   defp build_run_attrs(scope, data_source, sql, result, duration_ms, started_at) do

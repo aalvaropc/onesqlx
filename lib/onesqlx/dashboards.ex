@@ -8,8 +8,6 @@ defmodule Onesqlx.Dashboards do
 
   import Ecto.Query
 
-  require Logger
-
   alias Onesqlx.Accounts.Scope
   alias Onesqlx.Audit
   alias Onesqlx.Dashboards.Dashboard
@@ -60,7 +58,10 @@ defmodule Onesqlx.Dashboards do
 
     case result do
       {:ok, d} ->
-        emit_audit(scope, "dashboard.created", %{resource_type: "dashboard", resource_id: d.id})
+        Audit.safe_record_event(scope, "dashboard.created", %{
+          resource_type: "dashboard",
+          resource_id: d.id
+        })
 
       _ ->
         :ok
@@ -89,7 +90,10 @@ defmodule Onesqlx.Dashboards do
 
     case result do
       {:ok, d} ->
-        emit_audit(scope, "dashboard.deleted", %{resource_type: "dashboard", resource_id: d.id})
+        Audit.safe_record_event(scope, "dashboard.deleted", %{
+          resource_type: "dashboard",
+          resource_id: d.id
+        })
 
       _ ->
         :ok
@@ -215,12 +219,6 @@ defmodule Onesqlx.Dashboards do
   """
   def change_card(%DashboardCard{} = card, attrs \\ %{}) do
     DashboardCard.changeset(card, attrs)
-  end
-
-  defp emit_audit(scope, event_type, attrs) do
-    Audit.record_event(scope, event_type, attrs)
-  rescue
-    e -> Logger.warning("Audit event #{event_type} failed: #{Exception.message(e)}")
   end
 
   defp verify_ownership!(%Scope{} = scope, %Dashboard{} = resource) do

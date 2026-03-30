@@ -8,8 +8,6 @@ defmodule Onesqlx.SavedQueries do
 
   import Ecto.Query
 
-  require Logger
-
   alias Onesqlx.Accounts.Scope
   alias Onesqlx.Audit
   alias Onesqlx.Repo
@@ -61,7 +59,10 @@ defmodule Onesqlx.SavedQueries do
 
     case result do
       {:ok, sq} ->
-        emit_audit(scope, "query.saved", %{resource_type: "saved_query", resource_id: sq.id})
+        Audit.safe_record_event(scope, "query.saved", %{
+          resource_type: "saved_query",
+          resource_id: sq.id
+        })
 
       _ ->
         :ok
@@ -90,7 +91,10 @@ defmodule Onesqlx.SavedQueries do
 
     case result do
       {:ok, sq} ->
-        emit_audit(scope, "query.deleted", %{resource_type: "saved_query", resource_id: sq.id})
+        Audit.safe_record_event(scope, "query.deleted", %{
+          resource_type: "saved_query",
+          resource_id: sq.id
+        })
 
       _ ->
         :ok
@@ -133,12 +137,6 @@ defmodule Onesqlx.SavedQueries do
 
   defp maybe_filter_tag(query, nil), do: query
   defp maybe_filter_tag(query, tag), do: where(query, [q], ^tag in q.tags)
-
-  defp emit_audit(scope, event_type, attrs) do
-    Audit.record_event(scope, event_type, attrs)
-  rescue
-    e -> Logger.warning("Audit event #{event_type} failed: #{Exception.message(e)}")
-  end
 
   defp verify_ownership!(%Scope{} = scope, %SavedQuery{} = resource) do
     if resource.workspace_id != scope.workspace.id,
