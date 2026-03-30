@@ -4,14 +4,15 @@ import Config
 config :bcrypt_elixir, :log_rounds, 1
 
 # Configure your database
+# Env vars below are read at compile time. Run `mix recompile` after changes.
 #
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
 config :onesqlx, Onesqlx.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
+  username: System.get_env("DB_USERNAME", "postgres"),
+  password: System.get_env("DB_PASSWORD", "postgres"),
+  hostname: System.get_env("DB_HOSTNAME", "localhost"),
   port: String.to_integer(System.get_env("DB_PORT", "5464")),
   database: "onesqlx_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
@@ -21,7 +22,11 @@ config :onesqlx, Onesqlx.Repo,
 # you can enable the server option below.
 config :onesqlx, OnesqlxWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
-  secret_key_base: "ePPDNnlnfv8VkseK7tP/E8ynnIT/DhZmS0rgbl1nctqGRjI34Hc6Fn1sJGQ7NSQe",
+  secret_key_base:
+    System.get_env(
+      "SECRET_KEY_BASE",
+      "ePPDNnlnfv8VkseK7tP/E8ynnIT/DhZmS0rgbl1nctqGRjI34Hc6Fn1sJGQ7NSQe"
+    ),
   server: false
 
 # Use manual testing mode for Oban to avoid starting full supervision tree
