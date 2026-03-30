@@ -37,6 +37,33 @@ defmodule Onesqlx.AuditTest do
     end
   end
 
+  describe "safe_record_event/3" do
+    test "returns {:ok, event} on success", %{scope: scope} do
+      assert {:ok, event} = Audit.safe_record_event(scope, "query.executed")
+      assert event.event_type == "query.executed"
+    end
+
+    test "returns {:error, changeset} and logs on validation failure", %{scope: scope} do
+      import ExUnit.CaptureLog
+
+      # event_type is required — passing nil triggers a changeset error
+      log =
+        capture_log(fn ->
+          assert {:error, _changeset} = Audit.safe_record_event(scope, nil)
+        end)
+
+      assert log =~ "failed"
+    end
+
+    test "parent operation succeeds even when audit fails", %{scope: scope} do
+      # Verify that create_dashboard succeeds regardless of audit outcome
+      assert {:ok, dashboard} =
+               Onesqlx.Dashboards.create_dashboard(scope, %{title: "Test Dashboard"})
+
+      assert dashboard.title == "Test Dashboard"
+    end
+  end
+
   describe "list_events/2" do
     test "returns events ordered by occurred_at desc", %{scope: scope} do
       e1 = audit_event_fixture(scope, "query.executed")

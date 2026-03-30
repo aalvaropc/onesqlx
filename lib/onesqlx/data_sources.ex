@@ -47,12 +47,10 @@ defmodule Onesqlx.DataSources do
 
     case result do
       {:ok, ds} ->
-        Task.start(fn ->
-          Audit.record_event(scope, "data_source.created", %{
-            resource_type: "data_source",
-            resource_id: ds.id
-          })
-        end)
+        Audit.safe_record_event(scope, "data_source.created", %{
+          resource_type: "data_source",
+          resource_id: ds.id
+        })
 
       _ ->
         :ok

@@ -59,12 +59,10 @@ defmodule Onesqlx.SavedQueries do
 
     case result do
       {:ok, sq} ->
-        Task.start(fn ->
-          Audit.record_event(scope, "query.saved", %{
-            resource_type: "saved_query",
-            resource_id: sq.id
-          })
-        end)
+        Audit.safe_record_event(scope, "query.saved", %{
+          resource_type: "saved_query",
+          resource_id: sq.id
+        })
 
       _ ->
         :ok
@@ -93,12 +91,10 @@ defmodule Onesqlx.SavedQueries do
 
     case result do
       {:ok, sq} ->
-        Task.start(fn ->
-          Audit.record_event(scope, "query.deleted", %{
-            resource_type: "saved_query",
-            resource_id: sq.id
-          })
-        end)
+        Audit.safe_record_event(scope, "query.deleted", %{
+          resource_type: "saved_query",
+          resource_id: sq.id
+        })
 
       _ ->
         :ok

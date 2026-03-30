@@ -8,6 +8,8 @@ defmodule Onesqlx.Audit do
 
   import Ecto.Query
 
+  require Logger
+
   alias Onesqlx.Accounts.Scope
   alias Onesqlx.Audit.AuditEvent
   alias Onesqlx.Querying.QueryRun
@@ -24,6 +26,27 @@ defmodule Onesqlx.Audit do
     }
     |> AuditEvent.changeset(Map.put(attrs, :event_type, event_type))
     |> Repo.insert()
+  end
+
+  @doc """
+  Records an audit event, catching both changeset errors and exceptions.
+
+  Returns `{:ok, event}` on success, `{:error, reason}` on failure.
+  Failures are logged but never crash the caller.
+  """
+  def safe_record_event(%Scope{} = scope, event_type, attrs \\ %{}) do
+    case record_event(scope, event_type, attrs) do
+      {:ok, event} ->
+        {:ok, event}
+
+      {:error, changeset} ->
+        Logger.warning("Audit event #{event_type} failed: #{inspect(changeset.errors)}")
+        {:error, changeset}
+    end
+  rescue
+    e ->
+      Logger.warning("Audit event #{event_type} crashed: #{Exception.message(e)}")
+      {:error, e}
   end
 
   @doc """

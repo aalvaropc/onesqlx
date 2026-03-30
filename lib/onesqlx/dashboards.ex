@@ -58,12 +58,10 @@ defmodule Onesqlx.Dashboards do
 
     case result do
       {:ok, d} ->
-        Task.start(fn ->
-          Audit.record_event(scope, "dashboard.created", %{
-            resource_type: "dashboard",
-            resource_id: d.id
-          })
-        end)
+        Audit.safe_record_event(scope, "dashboard.created", %{
+          resource_type: "dashboard",
+          resource_id: d.id
+        })
 
       _ ->
         :ok
@@ -92,12 +90,10 @@ defmodule Onesqlx.Dashboards do
 
     case result do
       {:ok, d} ->
-        Task.start(fn ->
-          Audit.record_event(scope, "dashboard.deleted", %{
-            resource_type: "dashboard",
-            resource_id: d.id
-          })
-        end)
+        Audit.safe_record_event(scope, "dashboard.deleted", %{
+          resource_type: "dashboard",
+          resource_id: d.id
+        })
 
       _ ->
         :ok

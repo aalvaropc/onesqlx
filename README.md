@@ -58,7 +58,7 @@ Open-source, SQL-first analytics platform built with Elixir and Phoenix. Connect
 
 ### Audit Trail
 - Automatic event recording for query execution, saves, deletes, dashboard creation, data source creation
-- Fire-and-forget audit via `Task.start/1` (never blocks parent operation)
+- Synchronous audit with graceful error handling (failures are logged, never crash the parent operation)
 
 ### REST API
 - Bearer token authentication (SHA-256 hashed, shown once at creation)
