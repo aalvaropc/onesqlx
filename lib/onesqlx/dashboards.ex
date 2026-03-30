@@ -75,7 +75,9 @@ defmodule Onesqlx.Dashboards do
   @doc """
   Updates a dashboard.
   """
-  def update_dashboard(%Scope{} = _scope, %Dashboard{} = dashboard, attrs) do
+  def update_dashboard(%Scope{} = scope, %Dashboard{} = dashboard, attrs) do
+    verify_ownership!(scope, dashboard)
+
     dashboard
     |> Dashboard.changeset(attrs)
     |> Repo.update()
@@ -85,6 +87,7 @@ defmodule Onesqlx.Dashboards do
   Deletes a dashboard. Cascades to its cards.
   """
   def delete_dashboard(%Scope{} = scope, %Dashboard{} = dashboard) do
+    verify_ownership!(scope, dashboard)
     result = Repo.delete(dashboard)
 
     case result do
@@ -113,7 +116,9 @@ defmodule Onesqlx.Dashboards do
   @doc """
   Adds a card to a dashboard. Position is set to max(position) + 1.
   """
-  def add_card(%Scope{} = _scope, %Dashboard{} = dashboard, attrs) do
+  def add_card(%Scope{} = scope, %Dashboard{} = dashboard, attrs) do
+    verify_ownership!(scope, dashboard)
+
     max_pos_query =
       from(c in DashboardCard, where: c.dashboard_id == ^dashboard.id, select: max(c.position))
 
@@ -127,14 +132,17 @@ defmodule Onesqlx.Dashboards do
   @doc """
   Removes a card from a dashboard.
   """
-  def remove_card(%Scope{} = _scope, %DashboardCard{} = card) do
+  def remove_card(%Scope{} = scope, %DashboardCard{} = card) do
+    verify_card_ownership!(scope, card)
     Repo.delete(card)
   end
 
   @doc """
   Updates a card's type, title, or config.
   """
-  def update_card(%Scope{} = _scope, %DashboardCard{} = card, attrs) do
+  def update_card(%Scope{} = scope, %DashboardCard{} = card, attrs) do
+    verify_card_ownership!(scope, card)
+
     card
     |> DashboardCard.changeset(attrs)
     |> Repo.update()
@@ -144,7 +152,9 @@ defmodule Onesqlx.Dashboards do
   Moves a card up by swapping positions with the nearest preceding card.
   No-op if already first.
   """
-  def move_card_up(%Scope{} = _scope, %DashboardCard{} = card) do
+  def move_card_up(%Scope{} = scope, %DashboardCard{} = card) do
+    verify_card_ownership!(scope, card)
+
     neighbor_query =
       from(c in DashboardCard,
         where: c.dashboard_id == ^card.dashboard_id and c.position < ^card.position,
@@ -177,7 +187,9 @@ defmodule Onesqlx.Dashboards do
   Moves a card down by swapping positions with the nearest following card.
   No-op if already last.
   """
-  def move_card_down(%Scope{} = _scope, %DashboardCard{} = card) do
+  def move_card_down(%Scope{} = scope, %DashboardCard{} = card) do
+    verify_card_ownership!(scope, card)
+
     neighbor_query =
       from(c in DashboardCard,
         where: c.dashboard_id == ^card.dashboard_id and c.position > ^card.position,
@@ -211,6 +223,22 @@ defmodule Onesqlx.Dashboards do
   """
   def change_card(%DashboardCard{} = card, attrs \\ %{}) do
     DashboardCard.changeset(card, attrs)
+  end
+
+  defp verify_ownership!(%Scope{} = scope, %Dashboard{} = resource) do
+    if resource.workspace_id != scope.workspace.id,
+      do: raise(Ecto.NoResultsError, queryable: Dashboard)
+
+    resource
+  end
+
+  defp verify_card_ownership!(%Scope{} = scope, %DashboardCard{} = card) do
+    dashboard = Repo.get!(Dashboard, card.dashboard_id)
+
+    if dashboard.workspace_id != scope.workspace.id,
+      do: raise(Ecto.NoResultsError, queryable: DashboardCard)
+
+    card
   end
 
   defp ordered_cards_query do

@@ -76,7 +76,9 @@ defmodule Onesqlx.SavedQueries do
   @doc """
   Updates a saved query.
   """
-  def update_saved_query(%Scope{} = _scope, %SavedQuery{} = saved_query, attrs) do
+  def update_saved_query(%Scope{} = scope, %SavedQuery{} = saved_query, attrs) do
+    verify_ownership!(scope, saved_query)
+
     saved_query
     |> SavedQuery.changeset(attrs)
     |> Repo.update()
@@ -86,6 +88,7 @@ defmodule Onesqlx.SavedQueries do
   Deletes a saved query.
   """
   def delete_saved_query(%Scope{} = scope, %SavedQuery{} = saved_query) do
+    verify_ownership!(scope, saved_query)
     result = Repo.delete(saved_query)
 
     case result do
@@ -107,7 +110,9 @@ defmodule Onesqlx.SavedQueries do
   @doc """
   Toggles the `is_favorite` field on a saved query.
   """
-  def toggle_favorite(%Scope{} = _scope, %SavedQuery{} = saved_query) do
+  def toggle_favorite(%Scope{} = scope, %SavedQuery{} = saved_query) do
+    verify_ownership!(scope, saved_query)
+
     saved_query
     |> SavedQuery.changeset(%{is_favorite: !saved_query.is_favorite})
     |> Repo.update()
@@ -136,6 +141,13 @@ defmodule Onesqlx.SavedQueries do
 
   defp maybe_filter_tag(query, nil), do: query
   defp maybe_filter_tag(query, tag), do: where(query, [q], ^tag in q.tags)
+
+  defp verify_ownership!(%Scope{} = scope, %SavedQuery{} = resource) do
+    if resource.workspace_id != scope.workspace.id,
+      do: raise(Ecto.NoResultsError, queryable: SavedQuery)
+
+    resource
+  end
 
   defp maybe_filter_collection(query, nil), do: query
 

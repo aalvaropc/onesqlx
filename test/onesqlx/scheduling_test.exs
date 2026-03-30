@@ -181,6 +181,18 @@ defmodule Onesqlx.SchedulingTest do
       assert {:error, changeset} = Scheduling.update_scheduled_query(scope, sq, %{name: ""})
       assert errors_on(changeset).name
     end
+
+    test "raises for scheduled query in different workspace", %{
+      scope: scope,
+      saved_query: saved_query
+    } do
+      sq = scheduled_query_fixture(scope, saved_query)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Scheduling.update_scheduled_query(other_scope, sq, %{name: "Hacked"})
+      end
+    end
   end
 
   describe "delete_scheduled_query/2" do
@@ -190,6 +202,18 @@ defmodule Onesqlx.SchedulingTest do
 
       assert_raise Ecto.NoResultsError, fn ->
         Scheduling.get_scheduled_query!(scope, sq.id)
+      end
+    end
+
+    test "raises for scheduled query in different workspace", %{
+      scope: scope,
+      saved_query: saved_query
+    } do
+      sq = scheduled_query_fixture(scope, saved_query)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Scheduling.delete_scheduled_query(other_scope, sq)
       end
     end
   end
@@ -211,6 +235,18 @@ defmodule Onesqlx.SchedulingTest do
       {:ok, enabled} = Scheduling.toggle_enabled(scope, sq)
       assert enabled.enabled == true
       assert enabled.next_run_at != nil
+    end
+
+    test "raises for scheduled query in different workspace", %{
+      scope: scope,
+      saved_query: saved_query
+    } do
+      sq = scheduled_query_fixture(scope, saved_query)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Scheduling.toggle_enabled(other_scope, sq)
+      end
     end
   end
 

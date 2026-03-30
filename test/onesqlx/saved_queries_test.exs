@@ -185,6 +185,15 @@ defmodule Onesqlx.SavedQueriesTest do
 
       assert errors_on(changeset).title
     end
+
+    test "raises for query in different workspace", %{scope: scope, data_source: data_source} do
+      saved_query = saved_query_fixture(scope, data_source)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        SavedQueries.update_saved_query(other_scope, saved_query, %{title: "Hacked"})
+      end
+    end
   end
 
   describe "delete_saved_query/2" do
@@ -194,6 +203,15 @@ defmodule Onesqlx.SavedQueriesTest do
 
       assert_raise Ecto.NoResultsError, fn ->
         SavedQueries.get_saved_query!(scope, saved_query.id)
+      end
+    end
+
+    test "raises for query in different workspace", %{scope: scope, data_source: data_source} do
+      saved_query = saved_query_fixture(scope, data_source)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        SavedQueries.delete_saved_query(other_scope, saved_query)
       end
     end
   end
@@ -210,6 +228,15 @@ defmodule Onesqlx.SavedQueriesTest do
 
       assert {:ok, toggled_back} = SavedQueries.toggle_favorite(scope, toggled)
       assert toggled_back.is_favorite == false
+    end
+
+    test "raises for query in different workspace", %{scope: scope, data_source: data_source} do
+      saved_query = saved_query_fixture(scope, data_source)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        SavedQueries.toggle_favorite(other_scope, saved_query)
+      end
     end
   end
 
