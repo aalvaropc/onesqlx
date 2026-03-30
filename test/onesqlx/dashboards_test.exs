@@ -106,6 +106,15 @@ defmodule Onesqlx.DashboardsTest do
       assert {:error, changeset} = Dashboards.update_dashboard(scope, dashboard, %{title: ""})
       assert errors_on(changeset).title
     end
+
+    test "raises for dashboard in different workspace", %{scope: scope} do
+      dashboard = dashboard_fixture(scope)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Dashboards.update_dashboard(other_scope, dashboard, %{title: "Hacked"})
+      end
+    end
   end
 
   describe "delete_dashboard/2" do
@@ -115,6 +124,15 @@ defmodule Onesqlx.DashboardsTest do
 
       assert_raise Ecto.NoResultsError, fn ->
         Dashboards.get_dashboard!(scope, dashboard.id)
+      end
+    end
+
+    test "raises for dashboard in different workspace", %{scope: scope} do
+      dashboard = dashboard_fixture(scope)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Dashboards.delete_dashboard(other_scope, dashboard)
       end
     end
   end
@@ -173,6 +191,19 @@ defmodule Onesqlx.DashboardsTest do
       d = Dashboards.get_dashboard_with_cards!(scope, dashboard.id)
       assert d.cards == []
     end
+
+    test "raises for card in different workspace", %{
+      scope: scope,
+      dashboard: dashboard,
+      saved_query: saved_query
+    } do
+      card = card_fixture(scope, dashboard, saved_query)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Dashboards.remove_card(other_scope, card)
+      end
+    end
   end
 
   describe "update_card/3" do
@@ -191,6 +222,19 @@ defmodule Onesqlx.DashboardsTest do
 
       assert updated.type == "bar"
       assert updated.title == "My Bar Chart"
+    end
+
+    test "raises for card in different workspace", %{
+      scope: scope,
+      dashboard: dashboard,
+      saved_query: saved_query
+    } do
+      card = card_fixture(scope, dashboard, saved_query)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Dashboards.update_card(other_scope, card, %{type: "bar"})
+      end
     end
   end
 
@@ -229,6 +273,19 @@ defmodule Onesqlx.DashboardsTest do
       card = card_fixture(scope, dashboard, saved_query)
       assert {:ok, ^card} = Dashboards.move_card_up(scope, card)
     end
+
+    test "raises for card in different workspace", %{
+      scope: scope,
+      dashboard: dashboard,
+      saved_query: saved_query
+    } do
+      card = card_fixture(scope, dashboard, saved_query)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Dashboards.move_card_up(other_scope, card)
+      end
+    end
   end
 
   describe "move_card_down/2" do
@@ -265,6 +322,19 @@ defmodule Onesqlx.DashboardsTest do
     } do
       card = card_fixture(scope, dashboard, saved_query)
       assert {:ok, ^card} = Dashboards.move_card_down(scope, card)
+    end
+
+    test "raises for card in different workspace", %{
+      scope: scope,
+      dashboard: dashboard,
+      saved_query: saved_query
+    } do
+      card = card_fixture(scope, dashboard, saved_query)
+      other_scope = user_scope_fixture()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Dashboards.move_card_down(other_scope, card)
+      end
     end
   end
 

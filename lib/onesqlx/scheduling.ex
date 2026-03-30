@@ -73,7 +73,9 @@ defmodule Onesqlx.Scheduling do
   @doc """
   Updates a scheduled query. Recomputes next_run_at if schedule changed.
   """
-  def update_scheduled_query(%Scope{} = _scope, %ScheduledQuery{} = sq, attrs) do
+  def update_scheduled_query(%Scope{} = scope, %ScheduledQuery{} = sq, attrs) do
+    verify_ownership!(scope, sq)
+
     sq
     |> ScheduledQuery.changeset(attrs)
     |> maybe_set_next_run_at()
@@ -83,14 +85,17 @@ defmodule Onesqlx.Scheduling do
   @doc """
   Deletes a scheduled query. Cascades to its runs.
   """
-  def delete_scheduled_query(%Scope{} = _scope, %ScheduledQuery{} = sq) do
+  def delete_scheduled_query(%Scope{} = scope, %ScheduledQuery{} = sq) do
+    verify_ownership!(scope, sq)
     Repo.delete(sq)
   end
 
   @doc """
   Toggles the enabled flag. Sets next_run_at when enabling, clears when disabling.
   """
-  def toggle_enabled(%Scope{} = _scope, %ScheduledQuery{} = sq) do
+  def toggle_enabled(%Scope{} = scope, %ScheduledQuery{} = sq) do
+    verify_ownership!(scope, sq)
+
     new_enabled = !sq.enabled
 
     attrs =
@@ -170,6 +175,13 @@ defmodule Onesqlx.Scheduling do
     |> where([sq], sq.enabled == true and not is_nil(sq.next_run_at) and sq.next_run_at <= ^now)
     |> preload(saved_query: :data_source)
     |> Repo.all()
+  end
+
+  defp verify_ownership!(%Scope{} = scope, %ScheduledQuery{} = resource) do
+    if resource.workspace_id != scope.workspace.id,
+      do: raise(Ecto.NoResultsError, queryable: ScheduledQuery)
+
+    resource
   end
 
   defp maybe_filter_enabled(query, true), do: where(query, [sq], sq.enabled == true)
