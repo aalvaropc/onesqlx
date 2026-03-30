@@ -17,6 +17,14 @@ defmodule OnesqlxWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # Health check endpoints (unauthenticated)
+  scope "/", OnesqlxWeb do
+    pipe_through :api
+
+    get "/health", HealthController, :liveness
+    get "/ready", HealthController, :readiness
+  end
+
   scope "/", OnesqlxWeb do
     pipe_through :browser
 
