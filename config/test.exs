@@ -4,6 +4,7 @@ import Config
 config :bcrypt_elixir, :log_rounds, 1
 
 # Configure your database
+# Env vars below are read at compile time. Run `mix recompile` after changes.
 #
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.

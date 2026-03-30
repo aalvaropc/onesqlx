@@ -1,6 +1,7 @@
 import Config
 
 # Configure your database
+# Env vars below are read at compile time. Run `mix recompile` after changes.
 config :onesqlx, Onesqlx.Repo,
   username: System.get_env("DB_USERNAME", "postgres"),
   password: System.get_env("DB_PASSWORD", "postgres"),
