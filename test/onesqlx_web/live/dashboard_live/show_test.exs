@@ -124,6 +124,52 @@ defmodule OnesqlxWeb.DashboardLive.ShowTest do
       assert has_element?(lv, "#add-card-form")
     end
 
+    test "shows timeout error when card query exceeds time limit", %{conn: conn, scope: scope} do
+      data_source = data_source_fixture(scope)
+      saved_query = saved_query_fixture(scope, data_source)
+      dashboard = dashboard_fixture(scope)
+
+      stub(MockConnection, :with_connection, fn _ds, _fun ->
+        Process.sleep(:infinity)
+      end)
+
+      card = card_fixture(scope, dashboard, saved_query)
+
+      {:ok, lv, _html} = live(conn, ~p"/dashboards/#{dashboard.id}")
+
+      # Card should be loading
+      assert render(lv) =~ "loading"
+
+      # Simulate timeout
+      send(lv.pid, {:card_timeout, card.id})
+
+      html = render(lv)
+      assert html =~ "timed out"
+      refute html =~ "loading loading-spinner"
+    end
+
+    test "ignores late timeout after card result arrives", %{conn: conn, scope: scope} do
+      data_source = data_source_fixture(scope)
+      saved_query = saved_query_fixture(scope, data_source, %{sql: "SELECT 1 AS val"})
+      dashboard = dashboard_fixture(scope)
+
+      stub(MockConnection, :with_connection, fn _ds, _fun ->
+        {:ok, %{columns: ["val"], rows: [[1]], row_count: 1, duration_ms: 5}}
+      end)
+
+      card = card_fixture(scope, dashboard, saved_query)
+
+      {:ok, lv, _html} = live(conn, ~p"/dashboards/#{dashboard.id}")
+      render_async(lv, 2000)
+
+      # Result arrived. Now send a stale timeout.
+      send(lv.pid, {:card_timeout, card.id})
+
+      html = render(lv)
+      # Should still show the result, not the timeout error
+      refute html =~ "timed out"
+    end
+
     test "redirects unauthenticated to login", %{conn: conn, scope: scope} do
       dashboard = dashboard_fixture(scope)
       conn = log_out(conn)
