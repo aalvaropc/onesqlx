@@ -8,6 +8,7 @@ on:
 
 env:
   MIX_ENV: test
+  DB_PORT: "5432"
   ELIXIR_VERSION: "1.17.3"
   OTP_VERSION: "27.1"
 
