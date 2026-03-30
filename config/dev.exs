@@ -2,14 +2,14 @@ import Config
 
 # Configure your database
 config :onesqlx, Onesqlx.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "onesqlx_dev",
+  username: System.get_env("DB_USERNAME", "postgres"),
+  password: System.get_env("DB_PASSWORD", "postgres"),
+  hostname: System.get_env("DB_HOSTNAME", "localhost"),
+  database: System.get_env("DB_DATABASE", "onesqlx_dev"),
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10,
-  port: 5464
+  port: String.to_integer(System.get_env("DB_PORT", "5464"))
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -24,7 +24,11 @@ config :onesqlx, OnesqlxWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "1gcWMRi2tNjixZLJKXI7RwMuqj7zqR+V6JqzPS8tyIPH9bPelUcsZH8eIuhf3Dv0",
+  secret_key_base:
+    System.get_env(
+      "SECRET_KEY_BASE",
+      "1gcWMRi2tNjixZLJKXI7RwMuqj7zqR+V6JqzPS8tyIPH9bPelUcsZH8eIuhf3Dv0"
+    ),
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:onesqlx, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:onesqlx, ~w(--watch)]}
