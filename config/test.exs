@@ -12,6 +12,7 @@ config :onesqlx, Onesqlx.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
+  port: 5464,
   database: "onesqlx_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2

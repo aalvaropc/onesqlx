@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: onesqlx_dev
     ports:
-      - "5432:5432"
+      - "5464:5432"
     volumes:
       - onesqlx_pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +24,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: external_test
     ports:
-      - "5433:5432"
+      - "5465:5432"
     volumes:
       - onesqlx_pg_external_data:/var/lib/postgresql/data
     healthcheck:
