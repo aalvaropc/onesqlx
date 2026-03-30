@@ -17,6 +17,14 @@ defmodule OnesqlxWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :api_rate_limit do
+    plug OnesqlxWeb.Plugs.RateLimit, max_requests: 100
+  end
+
+  pipeline :api_rate_limit_strict do
+    plug OnesqlxWeb.Plugs.RateLimit, max_requests: 20
+  end
+
   # Health check endpoints (unauthenticated)
   scope "/", OnesqlxWeb do
     pipe_through :api
@@ -32,12 +40,17 @@ defmodule OnesqlxWeb.Router do
   end
 
   scope "/api", OnesqlxWeb.Api do
-    pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth]
+    pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth, :api_rate_limit]
 
     resources "/saved-queries", SavedQueryController, only: [:index, :show]
-    post "/saved-queries/:id/execute", SavedQueryController, :execute
     resources "/dashboards", DashboardController, only: [:index, :show]
     resources "/data-sources", DataSourceController, only: [:index]
+  end
+
+  scope "/api", OnesqlxWeb.Api do
+    pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth, :api_rate_limit_strict]
+
+    post "/saved-queries/:id/execute", SavedQueryController, :execute
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
