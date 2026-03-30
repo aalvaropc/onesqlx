@@ -8,6 +8,8 @@ defmodule Onesqlx.DataSources do
 
   import Ecto.Query
 
+  require Logger
+
   alias Onesqlx.Accounts.Scope
   alias Onesqlx.Audit
   alias Onesqlx.DataSources.ConnectionTester
@@ -47,12 +49,10 @@ defmodule Onesqlx.DataSources do
 
     case result do
       {:ok, ds} ->
-        Task.start(fn ->
-          Audit.record_event(scope, "data_source.created", %{
-            resource_type: "data_source",
-            resource_id: ds.id
-          })
-        end)
+        emit_audit(scope, "data_source.created", %{
+          resource_type: "data_source",
+          resource_id: ds.id
+        })
 
       _ ->
         :ok
@@ -96,5 +96,11 @@ defmodule Onesqlx.DataSources do
   """
   def test_connection_from_attrs(attrs) do
     ConnectionTester.test_connection_from_attrs(attrs)
+  end
+
+  defp emit_audit(scope, event_type, attrs) do
+    Audit.record_event(scope, event_type, attrs)
+  rescue
+    e -> Logger.warning("Audit event #{event_type} failed: #{Exception.message(e)}")
   end
 end
