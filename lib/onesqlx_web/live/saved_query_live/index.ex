@@ -69,6 +69,9 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
                   phx-click="toggle_favorite"
                   phx-value-id={query.id}
                   class="btn btn-ghost btn-xs"
+                  aria-label={
+                    if query.is_favorite, do: "Remove from favorites", else: "Add to favorites"
+                  }
                 >
                   <.icon
                     name={if query.is_favorite, do: "hero-star-solid", else: "hero-star"}
@@ -101,6 +104,7 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
                 phx-value-id={query.id}
                 data-confirm="Are you sure you want to delete this saved query?"
                 class="btn btn-sm btn-ghost text-error"
+                aria-label="Delete query"
               >
                 <.icon name="hero-trash" class="size-4" />
               </button>

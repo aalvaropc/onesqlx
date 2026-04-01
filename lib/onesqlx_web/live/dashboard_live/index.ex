@@ -46,6 +46,7 @@ defmodule OnesqlxWeb.DashboardLive.Index do
                 phx-value-id={dashboard.id}
                 data-confirm="Are you sure you want to delete this dashboard?"
                 class="btn btn-sm btn-ghost text-error"
+                aria-label="Delete dashboard"
               >
                 <.icon name="hero-trash" class="size-4" />
               </button>
@@ -58,7 +59,12 @@ defmodule OnesqlxWeb.DashboardLive.Index do
         <p class="text-base-content/60">No dashboards yet. Create one to get started.</p>
       </div>
 
-      <div :if={@show_new_modal?} class="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        :if={@show_new_modal?}
+        class="fixed inset-0 z-50 flex items-center justify-center"
+        role="dialog"
+        aria-modal="true"
+      >
         <div class="fixed inset-0 bg-black/50" phx-click="close_new_modal"></div>
         <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
           <h3 class="text-lg font-semibold mb-4">New Dashboard</h3>

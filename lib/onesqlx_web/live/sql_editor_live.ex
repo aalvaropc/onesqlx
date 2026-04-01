@@ -97,7 +97,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
             <div :if={@show_params_form?} class="border border-base-300 rounded-lg p-4 mt-2">
               <div class="flex items-center justify-between mb-2">
                 <h4 class="text-sm font-semibold">Query Parameters</h4>
-                <button phx-click="close_params_form" class="btn btn-xs btn-ghost">
+                <button phx-click="close_params_form" aria-label="Close" class="btn btn-xs btn-ghost">
                   <.icon name="hero-x-mark" class="size-3" />
                 </button>
               </div>
@@ -232,7 +232,12 @@ defmodule OnesqlxWeb.SqlEditorLive do
         </div>
       </div>
       <%!-- Save Query Modal --%>
-      <div :if={@show_save_modal?} class="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        :if={@show_save_modal?}
+        role="dialog"
+        aria-modal="true"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+      >
         <div class="fixed inset-0 bg-black/50" phx-click="close_save_modal"></div>
         <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
           <h3 class="text-lg font-semibold mb-4">Save Query</h3>
