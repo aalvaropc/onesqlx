@@ -10,7 +10,7 @@ defmodule Onesqlx.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
-      test_coverage: [threshold: 70],
+      test_coverage: [summary: [threshold: 80]],
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader]
     ]
