@@ -79,15 +79,63 @@ defmodule OnesqlxWeb.Telemetry do
       summary("vm.memory.total", unit: {:byte, :kilobyte}),
       summary("vm.total_run_queue_lengths.total"),
       summary("vm.total_run_queue_lengths.cpu"),
-      summary("vm.total_run_queue_lengths.io")
+      summary("vm.total_run_queue_lengths.io"),
+
+      # Oban Job Metrics
+      summary("oban.job.stop.duration",
+        tags: [:worker, :queue],
+        unit: {:native, :millisecond},
+        description: "Duration of completed Oban jobs"
+      ),
+      summary("oban.job.exception.duration",
+        tags: [:worker, :queue],
+        unit: {:native, :millisecond},
+        description: "Duration of failed Oban jobs"
+      ),
+      counter("oban.job.stop.duration",
+        tags: [:worker, :queue, :state],
+        description: "Count of completed Oban jobs by state"
+      ),
+      counter("oban.job.exception.duration",
+        tags: [:worker],
+        description: "Count of failed Oban jobs"
+      ),
+
+      # Custom Business Metrics
+      last_value("onesqlx.scheduled_queries.active.count",
+        description: "Number of enabled scheduled queries"
+      ),
+      last_value("onesqlx.data_sources.total.count",
+        description: "Number of configured data sources"
+      )
     ]
   end
 
   defp periodic_measurements do
     [
-      # A module, function and arguments to be invoked periodically.
-      # This function must call :telemetry.execute/3 and a metric must be added above.
-      # {OnesqlxWeb, :count_users, []}
+      {__MODULE__, :measure_scheduled_queries, []},
+      {__MODULE__, :measure_data_sources, []}
     ]
+  end
+
+  @doc false
+  def measure_scheduled_queries do
+    import Ecto.Query
+
+    count =
+      Onesqlx.Repo.aggregate(from(sq in "scheduled_queries", where: sq.enabled == true), :count)
+
+    :telemetry.execute([:onesqlx, :scheduled_queries, :active], %{count: count})
+  rescue
+    _ -> :ok
+  end
+
+  @doc false
+  def measure_data_sources do
+    import Ecto.Query
+    count = Onesqlx.Repo.aggregate(from(_ds in "data_sources"), :count)
+    :telemetry.execute([:onesqlx, :data_sources, :total], %{count: count})
+  rescue
+    _ -> :ok
   end
 end
