@@ -14,6 +14,7 @@ defmodule Onesqlx.Scheduling do
   alias Onesqlx.Scheduling.ScheduledQuery
   alias Onesqlx.Scheduling.ScheduledQueryRun
 
+  @spec list_scheduled_queries(Scope.t(), keyword()) :: [ScheduledQuery.t()]
   @doc """
   Lists scheduled queries for the workspace, with optional filters.
 
@@ -34,6 +35,7 @@ defmodule Onesqlx.Scheduling do
     |> Repo.all()
   end
 
+  @spec count_scheduled_queries(Scope.t(), keyword()) :: non_neg_integer()
   @doc """
   Counts scheduled queries for the workspace, with the same filters as `list_scheduled_queries/2`.
   """
@@ -45,6 +47,7 @@ defmodule Onesqlx.Scheduling do
     |> Repo.aggregate(:count)
   end
 
+  @spec get_scheduled_query!(Scope.t(), String.t()) :: ScheduledQuery.t()
   @doc """
   Gets a single scheduled query scoped to the workspace.
 
@@ -58,6 +61,7 @@ defmodule Onesqlx.Scheduling do
     |> Repo.one!()
   end
 
+  @spec get_scheduled_query_for_execution!(String.t()) :: ScheduledQuery.t()
   @doc """
   Gets a scheduled query by ID without workspace scoping.
 
@@ -71,6 +75,8 @@ defmodule Onesqlx.Scheduling do
     |> Repo.preload(saved_query: :data_source)
   end
 
+  @spec create_scheduled_query(Scope.t(), map()) ::
+          {:ok, ScheduledQuery.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Creates a scheduled query for the workspace in the given scope.
 
@@ -83,6 +89,8 @@ defmodule Onesqlx.Scheduling do
     |> Repo.insert()
   end
 
+  @spec update_scheduled_query(Scope.t(), ScheduledQuery.t(), map()) ::
+          {:ok, ScheduledQuery.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Updates a scheduled query. Recomputes next_run_at if schedule changed.
   """
@@ -95,6 +103,8 @@ defmodule Onesqlx.Scheduling do
     |> Repo.update()
   end
 
+  @spec delete_scheduled_query(Scope.t(), ScheduledQuery.t()) ::
+          {:ok, ScheduledQuery.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Deletes a scheduled query. Cascades to its runs.
   """
@@ -103,6 +113,8 @@ defmodule Onesqlx.Scheduling do
     Repo.delete(sq)
   end
 
+  @spec toggle_enabled(Scope.t(), ScheduledQuery.t()) ::
+          {:ok, ScheduledQuery.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Toggles the enabled flag. Sets next_run_at when enabling, clears when disabling.
   """
@@ -123,6 +135,7 @@ defmodule Onesqlx.Scheduling do
     |> Repo.update()
   end
 
+  @spec change_scheduled_query(ScheduledQuery.t(), map()) :: Ecto.Changeset.t()
   @doc """
   Returns a changeset for tracking scheduled query changes.
   """
@@ -130,6 +143,7 @@ defmodule Onesqlx.Scheduling do
     ScheduledQuery.changeset(sq, attrs)
   end
 
+  @spec list_runs(Scope.t(), String.t(), keyword()) :: [ScheduledQueryRun.t()]
   @doc """
   Lists runs for a scheduled query, ordered by started_at desc.
 
@@ -147,6 +161,7 @@ defmodule Onesqlx.Scheduling do
     |> Repo.all()
   end
 
+  @spec record_run(ScheduledQuery.t(), map()) :: {:ok, ScheduledQueryRun.t()} | {:error, term()}
   @doc """
   Records a run for a scheduled query and updates parent timestamps.
   """
@@ -175,6 +190,7 @@ defmodule Onesqlx.Scheduling do
     end)
   end
 
+  @spec list_due_queries() :: [ScheduledQuery.t()]
   @doc """
   Lists due scheduled queries (system-level, no scope).
 
@@ -224,6 +240,7 @@ defmodule Onesqlx.Scheduling do
     end
   end
 
+  @spec compute_next_run_at(String.t(), String.t() | nil) :: DateTime.t()
   @doc false
   def compute_next_run_at(schedule_type, cron_expression \\ nil) do
     now = DateTime.utc_now(:second)

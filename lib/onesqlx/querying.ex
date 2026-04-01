@@ -15,6 +15,8 @@ defmodule Onesqlx.Querying do
   alias Onesqlx.Querying.QueryRun
   alias Onesqlx.Repo
 
+  @spec execute_query(Scope.t(), DataSource.t(), String.t(), map()) ::
+          {:ok, map()} | {:error, atom(), String.t()}
   @doc """
   Executes a SQL query and records the run for audit.
 
@@ -34,6 +36,7 @@ defmodule Onesqlx.Querying do
     result
   end
 
+  @spec record_query_run(Scope.t(), map()) :: {:ok, QueryRun.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Records a query run for audit purposes.
   """
@@ -43,6 +46,7 @@ defmodule Onesqlx.Querying do
     |> Repo.insert()
   end
 
+  @spec list_recent_runs(Scope.t(), String.t(), keyword()) :: [QueryRun.t()]
   @doc """
   Lists recent query runs for the current user and data source.
 
@@ -60,6 +64,7 @@ defmodule Onesqlx.Querying do
     |> Repo.all()
   end
 
+  @spec get_query_run!(Scope.t(), String.t()) :: QueryRun.t()
   @doc """
   Gets a single query run by ID, scoped to the workspace.
 

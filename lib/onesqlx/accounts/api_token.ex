@@ -11,7 +11,9 @@ defmodule Onesqlx.Accounts.ApiToken do
   import Ecto.Query
 
   alias Onesqlx.Accounts.Scope
+  alias Onesqlx.Accounts.User
   alias Onesqlx.Repo
+  alias Onesqlx.Workspaces.Workspace
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -41,6 +43,7 @@ defmodule Onesqlx.Accounts.ApiToken do
     |> foreign_key_constraint(:workspace_id)
   end
 
+  @spec build_token(User.t(), Workspace.t(), String.t()) :: {String.t(), %__MODULE__{}}
   @doc """
   Generates a raw token and builds an ApiToken struct with the hashed version.
 
@@ -61,6 +64,7 @@ defmodule Onesqlx.Accounts.ApiToken do
     {raw, token}
   end
 
+  @spec verify_token(String.t()) :: {:ok, User.t(), Workspace.t()} | :error
   @doc """
   Verifies a raw token and returns the user and workspace if valid.
 
@@ -87,6 +91,7 @@ defmodule Onesqlx.Accounts.ApiToken do
 
   def verify_token(_), do: :error
 
+  @spec touch_usage(String.t()) :: {non_neg_integer(), nil}
   @doc """
   Updates the `last_used_at` timestamp for a token identified by raw token.
   """
@@ -97,6 +102,7 @@ defmodule Onesqlx.Accounts.ApiToken do
     |> Repo.update_all(set: [last_used_at: DateTime.utc_now(:second)])
   end
 
+  @spec get_scope(String.t()) :: {:ok, Scope.t()} | :error
   @doc """
   Returns a scope for the given raw API token, or `:error`.
   """

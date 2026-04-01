@@ -13,6 +13,7 @@ defmodule Onesqlx.SavedQueries do
   alias Onesqlx.Repo
   alias Onesqlx.SavedQueries.SavedQuery
 
+  @spec list_saved_queries(Scope.t(), keyword()) :: [SavedQuery.t()]
   @doc """
   Lists saved queries for the workspace, with optional filters.
 
@@ -38,6 +39,7 @@ defmodule Onesqlx.SavedQueries do
     |> Repo.all()
   end
 
+  @spec count_saved_queries(Scope.t(), keyword()) :: non_neg_integer()
   @doc """
   Counts saved queries for the workspace, with the same filters as `list_saved_queries/2`.
   """
@@ -52,6 +54,7 @@ defmodule Onesqlx.SavedQueries do
     |> Repo.aggregate(:count)
   end
 
+  @spec get_saved_query!(Scope.t(), String.t()) :: SavedQuery.t()
   @doc """
   Gets a single saved query by ID, scoped to the workspace.
 
@@ -64,6 +67,8 @@ defmodule Onesqlx.SavedQueries do
     |> Repo.one!()
   end
 
+  @spec create_saved_query(Scope.t(), map()) ::
+          {:ok, SavedQuery.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Creates a saved query for the workspace in the given scope.
   """
@@ -87,6 +92,8 @@ defmodule Onesqlx.SavedQueries do
     result
   end
 
+  @spec update_saved_query(Scope.t(), SavedQuery.t(), map()) ::
+          {:ok, SavedQuery.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Updates a saved query.
   """
@@ -98,6 +105,8 @@ defmodule Onesqlx.SavedQueries do
     |> Repo.update()
   end
 
+  @spec delete_saved_query(Scope.t(), SavedQuery.t()) ::
+          {:ok, SavedQuery.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Deletes a saved query.
   """
@@ -119,6 +128,8 @@ defmodule Onesqlx.SavedQueries do
     result
   end
 
+  @spec toggle_favorite(Scope.t(), SavedQuery.t()) ::
+          {:ok, SavedQuery.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Toggles the `is_favorite` field on a saved query.
   """
@@ -130,6 +141,7 @@ defmodule Onesqlx.SavedQueries do
     |> Repo.update()
   end
 
+  @spec change_saved_query(SavedQuery.t(), map()) :: Ecto.Changeset.t()
   @doc """
   Returns a changeset for tracking saved query changes.
   """
@@ -172,6 +184,7 @@ defmodule Onesqlx.SavedQueries do
   defp maybe_filter_collection(query, collection),
     do: where(query, [q], q.collection == ^collection)
 
+  @spec list_collections(Scope.t()) :: [String.t()]
   @doc """
   Lists distinct collection names for the workspace.
   """
