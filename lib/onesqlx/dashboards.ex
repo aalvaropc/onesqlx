@@ -115,14 +115,23 @@ defmodule Onesqlx.Dashboards do
   def add_card(%Scope{} = scope, %Dashboard{} = dashboard, attrs) do
     verify_ownership!(scope, dashboard)
 
-    max_pos_query =
-      from(c in DashboardCard, where: c.dashboard_id == ^dashboard.id, select: max(c.position))
+    Repo.transaction(fn ->
+      # Lock dashboard row to serialize concurrent card inserts
+      from(d in Dashboard, where: d.id == ^dashboard.id, lock: "FOR UPDATE")
+      |> Repo.one!()
 
-    next_position = (Repo.one(max_pos_query) || -1) + 1
+      max_pos_query =
+        from(c in DashboardCard, where: c.dashboard_id == ^dashboard.id, select: max(c.position))
 
-    %DashboardCard{dashboard_id: dashboard.id, position: next_position}
-    |> DashboardCard.changeset(attrs)
-    |> Repo.insert()
+      next_position = (Repo.one(max_pos_query) || -1) + 1
+
+      case %DashboardCard{dashboard_id: dashboard.id, position: next_position}
+           |> DashboardCard.changeset(attrs)
+           |> Repo.insert() do
+        {:ok, card} -> card
+        {:error, changeset} -> Repo.rollback(changeset)
+      end
+    end)
   end
 
   @doc """
