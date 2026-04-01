@@ -48,7 +48,8 @@ defmodule OnesqlxWeb.Plugs.RateLimitTest do
     assert conn.halted
 
     body = Jason.decode!(conn.resp_body)
-    assert body["errors"]["detail"] =~ "Rate limit"
+    assert body["error"]["code"] == "rate_limited"
+    assert body["error"]["message"] =~ "Rate limit"
   end
 
   test "different users have independent limits" do

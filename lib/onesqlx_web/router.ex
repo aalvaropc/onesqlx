@@ -39,7 +39,7 @@ defmodule OnesqlxWeb.Router do
     get "/", PageController, :home
   end
 
-  scope "/api", OnesqlxWeb.Api do
+  scope "/api/v1", OnesqlxWeb.Api do
     pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth, :api_rate_limit]
 
     resources "/saved-queries", SavedQueryController, only: [:index, :show]
@@ -47,7 +47,7 @@ defmodule OnesqlxWeb.Router do
     resources "/data-sources", DataSourceController, only: [:index]
   end
 
-  scope "/api", OnesqlxWeb.Api do
+  scope "/api/v1", OnesqlxWeb.Api do
     pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth, :api_rate_limit_strict]
 
     post "/saved-queries/:id/execute", SavedQueryController, :execute
