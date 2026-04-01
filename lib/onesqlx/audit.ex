@@ -15,6 +15,8 @@ defmodule Onesqlx.Audit do
   alias Onesqlx.Querying.QueryRun
   alias Onesqlx.Repo
 
+  @spec record_event(Scope.t(), String.t(), map()) ::
+          {:ok, AuditEvent.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Records an audit event for the workspace in the given scope.
   """
@@ -28,6 +30,8 @@ defmodule Onesqlx.Audit do
     |> Repo.insert()
   end
 
+  @spec safe_record_event(Scope.t(), String.t(), map()) ::
+          {:ok, AuditEvent.t()} | {:error, term()}
   @doc """
   Records an audit event, catching both changeset errors and exceptions.
 
@@ -49,6 +53,7 @@ defmodule Onesqlx.Audit do
       {:error, e}
   end
 
+  @spec list_events(Scope.t(), keyword()) :: [AuditEvent.t()]
   @doc """
   Lists audit events for the workspace, with optional filters.
 
@@ -76,6 +81,7 @@ defmodule Onesqlx.Audit do
     |> Repo.all()
   end
 
+  @spec count_events(Scope.t(), keyword()) :: non_neg_integer()
   @doc """
   Counts audit events for the workspace, with the same filters as `list_events/2`.
   """
@@ -88,6 +94,7 @@ defmodule Onesqlx.Audit do
     |> Repo.aggregate(:count)
   end
 
+  @spec query_execution_stats(Scope.t(), keyword()) :: map()
   @doc """
   Returns query execution statistics for the workspace.
 
@@ -129,6 +136,7 @@ defmodule Onesqlx.Audit do
     }
   end
 
+  @spec most_active_users(Scope.t(), keyword()) :: [{String.t(), non_neg_integer()}]
   @doc """
   Returns the most active users in the workspace by event count.
 
@@ -152,6 +160,7 @@ defmodule Onesqlx.Audit do
     |> Repo.all()
   end
 
+  @spec slowest_queries(Scope.t(), keyword()) :: [QueryRun.t()]
   @doc """
   Returns the slowest query runs in the workspace.
 

@@ -15,6 +15,7 @@ defmodule Onesqlx.DataSources do
   alias Onesqlx.DataSources.Encryption
   alias Onesqlx.Repo
 
+  @spec list_data_sources(Scope.t(), keyword()) :: [DataSource.t()]
   @doc """
   Lists all data sources for the workspace in the given scope.
   """
@@ -27,6 +28,7 @@ defmodule Onesqlx.DataSources do
     |> Repo.all()
   end
 
+  @spec count_data_sources(Scope.t()) :: non_neg_integer()
   @doc """
   Counts data sources for the workspace.
   """
@@ -36,6 +38,7 @@ defmodule Onesqlx.DataSources do
     |> Repo.aggregate(:count)
   end
 
+  @spec get_data_source!(Scope.t(), String.t()) :: DataSource.t()
   @doc """
   Gets a single data source by ID, scoped to the workspace.
 
@@ -47,6 +50,8 @@ defmodule Onesqlx.DataSources do
     |> Repo.one!()
   end
 
+  @spec create_data_source(Scope.t(), map()) ::
+          {:ok, DataSource.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Creates a data source for the workspace in the given scope.
   """
@@ -70,6 +75,8 @@ defmodule Onesqlx.DataSources do
     result
   end
 
+  @spec update_data_source_status(DataSource.t(), String.t()) ::
+          {:ok, DataSource.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Updates the status of a data source.
   """
@@ -79,6 +86,7 @@ defmodule Onesqlx.DataSources do
     |> Repo.update()
   end
 
+  @spec change_data_source(DataSource.t(), map()) :: Ecto.Changeset.t()
   @doc """
   Returns a changeset for tracking data source changes.
   """
@@ -86,6 +94,7 @@ defmodule Onesqlx.DataSources do
     DataSource.changeset(data_source, attrs)
   end
 
+  @spec decrypt_password(DataSource.t()) :: String.t() | nil
   @doc """
   Decrypts the password of a data source.
   """
@@ -93,6 +102,7 @@ defmodule Onesqlx.DataSources do
     Encryption.decrypt(data_source.encrypted_password)
   end
 
+  @spec test_connection(DataSource.t()) :: {:ok, map()} | {:error, String.t()}
   @doc """
   Tests connection to an existing data source.
   """
@@ -100,6 +110,7 @@ defmodule Onesqlx.DataSources do
     ConnectionTester.test_connection(data_source)
   end
 
+  @spec test_connection_from_attrs(map()) :: {:ok, map()} | {:error, String.t()}
   @doc """
   Tests connection from raw attributes (before persisting).
   """

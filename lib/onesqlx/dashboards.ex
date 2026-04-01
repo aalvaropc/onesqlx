@@ -14,6 +14,7 @@ defmodule Onesqlx.Dashboards do
   alias Onesqlx.Dashboards.DashboardCard
   alias Onesqlx.Repo
 
+  @spec list_dashboards(Scope.t(), keyword()) :: [Dashboard.t()]
   @doc """
   Lists all dashboards for the workspace, ordered by updated_at desc.
   """
@@ -26,6 +27,7 @@ defmodule Onesqlx.Dashboards do
     |> Repo.all()
   end
 
+  @spec count_dashboards(Scope.t()) :: non_neg_integer()
   @doc """
   Counts dashboards for the workspace.
   """
@@ -35,6 +37,7 @@ defmodule Onesqlx.Dashboards do
     |> Repo.aggregate(:count)
   end
 
+  @spec get_dashboard!(Scope.t(), String.t()) :: Dashboard.t()
   @doc """
   Gets a single dashboard scoped to the workspace.
 
@@ -46,6 +49,7 @@ defmodule Onesqlx.Dashboards do
     |> Repo.one!()
   end
 
+  @spec get_dashboard_with_cards!(Scope.t(), String.t()) :: Dashboard.t()
   @doc """
   Gets a single dashboard with its cards (and each card's saved_query + data_source) preloaded.
 
@@ -58,6 +62,7 @@ defmodule Onesqlx.Dashboards do
     |> Repo.one!()
   end
 
+  @spec create_dashboard(Scope.t(), map()) :: {:ok, Dashboard.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Creates a dashboard for the workspace in the given scope.
   """
@@ -81,6 +86,8 @@ defmodule Onesqlx.Dashboards do
     result
   end
 
+  @spec update_dashboard(Scope.t(), Dashboard.t(), map()) ::
+          {:ok, Dashboard.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Updates a dashboard.
   """
@@ -92,6 +99,8 @@ defmodule Onesqlx.Dashboards do
     |> Repo.update()
   end
 
+  @spec delete_dashboard(Scope.t(), Dashboard.t()) ::
+          {:ok, Dashboard.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Deletes a dashboard. Cascades to its cards.
   """
@@ -113,6 +122,7 @@ defmodule Onesqlx.Dashboards do
     result
   end
 
+  @spec change_dashboard(Dashboard.t(), map()) :: Ecto.Changeset.t()
   @doc """
   Returns a changeset for tracking dashboard changes.
   """
@@ -120,6 +130,8 @@ defmodule Onesqlx.Dashboards do
     Dashboard.changeset(dashboard, attrs)
   end
 
+  @spec add_card(Scope.t(), Dashboard.t(), map()) ::
+          {:ok, DashboardCard.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Adds a card to a dashboard. Position is set to max(position) + 1.
   """
@@ -145,6 +157,8 @@ defmodule Onesqlx.Dashboards do
     end)
   end
 
+  @spec remove_card(Scope.t(), DashboardCard.t()) ::
+          {:ok, DashboardCard.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Removes a card from a dashboard.
   """
@@ -153,6 +167,8 @@ defmodule Onesqlx.Dashboards do
     Repo.delete(card)
   end
 
+  @spec update_card(Scope.t(), DashboardCard.t(), map()) ::
+          {:ok, DashboardCard.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Updates a card's type, title, or config.
   """
@@ -164,6 +180,7 @@ defmodule Onesqlx.Dashboards do
     |> Repo.update()
   end
 
+  @spec move_card_up(Scope.t(), DashboardCard.t()) :: {:ok, DashboardCard.t()}
   @doc """
   Moves a card up by swapping positions with the nearest preceding card.
   No-op if already first.
@@ -199,6 +216,7 @@ defmodule Onesqlx.Dashboards do
     end
   end
 
+  @spec move_card_down(Scope.t(), DashboardCard.t()) :: {:ok, DashboardCard.t()}
   @doc """
   Moves a card down by swapping positions with the nearest following card.
   No-op if already last.
@@ -234,6 +252,7 @@ defmodule Onesqlx.Dashboards do
     end
   end
 
+  @spec change_card(DashboardCard.t(), map()) :: Ecto.Changeset.t()
   @doc """
   Returns a changeset for tracking card changes.
   """
