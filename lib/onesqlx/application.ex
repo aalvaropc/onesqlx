@@ -12,12 +12,10 @@ defmodule Onesqlx.Application do
       Onesqlx.Repo,
       {DNSCluster, query: Application.get_env(:onesqlx, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Onesqlx.PubSub},
-      # Start a worker by calling: Onesqlx.Worker.start_link(arg)
-      # {Onesqlx.Worker, arg},
-      # Start to serve requests, typically the last entry
-      OnesqlxWeb.Endpoint,
       {Finch, name: Onesqlx.Finch},
-      {Oban, Application.fetch_env!(:onesqlx, Oban)}
+      {Oban, Application.fetch_env!(:onesqlx, Oban)},
+      # Endpoint last: on shutdown it stops first, then Oban drains jobs
+      OnesqlxWeb.Endpoint
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
