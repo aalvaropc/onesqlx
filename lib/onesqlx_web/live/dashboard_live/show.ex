@@ -18,7 +18,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="flex items-center gap-4 mb-6">
+      <div class="flex flex-wrap items-center gap-2 md:gap-4 mb-6">
         <.link navigate={~p"/dashboards"} class="btn btn-sm btn-ghost">
           <.icon name="hero-arrow-left" class="size-4" /> Back
         </.link>

@@ -81,7 +81,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
         </div>
 
         <%!-- Editor + History side panel --%>
-        <div class="flex gap-4 flex-1 min-h-0">
+        <div class="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
           <%!-- Editor column --%>
           <div class="flex flex-col flex-1 min-w-0">
             <%!-- CodeMirror Editor --%>
@@ -89,7 +89,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
               id="sql-editor"
               phx-hook="SqlEditor"
               phx-update="ignore"
-              class="border border-base-300 rounded-lg overflow-hidden h-48 flex-shrink-0"
+              class="border border-base-300 rounded-lg overflow-hidden h-32 md:h-48 flex-shrink-0"
             >
             </div>
 
@@ -195,7 +195,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
           </div>
 
           <%!-- History side panel --%>
-          <div class="w-72 flex-shrink-0 flex flex-col min-h-0 border-l border-base-300 pl-4">
+          <div class="hidden lg:flex w-72 flex-shrink-0 flex-col min-h-0 border-l border-base-300 pl-4">
             <h3 class="text-sm font-semibold mb-2">Recent Queries</h3>
             <div class="flex-1 overflow-y-auto space-y-2">
               <div

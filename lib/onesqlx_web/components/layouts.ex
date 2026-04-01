@@ -38,7 +38,7 @@ defmodule OnesqlxWeb.Layouts do
   def app(assigns) do
     ~H"""
     <div :if={@current_scope && @current_scope.user} class="flex h-screen">
-      <nav class="w-56 flex-shrink-0 border-r border-base-300 flex flex-col bg-base-200">
+      <nav class="hidden md:flex w-56 flex-shrink-0 border-r border-base-300 flex-col bg-base-200">
         <div class="p-4 border-b border-base-300">
           <a href="/" class="flex items-center gap-2">
             <img src={~p"/images/logo.svg"} width="28" />
