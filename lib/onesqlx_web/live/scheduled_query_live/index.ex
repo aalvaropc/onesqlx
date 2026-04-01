@@ -56,6 +56,7 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
               <button
                 phx-click="toggle_enabled"
                 phx-value-id={sq.id}
+                aria-label={if sq.enabled, do: "Pause schedule", else: "Resume schedule"}
                 class={["btn btn-sm btn-ghost", sq.enabled && "text-warning"]}
               >
                 <.icon name={if sq.enabled, do: "hero-pause", else: "hero-play"} class="size-4" />
@@ -66,6 +67,7 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
               <button
                 phx-click="delete"
                 phx-value-id={sq.id}
+                aria-label="Delete schedule"
                 data-confirm="Are you sure you want to delete this schedule?"
                 class="btn btn-sm btn-ghost text-error"
               >
@@ -82,7 +84,12 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
         </p>
       </div>
 
-      <div :if={@show_new_modal?} class="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        :if={@show_new_modal?}
+        role="dialog"
+        aria-modal="true"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+      >
         <div class="fixed inset-0 bg-black/50" phx-click="close_new_modal"></div>
         <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
           <h3 class="text-lg font-semibold mb-4">New Schedule</h3>

@@ -53,7 +53,12 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
       </div>
 
       <%!-- Create token modal --%>
-      <div :if={@show_create_modal?} class="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        :if={@show_create_modal?}
+        role="dialog"
+        aria-modal="true"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+      >
         <div class="fixed inset-0 bg-black/50" phx-click="close_create_modal"></div>
         <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
           <h3 class="text-lg font-semibold mb-4">Create API Token</h3>
@@ -77,7 +82,12 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
       </div>
 
       <%!-- Show raw token modal (once only) --%>
-      <div :if={@raw_token} class="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        :if={@raw_token}
+        role="dialog"
+        aria-modal="true"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+      >
         <div class="fixed inset-0 bg-black/50"></div>
         <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-lg shadow-xl">
           <h3 class="text-lg font-semibold mb-2">Token Created</h3>

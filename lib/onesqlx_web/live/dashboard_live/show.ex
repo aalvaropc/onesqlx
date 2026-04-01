@@ -42,16 +42,27 @@ defmodule OnesqlxWeb.DashboardLive.Show do
               {card.title || (card.saved_query && card.saved_query.title) || "Untitled Card"}
             </h3>
             <div :if={@editing?} class="flex items-center gap-1 ml-2 flex-shrink-0">
-              <button phx-click="move_card_up" phx-value-id={card.id} class="btn btn-xs btn-ghost">
+              <button
+                phx-click="move_card_up"
+                phx-value-id={card.id}
+                class="btn btn-xs btn-ghost"
+                aria-label="Move card up"
+              >
                 <.icon name="hero-arrow-up" class="size-3" />
               </button>
-              <button phx-click="move_card_down" phx-value-id={card.id} class="btn btn-xs btn-ghost">
+              <button
+                phx-click="move_card_down"
+                phx-value-id={card.id}
+                class="btn btn-xs btn-ghost"
+                aria-label="Move card down"
+              >
                 <.icon name="hero-arrow-down" class="size-3" />
               </button>
               <.link
                 :if={card.saved_query_id}
                 navigate={~p"/sql-editor?saved_query_id=#{card.saved_query_id}"}
                 class="btn btn-xs btn-ghost"
+                aria-label="Open in editor"
               >
                 <.icon name="hero-arrow-top-right-on-square" class="size-3" />
               </.link>
@@ -60,6 +71,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
                 phx-value-id={card.id}
                 data-confirm="Remove this card?"
                 class="btn btn-xs btn-ghost text-error"
+                aria-label="Remove card"
               >
                 <.icon name="hero-x-mark" class="size-3" />
               </button>
@@ -79,7 +91,12 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         </button>
       </div>
 
-      <div :if={@show_add_card_modal?} class="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        :if={@show_add_card_modal?}
+        class="fixed inset-0 z-50 flex items-center justify-center"
+        role="dialog"
+        aria-modal="true"
+      >
         <div class="fixed inset-0 bg-black/50" phx-click="close_add_card_modal"></div>
         <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
           <h3 class="text-lg font-semibold mb-4">Add Card</h3>
