@@ -18,11 +18,22 @@ defmodule Onesqlx.DataSources do
   @doc """
   Lists all data sources for the workspace in the given scope.
   """
-  def list_data_sources(%Scope{} = scope) do
+  def list_data_sources(%Scope{} = scope, opts \\ []) do
     DataSource
     |> where(workspace_id: ^scope.workspace.id)
     |> order_by(:name)
+    |> maybe_apply_limit(opts[:limit])
+    |> maybe_apply_offset(opts[:offset])
     |> Repo.all()
+  end
+
+  @doc """
+  Counts data sources for the workspace.
+  """
+  def count_data_sources(%Scope{} = scope) do
+    DataSource
+    |> where(workspace_id: ^scope.workspace.id)
+    |> Repo.aggregate(:count)
   end
 
   @doc """
@@ -95,4 +106,10 @@ defmodule Onesqlx.DataSources do
   def test_connection_from_attrs(attrs) do
     ConnectionTester.test_connection_from_attrs(attrs)
   end
+
+  defp maybe_apply_limit(query, nil), do: query
+  defp maybe_apply_limit(query, limit), do: limit(query, ^limit)
+
+  defp maybe_apply_offset(query, nil), do: query
+  defp maybe_apply_offset(query, offset), do: offset(query, ^offset)
 end

@@ -32,8 +32,24 @@ defmodule Onesqlx.SavedQueries do
     |> maybe_filter_tag(opts[:tag])
     |> maybe_filter_collection(opts[:collection])
     |> order_by(desc: :updated_at)
+    |> maybe_apply_limit(opts[:limit])
+    |> maybe_apply_offset(opts[:offset])
     |> preload(:data_source)
     |> Repo.all()
+  end
+
+  @doc """
+  Counts saved queries for the workspace, with the same filters as `list_saved_queries/2`.
+  """
+  def count_saved_queries(%Scope{} = scope, opts \\ []) do
+    SavedQuery
+    |> where(workspace_id: ^scope.workspace.id)
+    |> maybe_filter_search(opts[:search])
+    |> maybe_filter_favorites(opts[:favorites_only])
+    |> maybe_filter_data_source(opts[:data_source_id])
+    |> maybe_filter_tag(opts[:tag])
+    |> maybe_filter_collection(opts[:collection])
+    |> Repo.aggregate(:count)
   end
 
   @doc """
@@ -144,6 +160,12 @@ defmodule Onesqlx.SavedQueries do
 
     resource
   end
+
+  defp maybe_apply_limit(query, nil), do: query
+  defp maybe_apply_limit(query, limit), do: limit(query, ^limit)
+
+  defp maybe_apply_offset(query, nil), do: query
+  defp maybe_apply_offset(query, offset), do: offset(query, ^offset)
 
   defp maybe_filter_collection(query, nil), do: query
 

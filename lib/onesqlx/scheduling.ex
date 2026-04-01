@@ -28,8 +28,21 @@ defmodule Onesqlx.Scheduling do
     |> maybe_filter_enabled(opts[:enabled_only])
     |> maybe_filter_saved_query(opts[:saved_query_id])
     |> order_by(:name)
+    |> maybe_apply_limit(opts[:limit])
+    |> maybe_apply_offset(opts[:offset])
     |> preload(:saved_query)
     |> Repo.all()
+  end
+
+  @doc """
+  Counts scheduled queries for the workspace, with the same filters as `list_scheduled_queries/2`.
+  """
+  def count_scheduled_queries(%Scope{} = scope, opts \\ []) do
+    ScheduledQuery
+    |> where(workspace_id: ^scope.workspace.id)
+    |> maybe_filter_enabled(opts[:enabled_only])
+    |> maybe_filter_saved_query(opts[:saved_query_id])
+    |> Repo.aggregate(:count)
   end
 
   @doc """
@@ -186,6 +199,12 @@ defmodule Onesqlx.Scheduling do
 
   defp maybe_filter_enabled(query, true), do: where(query, [sq], sq.enabled == true)
   defp maybe_filter_enabled(query, _), do: query
+
+  defp maybe_apply_limit(query, nil), do: query
+  defp maybe_apply_limit(query, limit), do: limit(query, ^limit)
+
+  defp maybe_apply_offset(query, nil), do: query
+  defp maybe_apply_offset(query, offset), do: offset(query, ^offset)
 
   defp maybe_filter_saved_query(query, nil), do: query
 

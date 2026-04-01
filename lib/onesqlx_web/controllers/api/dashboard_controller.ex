@@ -5,12 +5,20 @@ defmodule OnesqlxWeb.Api.DashboardController do
 
   use OnesqlxWeb, :controller
 
+  import OnesqlxWeb.ApiPagination
+
   alias Onesqlx.Dashboards
 
-  def index(conn, _params) do
+  def index(conn, params) do
     scope = conn.assigns.current_scope
-    dashboards = Dashboards.list_dashboards(scope)
-    json(conn, %{data: Enum.map(dashboards, &serialize_dashboard/1)})
+    pagination = extract_pagination(params)
+    dashboards = Dashboards.list_dashboards(scope, pagination)
+    total = Dashboards.count_dashboards(scope)
+
+    json(conn, %{
+      data: Enum.map(dashboards, &serialize_dashboard/1),
+      meta: pagination_meta(pagination[:limit], pagination[:offset], total)
+    })
   end
 
   def show(conn, %{"id" => id}) do
