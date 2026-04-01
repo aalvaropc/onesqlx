@@ -18,13 +18,13 @@ defmodule OnesqlxWeb.Api.DashboardControllerTest do
     test "lists dashboards", %{conn: conn, raw_token: raw, scope: scope} do
       dashboard_fixture(scope, %{title: "Sales Dashboard"})
 
-      conn = conn |> auth_conn(raw) |> get("/api/dashboards")
+      conn = conn |> auth_conn(raw) |> get("/api/v1/dashboards")
       assert %{"data" => [%{"title" => "Sales Dashboard"}]} = json_response(conn, 200)
     end
 
     test "returns 401 without token", %{conn: conn} do
-      conn = get(conn, "/api/dashboards")
-      assert json_response(conn, 401)
+      conn = get(conn, "/api/v1/dashboards")
+      assert json_response(conn, 401)["error"]["code"] == "unauthorized"
     end
   end
 
@@ -32,7 +32,7 @@ defmodule OnesqlxWeb.Api.DashboardControllerTest do
     test "returns dashboard with cards", %{conn: conn, raw_token: raw, scope: scope} do
       dashboard = dashboard_fixture(scope, %{title: "Detail Dashboard"})
 
-      conn = conn |> auth_conn(raw) |> get("/api/dashboards/#{dashboard.id}")
+      conn = conn |> auth_conn(raw) |> get("/api/v1/dashboards/#{dashboard.id}")
 
       response = json_response(conn, 200)
       assert response["data"]["title"] == "Detail Dashboard"

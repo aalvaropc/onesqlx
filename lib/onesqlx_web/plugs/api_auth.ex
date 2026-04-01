@@ -22,7 +22,7 @@ defmodule OnesqlxWeb.Plugs.ApiAuth do
       _ ->
         conn
         |> put_status(:unauthorized)
-        |> json(%{errors: %{detail: "Invalid or missing API token"}})
+        |> json(%{error: %{code: "unauthorized", message: "Invalid or missing API token"}})
         |> halt()
     end
   end

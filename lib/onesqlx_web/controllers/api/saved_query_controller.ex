@@ -35,7 +35,9 @@ defmodule OnesqlxWeb.Api.SavedQueryController do
 
     case query.data_source_id do
       nil ->
-        conn |> put_status(:unprocessable_entity) |> json(%{error: "No data source assigned"})
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: %{code: "unprocessable_entity", message: "No data source assigned"}})
 
       ds_id ->
         data_source = DataSources.get_data_source!(scope, ds_id)
@@ -52,7 +54,9 @@ defmodule OnesqlxWeb.Api.SavedQueryController do
             })
 
           {:error, _type, message} ->
-            conn |> put_status(:unprocessable_entity) |> json(%{error: message})
+            conn
+            |> put_status(:unprocessable_entity)
+            |> json(%{error: %{code: "execution_error", message: message}})
         end
     end
   end

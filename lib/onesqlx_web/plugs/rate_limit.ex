@@ -44,7 +44,7 @@ defmodule OnesqlxWeb.Plugs.RateLimit do
     if count > max do
       conn
       |> put_status(:too_many_requests)
-      |> json(%{errors: %{detail: "Rate limit exceeded. Try again later."}})
+      |> json(%{error: %{code: "rate_limited", message: "Rate limit exceeded. Try again later."}})
       |> halt()
     else
       conn

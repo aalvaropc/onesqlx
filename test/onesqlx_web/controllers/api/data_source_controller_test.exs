@@ -22,7 +22,7 @@ defmodule OnesqlxWeb.Api.DataSourceControllerTest do
     } do
       data_source_fixture(scope, %{name: "prod-db"})
 
-      conn = conn |> auth_conn(raw) |> get("/api/data-sources")
+      conn = conn |> auth_conn(raw) |> get("/api/v1/data-sources")
       response = json_response(conn, 200)
 
       assert [ds] = response["data"]
@@ -32,8 +32,8 @@ defmodule OnesqlxWeb.Api.DataSourceControllerTest do
     end
 
     test "returns 401 without token", %{conn: conn} do
-      conn = get(conn, "/api/data-sources")
-      assert json_response(conn, 401)
+      conn = get(conn, "/api/v1/data-sources")
+      assert json_response(conn, 401)["error"]["code"] == "unauthorized"
     end
   end
 end

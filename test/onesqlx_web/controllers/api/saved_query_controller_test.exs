@@ -20,13 +20,13 @@ defmodule OnesqlxWeb.Api.SavedQueryControllerTest do
     test "lists saved queries", %{conn: conn, raw_token: raw, scope: scope, data_source: ds} do
       saved_query_fixture(scope, ds, %{title: "My Query"})
 
-      conn = conn |> auth_conn(raw) |> get("/api/saved-queries")
+      conn = conn |> auth_conn(raw) |> get("/api/v1/saved-queries")
       assert %{"data" => [%{"title" => "My Query"}]} = json_response(conn, 200)
     end
 
     test "returns 401 without token", %{conn: conn} do
-      conn = get(conn, "/api/saved-queries")
-      assert json_response(conn, 401)["errors"]
+      conn = get(conn, "/api/v1/saved-queries")
+      assert json_response(conn, 401)["error"]["code"] == "unauthorized"
     end
   end
 
@@ -34,7 +34,7 @@ defmodule OnesqlxWeb.Api.SavedQueryControllerTest do
     test "returns single query", %{conn: conn, raw_token: raw, scope: scope, data_source: ds} do
       sq = saved_query_fixture(scope, ds, %{title: "Detail Query"})
 
-      conn = conn |> auth_conn(raw) |> get("/api/saved-queries/#{sq.id}")
+      conn = conn |> auth_conn(raw) |> get("/api/v1/saved-queries/#{sq.id}")
       assert %{"data" => %{"title" => "Detail Query", "sql" => _}} = json_response(conn, 200)
     end
   end
@@ -42,7 +42,7 @@ defmodule OnesqlxWeb.Api.SavedQueryControllerTest do
   describe "POST /api/saved-queries/:id/execute" do
     test "returns 401 without token", %{conn: conn, scope: scope, data_source: ds} do
       sq = saved_query_fixture(scope, ds)
-      conn = post(conn, "/api/saved-queries/#{sq.id}/execute")
+      conn = post(conn, "/api/v1/saved-queries/#{sq.id}/execute")
       assert json_response(conn, 401)
     end
   end
@@ -53,7 +53,7 @@ defmodule OnesqlxWeb.Api.SavedQueryControllerTest do
       raw_token: raw
     } do
       assert_raise Ecto.NoResultsError, fn ->
-        conn |> auth_conn(raw) |> get("/api/saved-queries/#{Ecto.UUID.generate()}")
+        conn |> auth_conn(raw) |> get("/api/v1/saved-queries/#{Ecto.UUID.generate()}")
       end
     end
 
@@ -69,8 +69,8 @@ defmodule OnesqlxWeb.Api.SavedQueryControllerTest do
           user_id: scope.user.id
         })
 
-      conn = conn |> auth_conn(raw) |> post("/api/saved-queries/#{sq.id}/execute")
-      assert json_response(conn, 422)["error"] =~ "No data source"
+      conn = conn |> auth_conn(raw) |> post("/api/v1/saved-queries/#{sq.id}/execute")
+      assert json_response(conn, 422)["error"]["message"] =~ "No data source"
     end
   end
 end

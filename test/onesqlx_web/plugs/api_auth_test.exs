@@ -33,7 +33,8 @@ defmodule OnesqlxWeb.Plugs.ApiAuthTest do
     assert conn.halted
 
     body = Jason.decode!(conn.resp_body)
-    assert body["errors"]["detail"] =~ "Invalid or missing"
+    assert body["error"]["code"] == "unauthorized"
+    assert body["error"]["message"] =~ "Invalid or missing"
   end
 
   test "returns 401 for invalid token" do
