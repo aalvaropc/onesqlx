@@ -3,12 +3,12 @@ defmodule Onesqlx.Querying.SqlGuard do
   Validates SQL statements to block dangerous write operations.
 
   Provides a safety layer that rejects INSERT, UPDATE, DELETE, ALTER, DROP,
-  TRUNCATE, and COPY statements before they reach the database. Handles edge
-  cases like CTEs with write operations, multi-statement queries, and keywords
-  inside string literals or comments.
+  TRUNCATE, COPY, CREATE, GRANT, and PREPARE statements before they reach the
+  database. Handles edge cases like CTEs with write operations, multi-statement
+  queries, dollar-quoted strings, and keywords inside string literals or comments.
   """
 
-  @blocked_commands ~w(INSERT UPDATE DELETE ALTER DROP TRUNCATE COPY)
+  @blocked_commands ~w(INSERT UPDATE DELETE ALTER DROP TRUNCATE COPY CREATE GRANT PREPARE)
 
   @doc """
   Validates that a SQL string contains only read-only statements.
@@ -17,16 +17,13 @@ defmodule Onesqlx.Querying.SqlGuard do
   """
   @spec validate(String.t()) :: :ok | {:error, String.t()}
   def validate(sql) when is_binary(sql) do
-    sanitized = sql |> strip_string_literals() |> strip_comments()
-
-    sanitized
-    |> split_statements()
-    |> Enum.reduce_while(:ok, fn statement, :ok ->
-      case check_statement(statement) do
-        :ok -> {:cont, :ok}
-        {:error, _} = error -> {:halt, error}
-      end
-    end)
+    with :ok <- reject_dollar_quoting(sql) do
+      sql
+      |> strip_string_literals()
+      |> strip_comments()
+      |> split_statements()
+      |> validate_statements()
+    end
   end
 
   def validate(_), do: {:error, "SQL must be a string"}
@@ -37,6 +34,24 @@ defmodule Onesqlx.Querying.SqlGuard do
   @spec safe?(String.t()) :: boolean()
   def safe?(sql) do
     validate(sql) == :ok
+  end
+
+  defp validate_statements(statements) do
+    Enum.reduce_while(statements, :ok, fn statement, :ok ->
+      case check_statement(statement) do
+        :ok -> {:cont, :ok}
+        {:error, _} = error -> {:halt, error}
+      end
+    end)
+  end
+
+  # Reject dollar-quoted strings ($$...$$) as they can hide dangerous commands
+  defp reject_dollar_quoting(sql) do
+    if Regex.match?(~r/\$\$/, sql) do
+      {:error, "Dollar-quoted strings are not allowed"}
+    else
+      :ok
+    end
   end
 
   # Strip single-quoted string literals, replacing with a placeholder

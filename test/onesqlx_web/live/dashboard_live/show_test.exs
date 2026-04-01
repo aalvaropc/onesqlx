@@ -37,7 +37,7 @@ defmodule OnesqlxWeb.DashboardLive.ShowTest do
       dashboard = dashboard_fixture(scope)
 
       stub(MockConnection, :with_connection, fn _ds, _fun ->
-        Process.sleep(:infinity)
+        Process.sleep(5_000)
       end)
 
       card_fixture(scope, dashboard, saved_query)
@@ -81,7 +81,7 @@ defmodule OnesqlxWeb.DashboardLive.ShowTest do
       dashboard = dashboard_fixture(scope)
 
       stub(MockConnection, :with_connection, fn _ds, _fun ->
-        Process.sleep(:infinity)
+        Process.sleep(5_000)
       end)
 
       card = card_fixture(scope, dashboard, saved_query)
@@ -103,7 +103,7 @@ defmodule OnesqlxWeb.DashboardLive.ShowTest do
       dashboard = dashboard_fixture(scope)
 
       stub(MockConnection, :with_connection, fn _ds, _fun ->
-        Process.sleep(:infinity)
+        Process.sleep(5_000)
       end)
 
       card_fixture(scope, dashboard, saved_query)
@@ -130,7 +130,7 @@ defmodule OnesqlxWeb.DashboardLive.ShowTest do
       dashboard = dashboard_fixture(scope)
 
       stub(MockConnection, :with_connection, fn _ds, _fun ->
-        Process.sleep(:infinity)
+        Process.sleep(5_000)
       end)
 
       card = card_fixture(scope, dashboard, saved_query)

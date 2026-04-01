@@ -166,4 +166,26 @@ defmodule Onesqlx.Querying.SqlGuardTest do
       refute SqlGuard.safe?("DROP TABLE users")
     end
   end
+
+  describe "bypass attempts" do
+    test "blocks dollar-quoted strings containing DML" do
+      assert {:error, _} = SqlGuard.validate("SELECT $$DROP TABLE users$$")
+    end
+
+    test "blocks PREPARE statement" do
+      assert {:error, _} = SqlGuard.validate("PREPARE stmt AS DELETE FROM users")
+    end
+
+    test "blocks mixed case with extra whitespace" do
+      assert {:error, _} = SqlGuard.validate("  DrOp   TaBlE  users")
+    end
+
+    test "blocks CREATE statement" do
+      assert {:error, _} = SqlGuard.validate("CREATE TABLE evil (id int)")
+    end
+
+    test "blocks GRANT statement" do
+      assert {:error, _} = SqlGuard.validate("GRANT ALL ON users TO public")
+    end
+  end
 end
