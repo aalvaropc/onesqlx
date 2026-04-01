@@ -46,4 +46,31 @@ defmodule OnesqlxWeb.Api.SavedQueryControllerTest do
       assert json_response(conn, 401)
     end
   end
+
+  describe "error paths" do
+    test "GET /api/saved-queries/:id returns 404 for non-existent ID", %{
+      conn: conn,
+      raw_token: raw
+    } do
+      assert_raise Ecto.NoResultsError, fn ->
+        conn |> auth_conn(raw) |> get("/api/saved-queries/#{Ecto.UUID.generate()}")
+      end
+    end
+
+    test "POST /api/saved-queries/:id/execute returns 422 when no data source", %{
+      conn: conn,
+      raw_token: raw,
+      scope: scope
+    } do
+      {:ok, sq} =
+        Onesqlx.SavedQueries.create_saved_query(scope, %{
+          title: "no-ds-#{System.unique_integer([:positive])}",
+          sql: "SELECT 1",
+          user_id: scope.user.id
+        })
+
+      conn = conn |> auth_conn(raw) |> post("/api/saved-queries/#{sq.id}/execute")
+      assert json_response(conn, 422)["error"] =~ "No data source"
+    end
+  end
 end

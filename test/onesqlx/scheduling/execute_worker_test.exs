@@ -147,6 +147,21 @@ defmodule Onesqlx.Scheduling.ExecuteWorkerTest do
       assert run.status == "error"
       assert run.error_message =~ "No data source"
     end
+
+    test "connection refused creates run with error", %{
+      scope: scope,
+      scheduled_query: sq
+    } do
+      stub(MockConnection, :with_connection, fn _ds, _fun ->
+        {:error, :connection, "tcp connect (localhost:5999): connection refused"}
+      end)
+
+      assert :ok = perform_job(ExecuteWorker, %{"scheduled_query_id" => sq.id})
+
+      [run] = Scheduling.list_runs(scope, sq.id)
+      assert run.status == "error"
+      assert run.error_message =~ "connection refused"
+    end
   end
 
   describe "enqueue/1" do

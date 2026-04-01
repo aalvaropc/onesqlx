@@ -2,6 +2,7 @@ defmodule OnesqlxWeb.Plugs.ApiAuthTest do
   use OnesqlxWeb.ConnCase, async: true
 
   import Onesqlx.AccountsFixtures
+  import Ecto.Query
 
   alias OnesqlxWeb.Plugs.ApiAuth
 
@@ -49,6 +50,35 @@ defmodule OnesqlxWeb.Plugs.ApiAuthTest do
     conn =
       build_conn()
       |> put_req_header("authorization", "Basic abc123")
+      |> ApiAuth.call([])
+
+    assert conn.status == 401
+    assert conn.halted
+  end
+
+  test "returns 401 for expired token", %{scope: scope} do
+    {:ok, raw, token} = Onesqlx.Accounts.create_api_token(scope, "expired-token")
+
+    past = DateTime.add(DateTime.utc_now(:second), -3600, :second)
+
+    Onesqlx.Repo.update_all(
+      from(t in Onesqlx.Accounts.ApiToken, where: t.id == ^token.id),
+      set: [expires_at: past]
+    )
+
+    conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{raw}")
+      |> ApiAuth.call([])
+
+    assert conn.status == 401
+    assert conn.halted
+  end
+
+  test "returns 401 for empty bearer token" do
+    conn =
+      build_conn()
+      |> put_req_header("authorization", "Bearer ")
       |> ApiAuth.call([])
 
     assert conn.status == 401
