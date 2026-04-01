@@ -17,11 +17,22 @@ defmodule Onesqlx.Dashboards do
   @doc """
   Lists all dashboards for the workspace, ordered by updated_at desc.
   """
-  def list_dashboards(%Scope{} = scope) do
+  def list_dashboards(%Scope{} = scope, opts \\ []) do
     Dashboard
     |> where(workspace_id: ^scope.workspace.id)
     |> order_by(desc: :updated_at)
+    |> maybe_apply_limit(opts[:limit])
+    |> maybe_apply_offset(opts[:offset])
     |> Repo.all()
+  end
+
+  @doc """
+  Counts dashboards for the workspace.
+  """
+  def count_dashboards(%Scope{} = scope) do
+    Dashboard
+    |> where(workspace_id: ^scope.workspace.id)
+    |> Repo.aggregate(:count)
   end
 
   @doc """
@@ -252,4 +263,10 @@ defmodule Onesqlx.Dashboards do
       preload: [saved_query: :data_source]
     )
   end
+
+  defp maybe_apply_limit(query, nil), do: query
+  defp maybe_apply_limit(query, limit), do: limit(query, ^limit)
+
+  defp maybe_apply_offset(query, nil), do: query
+  defp maybe_apply_offset(query, offset), do: offset(query, ^offset)
 end

@@ -7,12 +7,20 @@ defmodule OnesqlxWeb.Api.DataSourceController do
 
   use OnesqlxWeb, :controller
 
+  import OnesqlxWeb.ApiPagination
+
   alias Onesqlx.DataSources
 
-  def index(conn, _params) do
+  def index(conn, params) do
     scope = conn.assigns.current_scope
-    data_sources = DataSources.list_data_sources(scope)
-    json(conn, %{data: Enum.map(data_sources, &serialize_data_source/1)})
+    pagination = extract_pagination(params)
+    data_sources = DataSources.list_data_sources(scope, pagination)
+    total = DataSources.count_data_sources(scope)
+
+    json(conn, %{
+      data: Enum.map(data_sources, &serialize_data_source/1),
+      meta: pagination_meta(pagination[:limit], pagination[:offset], total)
+    })
   end
 
   defp serialize_data_source(ds) do

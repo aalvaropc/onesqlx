@@ -5,14 +5,22 @@ defmodule OnesqlxWeb.Api.SavedQueryController do
 
   use OnesqlxWeb, :controller
 
+  import OnesqlxWeb.ApiPagination
+
   alias Onesqlx.DataSources
   alias Onesqlx.Querying.Executor
   alias Onesqlx.SavedQueries
 
-  def index(conn, _params) do
+  def index(conn, params) do
     scope = conn.assigns.current_scope
-    queries = SavedQueries.list_saved_queries(scope)
-    json(conn, %{data: Enum.map(queries, &serialize_query/1)})
+    pagination = extract_pagination(params)
+    queries = SavedQueries.list_saved_queries(scope, pagination)
+    total = SavedQueries.count_saved_queries(scope)
+
+    json(conn, %{
+      data: Enum.map(queries, &serialize_query/1),
+      meta: pagination_meta(pagination[:limit], pagination[:offset], total)
+    })
   end
 
   def show(conn, %{"id" => id}) do
