@@ -11,6 +11,7 @@ defmodule Onesqlx.Scheduling.ExecuteWorker do
 
   alias Onesqlx.Querying.Executor
   alias Onesqlx.Scheduling
+  alias Onesqlx.Scheduling.Notifier
 
   @max_stored_rows 100
 
@@ -21,6 +22,7 @@ defmodule Onesqlx.Scheduling.ExecuteWorker do
 
     run_attrs = execute_and_build_attrs(sq, started_at)
     Scheduling.record_run(sq, run_attrs)
+    Notifier.deliver_run_result(sq, run_attrs)
 
     :ok
   end
