@@ -57,6 +57,51 @@ defmodule Onesqlx.Querying.Executor do
     end
   end
 
+  @doc """
+  Runs EXPLAIN ANALYZE on a SQL query and returns the plan as text.
+
+  Returns `{:ok, plan_text}` or `{:error, error_type, message}`.
+  """
+  @spec explain(DataSource.t(), String.t(), keyword()) ::
+          {:ok, String.t()} | {:error, atom(), String.t()}
+  def explain(%DataSource{} = data_source, sql, opts \\ []) do
+    params = Keyword.get(opts, :params, %{})
+
+    {prepared_sql, values} =
+      if params != %{} && Params.parameterized?(sql) do
+        Params.substitute(sql, params)
+      else
+        {sql, []}
+      end
+
+    case SqlGuard.validate(prepared_sql) do
+      {:error, message} ->
+        {:error, :blocked, message}
+
+      :ok ->
+        Connection.impl().with_connection(data_source, fn conn ->
+          Postgrex.query!(conn, "SET statement_timeout = '#{@statement_timeout}'", [])
+          run_explain(conn, prepared_sql, values)
+        end)
+    end
+  end
+
+  defp run_explain(conn, sql, values) do
+    explain_sql = "EXPLAIN (ANALYZE, COSTS, BUFFERS, FORMAT TEXT) #{sql}"
+
+    case Postgrex.query(conn, explain_sql, values, timeout: 35_000) do
+      {:ok, %Postgrex.Result{rows: rows}} ->
+        plan_text = Enum.map_join(rows, "\n", &List.first/1)
+        {:ok, plan_text}
+
+      {:error, %Postgrex.Error{postgres: %{code: :query_canceled}} = error} ->
+        {:error, :timeout, Exception.message(error)}
+
+      {:error, %Postgrex.Error{} = error} ->
+        {:error, :execution, Exception.message(error)}
+    end
+  end
+
   defp run_query(conn, sql, values, row_limit) do
     start = System.monotonic_time(:millisecond)
 

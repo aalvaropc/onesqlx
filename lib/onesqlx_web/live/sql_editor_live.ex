@@ -12,6 +12,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
   alias Onesqlx.Catalog
   alias Onesqlx.DataSources
   alias Onesqlx.Querying
+  alias Onesqlx.Querying.Executor
   alias Onesqlx.Querying.Params
   alias Onesqlx.SavedQueries
   alias Onesqlx.SavedQueries.SavedQuery
@@ -49,6 +50,17 @@ defmodule OnesqlxWeb.SqlEditorLive do
           >
             <span :if={@running?} class="loading loading-spinner loading-xs"></span>
             {if @running?, do: "Running...", else: "Run"}
+          </button>
+
+          <button
+            phx-click="explain"
+            disabled={@running? || @selected_data_source_id == nil}
+            class={[
+              "btn btn-sm",
+              (@running? || @selected_data_source_id == nil) && "btn-disabled"
+            ]}
+          >
+            Explain
           </button>
 
           <button
@@ -142,6 +154,13 @@ defmodule OnesqlxWeb.SqlEditorLive do
                 >
                   Messages
                 </button>
+                <button
+                  phx-click="set_tab"
+                  phx-value-tab="explain"
+                  class={["tab", @active_tab == :explain && "tab-active"]}
+                >
+                  Explain
+                </button>
               </div>
 
               <%!-- Tab content --%>
@@ -188,6 +207,19 @@ defmodule OnesqlxWeb.SqlEditorLive do
                   </p>
                   <p :if={!@error && !@result} class="text-base-content/50 text-sm py-4">
                     No messages.
+                  </p>
+                </div>
+
+                <div :if={@active_tab == :explain}>
+                  <pre
+                    :if={@explain_plan}
+                    class="text-xs font-mono whitespace-pre overflow-x-auto bg-base-200 rounded p-4"
+                  >{@explain_plan}</pre>
+                  <div :if={@explain_error} class="alert alert-error text-sm">
+                    {@explain_error}
+                  </div>
+                  <p :if={!@explain_plan && !@explain_error} class="text-base-content/50 text-sm py-4">
+                    Click "Explain" to see the query execution plan.
                   </p>
                 </div>
               </div>
@@ -283,7 +315,9 @@ defmodule OnesqlxWeb.SqlEditorLive do
         param_values: %{},
         show_params_form?: false,
         timeout_ref: nil,
-        execute_sql: ""
+        execute_sql: "",
+        explain_plan: nil,
+        explain_error: nil
       )
       |> stream(:history, [])
 
@@ -360,6 +394,27 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
   def handle_event("close_params_form", _params, socket) do
     {:noreply, assign(socket, show_params_form?: false, query_params: [], param_values: %{})}
+  end
+
+  def handle_event("explain", _params, socket) do
+    ds_id = socket.assigns.selected_data_source_id
+    sql = socket.assigns.sql
+
+    if ds_id == nil || String.trim(sql) == "" do
+      {:noreply, socket}
+    else
+      scope = socket.assigns.current_scope
+      data_source = DataSources.get_data_source!(scope, ds_id)
+
+      socket =
+        socket
+        |> assign(running?: true, explain_plan: nil, explain_error: nil, active_tab: :explain)
+        |> start_async(:explain_query, fn ->
+          Executor.explain(data_source, sql)
+        end)
+
+      {:noreply, socket}
+    end
   end
 
   def handle_event("set_tab", %{"tab" => tab}, socket) do
@@ -488,6 +543,23 @@ defmodule OnesqlxWeb.SqlEditorLive do
     else
       {:noreply, socket}
     end
+  end
+
+  def handle_async(:explain_query, {:ok, {:ok, plan_text}}, socket) do
+    {:noreply, assign(socket, running?: false, explain_plan: plan_text, explain_error: nil)}
+  end
+
+  def handle_async(:explain_query, {:ok, {:error, _type, message}}, socket) do
+    {:noreply, assign(socket, running?: false, explain_plan: nil, explain_error: message)}
+  end
+
+  def handle_async(:explain_query, {:exit, reason}, socket) do
+    {:noreply,
+     assign(socket,
+       running?: false,
+       explain_plan: nil,
+       explain_error: "Explain crashed: #{inspect(reason)}"
+     )}
   end
 
   @impl true
