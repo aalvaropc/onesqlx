@@ -75,6 +75,37 @@ defmodule OnesqlxWeb.ScheduledQueryLive.ShowTest do
       assert {:error, {:redirect, %{to: path}}} = live(conn, ~p"/schedules/#{sched.id}")
       assert path =~ "/users/log-in"
     end
+
+    test "opens edit modal", %{conn: conn, scope: scope} do
+      ds = data_source_fixture(scope)
+      sq = saved_query_fixture(scope, ds)
+      sched = scheduled_query_fixture(scope, sq, %{name: "Edit This"})
+
+      {:ok, lv, _html} = live(conn, ~p"/schedules/#{sched.id}")
+
+      lv |> element("button", "Edit") |> render_click()
+
+      assert has_element?(lv, "#edit-schedule-form")
+    end
+
+    test "updates schedule via edit modal", %{conn: conn, scope: scope} do
+      ds = data_source_fixture(scope)
+      sq = saved_query_fixture(scope, ds)
+      sched = scheduled_query_fixture(scope, sq, %{name: "Old Name"})
+
+      {:ok, lv, _html} = live(conn, ~p"/schedules/#{sched.id}")
+
+      lv |> element("button", "Edit") |> render_click()
+
+      lv
+      |> form("#edit-schedule-form", schedule: %{name: "New Name"})
+      |> render_submit()
+
+      html = render(lv)
+      assert html =~ "New Name"
+      assert html =~ "Schedule updated"
+      refute has_element?(lv, "#edit-schedule-form")
+    end
   end
 
   defp log_out(conn) do
