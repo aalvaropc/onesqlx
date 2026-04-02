@@ -30,7 +30,11 @@ defmodule Onesqlx.Export.Csv do
     "#{safe_label}_#{timestamp}.csv"
   end
 
-  defp encode_row(cells) do
+  @doc """
+  Encodes a single row as CSV iodata (without line terminator).
+  """
+  @spec encode_row([term()]) :: iodata()
+  def encode_row(cells) do
     cells
     |> Enum.map(&encode_cell/1)
     |> Enum.intersperse(",")
