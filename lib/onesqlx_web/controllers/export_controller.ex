@@ -15,18 +15,30 @@ defmodule OnesqlxWeb.ExportController do
 
     case Executor.execute(data_source, sql, row_limit: 10_000) do
       {:ok, result} ->
-        csv_data = Csv.encode(result)
         filename = Csv.filename(label)
 
-        conn
-        |> put_resp_content_type("text/csv")
-        |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
-        |> send_resp(200, csv_data)
+        conn =
+          conn
+          |> put_resp_content_type("text/csv")
+          |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+          |> send_chunked(200)
+
+        {:ok, conn} = chunk(conn, [Csv.encode_row(result.columns), "\r\n"])
+        stream_rows(conn, result.rows)
 
       {:error, _type, message} ->
         conn
         |> put_flash(:error, "Export failed: #{message}")
         |> redirect(to: ~p"/sql-editor")
     end
+  end
+
+  defp stream_rows(conn, rows) do
+    Enum.reduce_while(rows, conn, fn row, conn ->
+      case chunk(conn, [Csv.encode_row(row), "\r\n"]) do
+        {:ok, conn} -> {:cont, conn}
+        {:error, :closed} -> {:halt, conn}
+      end
+    end)
   end
 end
