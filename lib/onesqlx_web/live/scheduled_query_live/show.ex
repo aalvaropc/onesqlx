@@ -17,6 +17,9 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
           <.icon name="hero-arrow-left" class="size-4" /> Back
         </.link>
         <h1 class="text-2xl font-bold flex-1">{@scheduled_query.name}</h1>
+        <button phx-click="open_edit_modal" class="btn btn-sm btn-ghost">
+          <.icon name="hero-pencil-square" class="size-4" /> Edit
+        </button>
         <button phx-click="run_now" class="btn btn-sm btn-primary">
           <.icon name="hero-play" class="size-4" /> Run Now
         </button>
@@ -103,6 +106,59 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
       <div :if={!@has_runs?} class="text-center py-8">
         <p class="text-base-content/60">No runs yet. Click "Run Now" to execute manually.</p>
       </div>
+
+      <div
+        :if={@show_edit_modal?}
+        role="dialog"
+        aria-modal="true"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+      >
+        <div class="fixed inset-0 bg-black/50" phx-click="close_edit_modal"></div>
+        <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
+          <h3 class="text-lg font-semibold mb-4">Edit Schedule</h3>
+          <.form
+            for={@edit_form}
+            id="edit-schedule-form"
+            phx-submit="update_schedule"
+            phx-change="validate_edit"
+          >
+            <.input field={@edit_form[:name]} type="text" label="Name" required />
+            <div class="form-control mb-4">
+              <label class="label"><span class="label-text">Schedule Type</span></label>
+              <select name="schedule[schedule_type]" class="select select-bordered w-full">
+                <option value="hourly" selected={@edit_form[:schedule_type].value == "hourly"}>
+                  Hourly
+                </option>
+                <option value="daily" selected={@edit_form[:schedule_type].value == "daily"}>
+                  Daily
+                </option>
+                <option value="weekly" selected={@edit_form[:schedule_type].value == "weekly"}>
+                  Weekly
+                </option>
+                <option value="cron" selected={@edit_form[:schedule_type].value == "cron"}>
+                  Custom (Cron)
+                </option>
+              </select>
+            </div>
+            <.input
+              :if={@show_cron_field?}
+              field={@edit_form[:cron_expression]}
+              type="text"
+              label="Cron Expression"
+              placeholder="*/5 * * * *"
+            />
+            <.input
+              field={@edit_form[:notify_email]}
+              type="email"
+              label="Notify Email (optional)"
+            />
+            <div class="flex justify-end gap-2 mt-4">
+              <button type="button" phx-click="close_edit_modal" class="btn btn-sm">Cancel</button>
+              <.button variant="primary" phx-disable-with="Saving...">Save</.button>
+            </div>
+          </.form>
+        </div>
+      </div>
     </Layouts.app>
     """
   end
@@ -117,7 +173,10 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
       socket
       |> assign(
         scheduled_query: sq,
-        has_runs?: runs != []
+        has_runs?: runs != [],
+        show_edit_modal?: false,
+        show_cron_field?: sq.schedule_type == "cron",
+        edit_form: nil
       )
       |> stream(:runs, runs)
 
@@ -130,5 +189,51 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
     {:ok, _job} = ExecuteWorker.enqueue(sq.id)
 
     {:noreply, put_flash(socket, :info, "Execution queued. Refresh to see results.")}
+  end
+
+  def handle_event("open_edit_modal", _params, socket) do
+    sq = socket.assigns.scheduled_query
+    changeset = Scheduling.change_scheduled_query(sq)
+
+    {:noreply,
+     assign(socket,
+       show_edit_modal?: true,
+       show_cron_field?: sq.schedule_type == "cron",
+       edit_form: to_form(changeset, as: "schedule")
+     )}
+  end
+
+  def handle_event("close_edit_modal", _params, socket) do
+    {:noreply, assign(socket, show_edit_modal?: false, edit_form: nil)}
+  end
+
+  def handle_event("validate_edit", %{"schedule" => params}, socket) do
+    show_cron = params["schedule_type"] == "cron"
+
+    changeset =
+      socket.assigns.scheduled_query
+      |> Scheduling.change_scheduled_query(params)
+      |> Map.put(:action, :validate)
+
+    {:noreply,
+     assign(socket, edit_form: to_form(changeset, as: "schedule"), show_cron_field?: show_cron)}
+  end
+
+  def handle_event("update_schedule", %{"schedule" => params}, socket) do
+    scope = socket.assigns.current_scope
+    sq = socket.assigns.scheduled_query
+
+    case Scheduling.update_scheduled_query(scope, sq, params) do
+      {:ok, updated} ->
+        updated = Scheduling.get_scheduled_query!(scope, updated.id)
+
+        {:noreply,
+         socket
+         |> assign(scheduled_query: updated, show_edit_modal?: false, edit_form: nil)
+         |> put_flash(:info, "Schedule updated.")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, edit_form: to_form(changeset, as: "schedule"))}
+    end
   end
 end
