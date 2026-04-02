@@ -127,6 +127,28 @@ defmodule OnesqlxWeb.SqlEditorLiveTest do
     end
   end
 
+  describe "explain" do
+    setup :register_and_log_in_user
+
+    test "explain button is present", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/sql-editor")
+      assert html =~ "Explain"
+    end
+
+    test "explain tab shows empty state", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/sql-editor")
+      html = render_click(lv, "set_tab", %{tab: "explain"})
+      assert html =~ "Click &quot;Explain&quot; to see the query execution plan"
+    end
+
+    test "explain does nothing without data source", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/sql-editor")
+      render_click(lv, "update_sql", %{sql: "SELECT 1"})
+      html = render_click(lv, "explain")
+      refute html =~ "loading"
+    end
+  end
+
   describe "unauthenticated access" do
     test "redirects to login", %{conn: conn} do
       assert {:error, redirect} = live(conn, ~p"/sql-editor")
