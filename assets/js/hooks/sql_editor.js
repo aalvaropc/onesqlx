@@ -2,7 +2,7 @@ import {EditorState, Compartment} from "@codemirror/state"
 import {EditorView, keymap} from "@codemirror/view"
 import {basicSetup} from "codemirror"
 import {sql, PostgreSQL} from "@codemirror/lang-sql"
-import {autocompletion} from "@codemirror/autocomplete"
+import {autocompletion, acceptCompletion} from "@codemirror/autocomplete"
 import {oneDark} from "@codemirror/theme-one-dark"
 
 const SqlEditor = {
@@ -15,14 +15,20 @@ const SqlEditor = {
       (!document.documentElement.getAttribute("data-theme") &&
        window.matchMedia("(prefers-color-scheme: dark)").matches)
 
-    const runKeymap = keymap.of([{
-      key: "Ctrl-Enter",
-      mac: "Cmd-Enter",
-      run: () => {
-        this.pushEvent("execute", {})
-        return true
+    const runKeymap = keymap.of([
+      {
+        key: "Ctrl-Enter",
+        mac: "Cmd-Enter",
+        run: () => {
+          this.pushEvent("execute", {})
+          return true
+        }
+      },
+      {
+        key: "Tab",
+        run: acceptCompletion
       }
-    }])
+    ])
 
     const updateListener = EditorView.updateListener.of((update) => {
       if (update.docChanged) {
