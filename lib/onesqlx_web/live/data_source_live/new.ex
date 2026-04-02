@@ -65,7 +65,7 @@ defmodule OnesqlxWeb.DataSourceLive.New do
       |> assign(:test_error, nil)
       |> assign_form(changeset)
 
-    {:ok, socket, temporary_assigns: [form: nil]}
+    {:ok, socket}
   end
 
   @impl true
