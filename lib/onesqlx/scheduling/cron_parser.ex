@@ -46,25 +46,114 @@ defmodule Onesqlx.Scheduling.CronParser do
     end
   end
 
-  defp find_next(_fields, _candidate, iterations) when iterations > 525_960 do
+  # Deterministic field-by-field algorithm — O(366) worst case instead of O(525K)
+  defp find_next([minutes, hours, days, months, weekdays], candidate, _iterations) do
+    sorted = %{
+      minutes: sorted_set(minutes),
+      hours: sorted_set(hours),
+      days: sorted_set(days),
+      months: sorted_set(months),
+      weekdays: weekdays
+    }
+
+    advance_month(candidate, sorted, 0)
+  end
+
+  defp advance_month(_dt, _s, attempts) when attempts > 24 do
     {:error, "no matching time found within one year"}
   end
 
-  defp find_next(fields, candidate, iterations) do
-    if matches?(fields, candidate) do
-      {:ok, candidate}
-    else
-      next = DateTime.add(candidate, 60, :second)
-      find_next(fields, next, iterations + 1)
+  defp advance_month(dt, s, attempts) do
+    case next_in_list(dt.month, s.months) do
+      {:ok, month} when month == dt.month ->
+        advance_day(dt, s, 0)
+
+      {:ok, month} ->
+        dt = reset_to(dt, month, hd(s.days), hd(s.hours), hd(s.minutes))
+        advance_day(dt, s, 0)
+
+      :overflow ->
+        dt =
+          %{dt | year: dt.year + 1}
+          |> reset_to(hd(s.months), hd(s.days), hd(s.hours), hd(s.minutes))
+
+        advance_month(dt, s, attempts + 1)
     end
   end
 
-  defp matches?([minutes, hours, days, months, weekdays], dt) do
-    MapSet.member?(minutes, dt.minute) &&
-      MapSet.member?(hours, dt.hour) &&
-      MapSet.member?(days, dt.day) &&
-      MapSet.member?(months, dt.month) &&
-      MapSet.member?(weekdays, Date.day_of_week(dt) |> dow_to_cron())
+  defp advance_day(_dt, _s, attempts) when attempts > 366 do
+    {:error, "no matching time found within one year"}
+  end
+
+  defp advance_day(dt, s, attempts) do
+    day_valid = MapSet.member?(MapSet.new(s.days), dt.day)
+    dow_valid = MapSet.member?(s.weekdays, dow_to_cron(Date.day_of_week(dt)))
+
+    if day_valid && dow_valid do
+      advance_hour(dt, s)
+    else
+      next_dt = DateTime.add(dt, 86_400, :second)
+      next_dt = reset_to(next_dt, next_dt.month, next_dt.day, hd(s.hours), hd(s.minutes))
+
+      if next_dt.month != dt.month do
+        advance_month(next_dt, s, 0)
+      else
+        advance_day(next_dt, s, attempts + 1)
+      end
+    end
+  end
+
+  defp advance_hour(dt, s) do
+    case next_in_list(dt.hour, s.hours) do
+      {:ok, hour} when hour == dt.hour ->
+        advance_minute(dt, s)
+
+      {:ok, hour} ->
+        dt = %{dt | hour: hour, minute: hd(s.minutes), second: 0, microsecond: {0, 0}}
+        {:ok, dt}
+
+      :overflow ->
+        next_dt = DateTime.add(dt, 86_400, :second)
+        next_dt = reset_to(next_dt, next_dt.month, next_dt.day, hd(s.hours), hd(s.minutes))
+
+        if next_dt.month != dt.month do
+          advance_month(next_dt, s, 0)
+        else
+          advance_day(next_dt, s, 0)
+        end
+    end
+  end
+
+  defp advance_minute(dt, s) do
+    case next_in_list(dt.minute, s.minutes) do
+      {:ok, minute} ->
+        {:ok, %{dt | minute: minute, second: 0, microsecond: {0, 0}}}
+
+      :overflow ->
+        dt = %{dt | minute: hd(s.minutes), second: 0, microsecond: {0, 0}}
+        next_hour_dt = DateTime.add(dt, 3600, :second)
+        next_hour_dt = %{next_hour_dt | minute: hd(s.minutes), second: 0, microsecond: {0, 0}}
+
+        if next_hour_dt.month != dt.month do
+          advance_month(next_hour_dt, s, 0)
+        else
+          advance_day(next_hour_dt, s, 0)
+        end
+    end
+  end
+
+  defp next_in_list(current, sorted_values) do
+    case Enum.find(sorted_values, fn v -> v >= current end) do
+      nil -> :overflow
+      val -> {:ok, val}
+    end
+  end
+
+  defp sorted_set(mapset), do: mapset |> MapSet.to_list() |> Enum.sort()
+
+  defp reset_to(dt, month, day, hour, minute) do
+    day = min(day, Calendar.ISO.days_in_month(dt.year, month))
+    %{dt | month: month, day: day, hour: hour, minute: minute, second: 0, microsecond: {0, 0}}
   end
 
   defp dow_to_cron(7), do: 0
