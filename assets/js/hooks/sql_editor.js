@@ -19,8 +19,24 @@ const SqlEditor = {
       {
         key: "Ctrl-Enter",
         mac: "Cmd-Enter",
-        run: () => {
-          this.pushEvent("execute", {})
+        run: (view) => {
+          const state = view.state
+          const selection = state.selection.main
+          let sqlToRun
+
+          if (selection.from !== selection.to) {
+            // User has text selected → run only the selection
+            sqlToRun = state.sliceDoc(selection.from, selection.to)
+          } else {
+            // No selection → run the current line
+            const line = state.doc.lineAt(selection.from)
+            sqlToRun = line.text
+          }
+
+          const trimmed = sqlToRun.replace(/;+$/, "").trim()
+          if (trimmed) {
+            this.pushEvent("execute", {sql: trimmed})
+          }
           return true
         }
       },
@@ -44,11 +60,11 @@ const SqlEditor = {
       state: EditorState.create({
         doc: "",
         extensions: [
+          runKeymap,
           basicSetup,
           this.sqlCompartment.of(sql({dialect: PostgreSQL})),
           autocompletion(),
           this.themeCompartment.of(isDark ? oneDark : []),
-          runKeymap,
           updateListener,
           EditorView.theme({
             "&": {height: "100%"},

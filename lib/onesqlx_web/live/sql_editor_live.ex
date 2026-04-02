@@ -282,7 +282,8 @@ defmodule OnesqlxWeb.SqlEditorLive do
         query_params: [],
         param_values: %{},
         show_params_form?: false,
-        timeout_ref: nil
+        timeout_ref: nil,
+        execute_sql: ""
       )
       |> stream(:history, [])
 
@@ -329,13 +330,14 @@ defmodule OnesqlxWeb.SqlEditorLive do
     {:noreply, assign(socket, sql: sql)}
   end
 
-  def handle_event("execute", _params, socket) do
+  def handle_event("execute", params, socket) do
     ds_id = socket.assigns.selected_data_source_id
-    sql = socket.assigns.sql
+    sql = Map.get(params, "sql", socket.assigns.sql)
 
     if ds_id == nil || String.trim(sql) == "" do
       {:noreply, socket}
     else
+      socket = assign(socket, execute_sql: sql)
       detected_params = Params.extract(sql)
 
       if detected_params != [] && !socket.assigns.show_params_form? do
@@ -538,7 +540,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
   defp execute_sql(socket) do
     scope = socket.assigns.current_scope
     ds_id = socket.assigns.selected_data_source_id
-    sql = socket.assigns.sql
+    sql = socket.assigns.execute_sql
     params = socket.assigns.param_values
     data_source = DataSources.get_data_source!(scope, ds_id)
 
