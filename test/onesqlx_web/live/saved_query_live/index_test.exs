@@ -103,6 +103,49 @@ defmodule OnesqlxWeb.SavedQueryLive.IndexTest do
       assert html =~ "Open in Editor"
       assert html =~ "/sql-editor?saved_query_id=#{sq.id}"
     end
+
+    test "opens edit modal", %{conn: conn, scope: scope} do
+      ds = data_source_fixture(scope)
+      sq = saved_query_fixture(scope, ds, %{title: "Edit Me"})
+
+      {:ok, lv, _html} = live(conn, ~p"/saved-queries")
+
+      lv |> element("[phx-click='open_edit_modal'][phx-value-id='#{sq.id}']") |> render_click()
+
+      assert has_element?(lv, "#edit-query-form")
+      assert has_element?(lv, "input[name='saved_query[title]'][value='Edit Me']")
+    end
+
+    test "updates query via edit modal", %{conn: conn, scope: scope} do
+      ds = data_source_fixture(scope)
+      sq = saved_query_fixture(scope, ds, %{title: "Old Title"})
+
+      {:ok, lv, _html} = live(conn, ~p"/saved-queries")
+
+      lv |> element("[phx-click='open_edit_modal'][phx-value-id='#{sq.id}']") |> render_click()
+
+      lv
+      |> form("#edit-query-form", saved_query: %{title: "New Title"})
+      |> render_submit()
+
+      html = render(lv)
+      assert html =~ "New Title"
+      assert html =~ "Query updated"
+      refute has_element?(lv, "#edit-query-form")
+    end
+
+    test "closes edit modal without saving", %{conn: conn, scope: scope} do
+      ds = data_source_fixture(scope)
+      sq = saved_query_fixture(scope, ds, %{title: "Unchanged"})
+
+      {:ok, lv, _html} = live(conn, ~p"/saved-queries")
+
+      lv |> element("[phx-click='open_edit_modal'][phx-value-id='#{sq.id}']") |> render_click()
+      assert has_element?(lv, "#edit-query-form")
+
+      lv |> element("button", "Cancel") |> render_click()
+      refute has_element?(lv, "#edit-query-form")
+    end
   end
 
   describe "unauthenticated access" do
