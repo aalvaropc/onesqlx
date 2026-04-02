@@ -579,6 +579,11 @@ defmodule OnesqlxWeb.SqlEditorLive do
   defp format_cell(nil), do: "NULL"
   defp format_cell(true), do: "true"
   defp format_cell(false), do: "false"
+  defp format_cell(%Decimal{} = value), do: Decimal.to_string(value)
+  defp format_cell(%Date{} = value), do: Date.to_string(value)
+  defp format_cell(%DateTime{} = value), do: DateTime.to_string(value)
+  defp format_cell(%NaiveDateTime{} = value), do: NaiveDateTime.to_string(value)
+  defp format_cell(%Time{} = value), do: Time.to_string(value)
 
   defp format_cell(value) when is_binary(value) do
     if String.length(value) > 500 do
@@ -588,5 +593,6 @@ defmodule OnesqlxWeb.SqlEditorLive do
     end
   end
 
+  defp format_cell(value) when is_number(value), do: to_string(value)
   defp format_cell(value), do: inspect(value)
 end
