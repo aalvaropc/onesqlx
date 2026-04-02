@@ -93,6 +93,14 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
               </div>
             </div>
             <div class="flex items-center gap-2 ml-4 flex-shrink-0">
+              <button
+                phx-click="open_edit_modal"
+                phx-value-id={query.id}
+                class="btn btn-sm btn-ghost"
+                aria-label="Edit query"
+              >
+                <.icon name="hero-pencil-square" class="size-4" />
+              </button>
               <.link
                 navigate={~p"/sql-editor?saved_query_id=#{query.id}"}
                 class="btn btn-sm btn-primary"
@@ -116,6 +124,42 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
       <div :if={!@has_saved_queries?} class="text-center py-12">
         <p class="text-base-content/60">No saved queries found.</p>
       </div>
+
+      <div
+        :if={@show_edit_modal?}
+        role="dialog"
+        aria-modal="true"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+      >
+        <div class="fixed inset-0 bg-black/50" phx-click="close_edit_modal"></div>
+        <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-lg shadow-xl">
+          <h3 class="text-lg font-semibold mb-4">Edit Query</h3>
+          <.form
+            for={@edit_form}
+            id="edit-query-form"
+            phx-submit="update_query"
+            phx-change="validate_edit"
+          >
+            <.input field={@edit_form[:title]} type="text" label="Title" required />
+            <.input field={@edit_form[:description]} type="textarea" label="Description" />
+            <.input field={@edit_form[:sql]} type="textarea" label="SQL" class="font-mono text-sm" />
+            <div class="form-control mb-4">
+              <label class="label"><span class="label-text">Tags (comma-separated)</span></label>
+              <input
+                type="text"
+                name="saved_query[tags_input]"
+                value={@edit_tags_input}
+                placeholder="analytics, daily, revenue"
+                class="input input-bordered w-full"
+              />
+            </div>
+            <div class="flex justify-end gap-2 mt-4">
+              <button type="button" phx-click="close_edit_modal" class="btn btn-sm">Cancel</button>
+              <.button variant="primary" phx-disable-with="Saving...">Save</.button>
+            </div>
+          </.form>
+        </div>
+      </div>
     </Layouts.app>
     """
   end
@@ -133,7 +177,11 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
         search: "",
         filter_data_source_id: nil,
         filter_favorites: false,
-        has_saved_queries?: saved_queries != []
+        has_saved_queries?: saved_queries != [],
+        show_edit_modal?: false,
+        edit_form: nil,
+        editing_query: nil,
+        edit_tags_input: ""
       )
       |> stream(:saved_queries, saved_queries)
 
@@ -181,5 +229,60 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
     saved_query = SavedQueries.get_saved_query!(scope, id)
     {:ok, _} = SavedQueries.delete_saved_query(scope, saved_query)
     {:noreply, stream_delete(socket, :saved_queries, saved_query)}
+  end
+
+  def handle_event("open_edit_modal", %{"id" => id}, socket) do
+    scope = socket.assigns.current_scope
+    query = SavedQueries.get_saved_query!(scope, id)
+    changeset = SavedQueries.change_saved_query(query)
+
+    {:noreply,
+     assign(socket,
+       show_edit_modal?: true,
+       editing_query: query,
+       edit_form: to_form(changeset, as: "saved_query"),
+       edit_tags_input: Enum.join(query.tags || [], ", ")
+     )}
+  end
+
+  def handle_event("close_edit_modal", _params, socket) do
+    {:noreply, assign(socket, show_edit_modal?: false, edit_form: nil, editing_query: nil)}
+  end
+
+  def handle_event("validate_edit", %{"saved_query" => params}, socket) do
+    changeset =
+      socket.assigns.editing_query
+      |> SavedQueries.change_saved_query(params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, edit_form: to_form(changeset, as: "saved_query"))}
+  end
+
+  def handle_event("update_query", %{"saved_query" => params}, socket) do
+    scope = socket.assigns.current_scope
+    query = socket.assigns.editing_query
+
+    # Convert comma-separated tags to array
+    tags =
+      (params["tags_input"] || "")
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+    attrs = Map.put(params, "tags", tags) |> Map.delete("tags_input")
+
+    case SavedQueries.update_saved_query(scope, query, attrs) do
+      {:ok, updated} ->
+        updated = Onesqlx.Repo.preload(updated, :data_source)
+
+        {:noreply,
+         socket
+         |> stream_insert(:saved_queries, updated)
+         |> assign(show_edit_modal?: false, edit_form: nil, editing_query: nil)
+         |> put_flash(:info, "Query updated.")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, edit_form: to_form(changeset, as: "saved_query"))}
+    end
   end
 end
