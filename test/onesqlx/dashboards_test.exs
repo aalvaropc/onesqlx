@@ -164,7 +164,7 @@ defmodule Onesqlx.DashboardsTest do
     end
 
     test "validates type inclusion", %{scope: scope, dashboard: dashboard} do
-      assert {:error, changeset} = Dashboards.add_card(scope, dashboard, %{type: "pie"})
+      assert {:error, changeset} = Dashboards.add_card(scope, dashboard, %{type: "heatmap"})
       assert errors_on(changeset).type
     end
 

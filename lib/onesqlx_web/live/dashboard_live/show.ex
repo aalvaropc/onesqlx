@@ -122,6 +122,10 @@ defmodule OnesqlxWeb.DashboardLive.Show do
                 <option value="kpi">KPI</option>
                 <option value="bar">Bar Chart</option>
                 <option value="line">Line Chart</option>
+                <option value="pie">Pie Chart</option>
+                <option value="doughnut">Doughnut Chart</option>
+                <option value="area">Area Chart</option>
+                <option value="scatter">Scatter Plot</option>
               </select>
             </div>
             <.input field={@add_card_form[:title]} type="text" label="Title (optional)" />
@@ -170,7 +174,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
   end
 
   defp card_content(%{card: %{type: type}, result: {:ok, result}} = assigns)
-       when type in ["bar", "line"] do
+       when type in ["bar", "line", "pie", "doughnut", "area", "scatter"] do
     chart_data = CardRenderer.chart_data_for(result)
     assigns = assign(assigns, chart_data: Jason.encode!(chart_data), chart_type: type)
 
