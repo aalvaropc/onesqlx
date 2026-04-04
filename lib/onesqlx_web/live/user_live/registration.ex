@@ -37,6 +37,12 @@ defmodule OnesqlxWeb.UserLive.Registration do
             Create an account
           </.button>
         </.form>
+
+        <div class="divider">or sign up with</div>
+        <div class="space-y-2">
+          <a href="/auth/google" class="btn btn-outline w-full">Sign up with Google</a>
+          <a href="/auth/github" class="btn btn-outline w-full">Sign up with GitHub</a>
+        </div>
       </div>
     </Layouts.app>
     """

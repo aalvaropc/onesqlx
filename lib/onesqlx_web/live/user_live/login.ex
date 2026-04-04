@@ -90,6 +90,12 @@ defmodule OnesqlxWeb.UserLive.Login do
             Log in only this time
           </.button>
         </.form>
+
+        <div class="divider">or continue with</div>
+        <div class="space-y-2">
+          <a href="/auth/google" class="btn btn-outline w-full">Login with Google</a>
+          <a href="/auth/github" class="btn btn-outline w-full">Login with GitHub</a>
+        </div>
       </div>
     </Layouts.app>
     """

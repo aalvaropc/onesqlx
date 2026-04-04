@@ -84,6 +84,13 @@ config :tailwind,
     cd: Path.expand("..", __DIR__)
   ]
 
+# Configure Ueberauth OAuth providers
+config :ueberauth, Ueberauth,
+  providers: [
+    google: {Ueberauth.Strategy.Google, [default_scope: "email profile"]},
+    github: {Ueberauth.Strategy.Github, [default_scope: "user:email"]}
+  ]
+
 # Configure Elixir's Logger
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
