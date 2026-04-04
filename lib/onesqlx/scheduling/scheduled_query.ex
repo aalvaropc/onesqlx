@@ -23,6 +23,7 @@ defmodule Onesqlx.Scheduling.ScheduledQuery do
     field :last_run_at, :utc_datetime
     field :next_run_at, :utc_datetime
     field :notify_email, :string
+    field :webhook_url, :string
     field :max_retries, :integer, default: 3
 
     belongs_to :workspace, Onesqlx.Workspaces.Workspace
@@ -40,6 +41,7 @@ defmodule Onesqlx.Scheduling.ScheduledQuery do
     :next_run_at,
     :last_run_at,
     :notify_email,
+    :webhook_url,
     :max_retries,
     :user_id
   ]

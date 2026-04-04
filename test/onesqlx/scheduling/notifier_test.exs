@@ -43,4 +43,21 @@ defmodule Onesqlx.Scheduling.NotifierTest do
       assert email.text_body =~ "relation does not exist"
     end
   end
+
+  describe "deliver_webhook/2" do
+    test "returns :ok when webhook_url is nil" do
+      sq = %{webhook_url: nil, name: "Test"}
+      assert :ok = Notifier.deliver_webhook(sq, %{status: "success"})
+    end
+
+    test "returns :ok when webhook_url is empty string" do
+      sq = %{webhook_url: "", name: "Test"}
+      assert :ok = Notifier.deliver_webhook(sq, %{status: "success"})
+    end
+
+    test "returns :ok when webhook_url key is missing" do
+      sq = %{name: "Test"}
+      assert :ok = Notifier.deliver_webhook(sq, %{status: "success"})
+    end
+  end
 end
