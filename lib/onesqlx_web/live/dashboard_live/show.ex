@@ -26,6 +26,17 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         <button phx-click="refresh" class="btn btn-sm">
           <.icon name="hero-arrow-path" class="size-4" /> Refresh
         </button>
+        <select
+          phx-change="set_auto_refresh"
+          name="interval"
+          class="select select-bordered select-sm w-28"
+        >
+          <option value="0" selected={@auto_refresh_interval == 0}>Auto: Off</option>
+          <option value="30000" selected={@auto_refresh_interval == 30_000}>30s</option>
+          <option value="60000" selected={@auto_refresh_interval == 60_000}>1m</option>
+          <option value="300000" selected={@auto_refresh_interval == 300_000}>5m</option>
+          <option value="900000" selected={@auto_refresh_interval == 900_000}>15m</option>
+        </select>
         <button phx-click="toggle_edit" class={["btn btn-sm", @editing? && "btn-active"]}>
           {if @editing?, do: "Done", else: "Edit"}
         </button>
@@ -249,7 +260,9 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         editing?: false,
         show_add_card_modal?: false,
         add_card_form: nil,
-        saved_queries: []
+        saved_queries: [],
+        auto_refresh_interval: 0,
+        auto_refresh_ref: nil
       )
       |> start_card_async_tasks(dashboard.cards)
 
@@ -278,6 +291,21 @@ defmodule OnesqlxWeb.DashboardLive.Show do
       |> start_card_async_tasks(dashboard.cards)
 
     {:noreply, socket}
+  end
+
+  def handle_event("set_auto_refresh", %{"interval" => interval_str}, socket) do
+    interval = String.to_integer(interval_str)
+
+    if socket.assigns.auto_refresh_ref do
+      Process.cancel_timer(socket.assigns.auto_refresh_ref)
+    end
+
+    ref =
+      if interval > 0 do
+        Process.send_after(self(), :auto_refresh, interval)
+      end
+
+    {:noreply, assign(socket, auto_refresh_interval: interval, auto_refresh_ref: ref)}
   end
 
   def handle_event("open_add_card_modal", _params, socket) do
@@ -434,6 +462,39 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         socket
         |> update(:card_results, &Map.put(&1, card_id, {:error, @timeout_message}))
         |> update(:card_timeouts, &Map.delete(&1, card_id))
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info(:auto_refresh, socket) do
+    interval = socket.assigns.auto_refresh_interval
+
+    if interval > 0 do
+      scope = socket.assigns.current_scope
+      dashboard = Dashboards.get_dashboard_with_cards!(scope, socket.assigns.dashboard.id)
+
+      cancel_all_card_timeouts(socket.assigns.card_timeouts)
+
+      card_results =
+        Map.new(dashboard.cards, fn card ->
+          {card.id, initial_card_result(card)}
+        end)
+
+      ref = Process.send_after(self(), :auto_refresh, interval)
+
+      socket =
+        socket
+        |> assign(
+          dashboard: dashboard,
+          card_results: card_results,
+          card_timeouts: %{},
+          auto_refresh_ref: ref
+        )
+        |> start_card_async_tasks(dashboard.cards)
 
       {:noreply, socket}
     else
