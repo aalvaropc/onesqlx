@@ -285,6 +285,18 @@ defmodule Onesqlx.Accounts do
     :ok
   end
 
+  @doc """
+  Confirms a user created via OAuth (skips email confirmation flow).
+  No-ops if user is already confirmed.
+  """
+  def confirm_user_from_oauth(%User{confirmed_at: nil} = user) do
+    user
+    |> User.confirm_changeset()
+    |> Repo.update()
+  end
+
+  def confirm_user_from_oauth(%User{} = user), do: {:ok, user}
+
   ## Token helper
 
   defp update_user_and_delete_all_tokens(changeset) do
