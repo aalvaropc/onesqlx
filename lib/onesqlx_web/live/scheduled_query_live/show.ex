@@ -57,6 +57,10 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
               <dt class="text-base-content/60">Notify</dt>
               <dd>{@scheduled_query.notify_email}</dd>
             </div>
+            <div :if={@scheduled_query.webhook_url} class="flex justify-between">
+              <dt class="text-base-content/60">Webhook</dt>
+              <dd class="truncate max-w-48">{@scheduled_query.webhook_url}</dd>
+            </div>
             <div :if={@scheduled_query.last_run_at} class="flex justify-between">
               <dt class="text-base-content/60">Last Run</dt>
               <dd>{Calendar.strftime(@scheduled_query.last_run_at, "%Y-%m-%d %H:%M")}</dd>
@@ -151,6 +155,12 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
               field={@edit_form[:notify_email]}
               type="email"
               label="Notify Email (optional)"
+            />
+            <.input
+              field={@edit_form[:webhook_url]}
+              type="url"
+              label="Webhook URL (optional)"
+              placeholder="https://hooks.slack.com/..."
             />
             <div class="flex justify-end gap-2 mt-4">
               <button type="button" phx-click="close_edit_modal" class="btn btn-sm">Cancel</button>

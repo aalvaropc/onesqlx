@@ -23,6 +23,7 @@ defmodule Onesqlx.Scheduling.ExecuteWorker do
     run_attrs = execute_and_build_attrs(sq, started_at)
     Scheduling.record_run(sq, run_attrs)
     Notifier.deliver_run_result(sq, run_attrs)
+    Notifier.deliver_webhook(sq, run_attrs)
 
     :ok
   end

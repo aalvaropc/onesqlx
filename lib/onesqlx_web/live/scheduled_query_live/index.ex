@@ -124,6 +124,12 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
               placeholder="*/5 * * * *"
             />
             <.input field={@new_form[:notify_email]} type="email" label="Notify Email (optional)" />
+            <.input
+              field={@new_form[:webhook_url]}
+              type="url"
+              label="Webhook URL (optional)"
+              placeholder="https://hooks.slack.com/..."
+            />
             <div class="flex justify-end gap-2 mt-4">
               <button type="button" phx-click="close_new_modal" class="btn btn-sm">Cancel</button>
               <.button variant="primary" phx-disable-with="Creating...">Create</.button>
