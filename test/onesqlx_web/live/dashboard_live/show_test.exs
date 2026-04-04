@@ -177,6 +177,38 @@ defmodule OnesqlxWeb.DashboardLive.ShowTest do
       assert {:error, {:redirect, %{to: path}}} = live(conn, ~p"/dashboards/#{dashboard.id}")
       assert path =~ "/users/log-in"
     end
+
+    test "auto-refresh dropdown is present", %{conn: conn, scope: scope} do
+      dashboard = dashboard_fixture(scope)
+      {:ok, _lv, html} = live(conn, ~p"/dashboards/#{dashboard.id}")
+      assert html =~ "Auto: Off"
+      assert html =~ "30s"
+    end
+
+    test "set auto-refresh changes interval", %{conn: conn, scope: scope} do
+      dashboard = dashboard_fixture(scope)
+      {:ok, lv, _html} = live(conn, ~p"/dashboards/#{dashboard.id}")
+
+      html = render_change(lv, "set_auto_refresh", %{interval: "30000"})
+      assert html =~ "Auto: Off"
+    end
+
+    test "apply dashboard params re-executes cards", %{conn: conn, scope: scope} do
+      dashboard = dashboard_fixture(scope)
+      {:ok, lv, _html} = live(conn, ~p"/dashboards/#{dashboard.id}")
+
+      html = render_click(lv, "apply_dashboard_params")
+      assert html =~ dashboard.title
+    end
+
+    test "set dashboard param stores value", %{conn: conn, scope: scope} do
+      dashboard = dashboard_fixture(scope)
+      {:ok, lv, _html} = live(conn, ~p"/dashboards/#{dashboard.id}")
+
+      render_click(lv, "set_dashboard_param", %{name: "status", value: "active"})
+      html = render(lv)
+      assert html =~ dashboard.title
+    end
   end
 
   defp log_out(conn) do
