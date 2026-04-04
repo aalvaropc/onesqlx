@@ -12,6 +12,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
   alias Onesqlx.Dashboards.CardRenderer
   alias Onesqlx.Dashboards.DashboardCard
   alias Onesqlx.Querying.Executor
+  alias Onesqlx.Querying.Params
   alias Onesqlx.SavedQueries
 
   @impl true
@@ -23,6 +24,24 @@ defmodule OnesqlxWeb.DashboardLive.Show do
           <.icon name="hero-arrow-left" class="size-4" /> Back
         </.link>
         <h1 class="text-2xl font-bold flex-1">{@dashboard.title}</h1>
+
+        <div :if={@dashboard_param_names != []} class="flex items-center gap-2">
+          <div :for={param <- @dashboard_param_names} class="flex items-center gap-1">
+            <label class="text-xs font-mono text-base-content/60">:{param}</label>
+            <input
+              type="text"
+              phx-blur="set_dashboard_param"
+              phx-value-name={param}
+              name={"params[#{param}]"}
+              value={Map.get(@dashboard_params, param, "")}
+              class="input input-bordered input-xs w-24"
+            />
+          </div>
+          <button phx-click="apply_dashboard_params" class="btn btn-xs btn-primary">
+            Apply
+          </button>
+        </div>
+
         <button phx-click="refresh" class="btn btn-sm">
           <.icon name="hero-arrow-path" class="size-4" /> Refresh
         </button>
@@ -251,6 +270,8 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         {card.id, initial_card_result(card)}
       end)
 
+    all_param_names = extract_dashboard_params(dashboard.cards)
+
     socket =
       socket
       |> assign(
@@ -262,7 +283,9 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         add_card_form: nil,
         saved_queries: [],
         auto_refresh_interval: 0,
-        auto_refresh_ref: nil
+        auto_refresh_ref: nil,
+        dashboard_param_names: all_param_names,
+        dashboard_params: %{}
       )
       |> start_card_async_tasks(dashboard.cards)
 
@@ -275,6 +298,30 @@ defmodule OnesqlxWeb.DashboardLive.Show do
   end
 
   def handle_event("refresh", _params, socket) do
+    scope = socket.assigns.current_scope
+    dashboard = Dashboards.get_dashboard_with_cards!(scope, socket.assigns.dashboard.id)
+
+    cancel_all_card_timeouts(socket.assigns.card_timeouts)
+
+    card_results =
+      Map.new(dashboard.cards, fn card ->
+        {card.id, initial_card_result(card)}
+      end)
+
+    socket =
+      socket
+      |> assign(dashboard: dashboard, card_results: card_results, card_timeouts: %{})
+      |> start_card_async_tasks(dashboard.cards)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("set_dashboard_param", %{"name" => name, "value" => value}, socket) do
+    params = Map.put(socket.assigns.dashboard_params, name, value)
+    {:noreply, assign(socket, dashboard_params: params)}
+  end
+
+  def handle_event("apply_dashboard_params", _params, socket) do
     scope = socket.assigns.current_scope
     dashboard = Dashboards.get_dashboard_with_cards!(scope, socket.assigns.dashboard.id)
 
@@ -502,6 +549,15 @@ defmodule OnesqlxWeb.DashboardLive.Show do
     end
   end
 
+  defp extract_dashboard_params(cards) do
+    cards
+    |> Enum.flat_map(fn
+      %{saved_query: %{sql: sql}} when is_binary(sql) -> Params.extract(sql)
+      _ -> []
+    end)
+    |> Enum.uniq()
+  end
+
   defp initial_card_result(%{saved_query: %{data_source: %{}} = _sq}), do: :loading
   defp initial_card_result(_card), do: {:error, "No query assigned"}
 
@@ -512,13 +568,15 @@ defmodule OnesqlxWeb.DashboardLive.Show do
   defp maybe_start_card_async(socket, card) do
     case card do
       %{saved_query: %{data_source: data_source, sql: sql}} when not is_nil(data_source) ->
-        params = get_in(card.config, ["params"]) || %{}
+        card_params = get_in(card.config, ["params"]) || %{}
+        dashboard_params = socket.assigns.dashboard_params || %{}
+        merged_params = Map.merge(card_params, dashboard_params)
         ref = Process.send_after(self(), {:card_timeout, card.id}, @query_timeout_ms)
 
         socket
         |> update(:card_timeouts, &Map.put(&1, card.id, ref))
         |> start_async({:execute_card, card.id}, fn ->
-          Executor.execute(data_source, sql, params: params)
+          Executor.execute(data_source, sql, params: merged_params)
         end)
 
       _ ->
