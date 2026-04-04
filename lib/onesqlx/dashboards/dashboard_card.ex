@@ -9,7 +9,7 @@ defmodule Onesqlx.Dashboards.DashboardCard do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @valid_types ~w(table kpi bar line)
+  @valid_types ~w(table kpi bar line pie doughnut area scatter)
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id

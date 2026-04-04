@@ -12,7 +12,7 @@ const ChartCard = {
   },
   destroyed() { this._chart?.destroy() },
   _renderChart() {
-    const type = this.el.dataset.chartType
+    let type = this.el.dataset.chartType
     const raw = this.el.dataset.chartData
     this._lastData = raw
     let data
@@ -20,13 +20,25 @@ const ChartCard = {
     if (!data?.labels?.length) return
     const canvas = this.el.querySelector("canvas")
     if (!canvas) return
+
+    // Area is a line chart with fill
+    const isArea = type === "area"
+    if (isArea) {
+      type = "line"
+      data.datasets = data.datasets.map(ds => ({...ds, fill: true}))
+    }
+
+    // Pie/doughnut always show legend
+    const isPieType = type === "pie" || type === "doughnut"
+    const showLegend = isPieType || data.datasets?.length > 1
+
     this._chart = new Chart(canvas, {
       type,
       data,
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: data.datasets?.length > 1 } }
+        plugins: { legend: { display: showLegend } }
       }
     })
   }
