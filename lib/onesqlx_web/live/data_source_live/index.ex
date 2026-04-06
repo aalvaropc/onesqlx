@@ -46,7 +46,14 @@ defmodule OnesqlxWeb.DataSourceLive.Index do
       </.table>
 
       <div :if={!@has_data_sources?} class="text-center py-12">
-        <p class="text-base-content/60">No data sources yet. Add one to get started.</p>
+        <.icon name="hero-circle-stack" class="size-12 text-base-content/20 mx-auto mb-4" />
+        <p class="text-base-content/60 mb-2">No data sources yet</p>
+        <p class="text-sm text-base-content/40 mb-4">
+          Connect a PostgreSQL database to start exploring your data.
+        </p>
+        <.link navigate={~p"/data-sources/new"} class="btn btn-primary btn-sm">
+          Add Data Source
+        </.link>
       </div>
     </Layouts.app>
     """

@@ -56,7 +56,14 @@ defmodule OnesqlxWeb.DashboardLive.Index do
       </div>
 
       <div :if={!@has_dashboards?} class="text-center py-12">
-        <p class="text-base-content/60">No dashboards yet. Create one to get started.</p>
+        <.icon name="hero-chart-bar-square" class="size-12 text-base-content/20 mx-auto mb-4" />
+        <p class="text-base-content/60 mb-2">No dashboards yet</p>
+        <p class="text-sm text-base-content/40 mb-4">
+          Start by saving a query, then create a dashboard to visualize it.
+        </p>
+        <.link navigate={~p"/sql-editor"} class="btn btn-primary btn-sm">
+          Open SQL Editor
+        </.link>
       </div>
 
       <div

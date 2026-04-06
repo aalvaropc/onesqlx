@@ -10,7 +10,7 @@ defmodule OnesqlxWeb.SavedQueryLive.IndexTest do
 
     test "renders empty state when no saved queries", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/saved-queries")
-      assert html =~ "No saved queries found"
+      assert html =~ "No saved queries yet"
       assert html =~ "Saved Queries"
     end
 

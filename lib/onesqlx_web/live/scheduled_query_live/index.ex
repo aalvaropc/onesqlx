@@ -79,9 +79,14 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
       </div>
 
       <div :if={!@has_schedules?} class="text-center py-12">
-        <p class="text-base-content/60">
-          No scheduled queries yet. Create one to automate your reports.
+        <.icon name="hero-clock" class="size-12 text-base-content/20 mx-auto mb-4" />
+        <p class="text-base-content/60 mb-2">No schedules yet</p>
+        <p class="text-sm text-base-content/40 mb-4">
+          Save a query first, then create a schedule to run it automatically.
         </p>
+        <.link navigate={~p"/saved-queries"} class="btn btn-primary btn-sm">
+          View Saved Queries
+        </.link>
       </div>
 
       <div
