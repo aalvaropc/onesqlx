@@ -11,7 +11,7 @@ defmodule OnesqlxWeb.ScheduledQueryLive.IndexTest do
   describe "Index" do
     test "renders empty state when no schedules", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/schedules")
-      assert html =~ "No scheduled queries yet"
+      assert html =~ "No schedules yet"
     end
 
     test "lists schedules by name", %{conn: conn, scope: scope} do

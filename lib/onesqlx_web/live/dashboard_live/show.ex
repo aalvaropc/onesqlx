@@ -112,7 +112,11 @@ defmodule OnesqlxWeb.DashboardLive.Show do
       </div>
 
       <div :if={@dashboard.cards == []} class="text-center py-12">
-        <p class="text-base-content/60">No cards yet.</p>
+        <.icon name="hero-squares-plus" class="size-12 text-base-content/20 mx-auto mb-4" />
+        <p class="text-base-content/60 mb-2">No cards yet</p>
+        <p class="text-sm text-base-content/40">
+          Click "Edit" then "Add Card" to add your first visualization.
+        </p>
       </div>
 
       <div :if={@editing?} class="mt-6">

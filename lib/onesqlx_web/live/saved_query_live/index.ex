@@ -122,7 +122,14 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
       </div>
 
       <div :if={!@has_saved_queries?} class="text-center py-12">
-        <p class="text-base-content/60">No saved queries found.</p>
+        <.icon name="hero-bookmark" class="size-12 text-base-content/20 mx-auto mb-4" />
+        <p class="text-base-content/60 mb-2">No saved queries yet</p>
+        <p class="text-sm text-base-content/40 mb-4">
+          Write a SQL query in the editor and save it for reuse.
+        </p>
+        <.link navigate={~p"/sql-editor"} class="btn btn-primary btn-sm">
+          Open SQL Editor
+        </.link>
       </div>
 
       <div
