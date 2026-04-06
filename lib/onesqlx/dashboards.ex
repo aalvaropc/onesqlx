@@ -122,6 +122,44 @@ defmodule Onesqlx.Dashboards do
     result
   end
 
+  @doc """
+  Generates a public sharing token for a dashboard.
+  """
+  @spec generate_public_token(Scope.t(), Dashboard.t()) ::
+          {:ok, Dashboard.t()} | {:error, Ecto.Changeset.t()}
+  def generate_public_token(%Scope{} = scope, %Dashboard{} = dashboard) do
+    verify_ownership!(scope, dashboard)
+
+    dashboard
+    |> Ecto.Changeset.change(public_token: Ecto.UUID.generate())
+    |> Repo.update()
+  end
+
+  @doc """
+  Revokes a dashboard's public sharing token.
+  """
+  @spec revoke_public_token(Scope.t(), Dashboard.t()) ::
+          {:ok, Dashboard.t()} | {:error, Ecto.Changeset.t()}
+  def revoke_public_token(%Scope{} = scope, %Dashboard{} = dashboard) do
+    verify_ownership!(scope, dashboard)
+
+    dashboard
+    |> Ecto.Changeset.change(public_token: nil)
+    |> Repo.update()
+  end
+
+  @doc """
+  Gets a dashboard by public token. No scope required.
+  Raises `Ecto.NoResultsError` if not found or token is nil.
+  """
+  @spec get_public_dashboard!(String.t()) :: Dashboard.t()
+  def get_public_dashboard!(token) when is_binary(token) do
+    Dashboard
+    |> where(public_token: ^token)
+    |> preload(cards: ^ordered_cards_query())
+    |> Repo.one!()
+  end
+
   @spec change_dashboard(Dashboard.t(), map()) :: Ecto.Changeset.t()
   @doc """
   Returns a changeset for tracking dashboard changes.

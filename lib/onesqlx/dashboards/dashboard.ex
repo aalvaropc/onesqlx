@@ -13,6 +13,7 @@ defmodule Onesqlx.Dashboards.Dashboard do
   schema "dashboards" do
     field :title, :string
     field :description, :string
+    field :public_token, :binary_id
 
     belongs_to :workspace, Onesqlx.Workspaces.Workspace
     belongs_to :user, Onesqlx.Accounts.User
