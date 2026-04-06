@@ -37,6 +37,10 @@ defmodule OnesqlxWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+
+    live_session :public, on_mount: [{OnesqlxWeb.UserAuth, :mount_current_scope}] do
+      live "/share/:token", DashboardLive.Public, :show
+    end
   end
 
   scope "/api/v1", OnesqlxWeb.Api do

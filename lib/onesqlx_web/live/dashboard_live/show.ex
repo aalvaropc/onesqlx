@@ -56,6 +56,9 @@ defmodule OnesqlxWeb.DashboardLive.Show do
           <option value="300000" selected={@auto_refresh_interval == 300_000}>5m</option>
           <option value="900000" selected={@auto_refresh_interval == 900_000}>15m</option>
         </select>
+        <button phx-click="toggle_share" class="btn btn-sm">
+          <.icon name="hero-share" class="size-4" /> Share
+        </button>
         <button phx-click="toggle_edit" class={["btn btn-sm", @editing? && "btn-active"]}>
           {if @editing?, do: "Done", else: "Edit"}
         </button>
@@ -170,6 +173,36 @@ defmodule OnesqlxWeb.DashboardLive.Show do
               <.button variant="primary" phx-disable-with="Adding...">Add</.button>
             </div>
           </.form>
+        </div>
+      </div>
+
+      <div
+        :if={@show_share_modal?}
+        role="dialog"
+        aria-modal="true"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+      >
+        <div class="fixed inset-0 bg-black/50" phx-click="toggle_share"></div>
+        <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
+          <h3 class="text-lg font-semibold mb-4">Share Dashboard</h3>
+          <div :if={@dashboard.public_token}>
+            <p class="text-sm text-base-content/60 mb-2">
+              Public link (anyone with this link can view):
+            </p>
+            <div class="bg-base-200 rounded p-3 font-mono text-sm break-all select-all mb-4">
+              {url(~p"/share/#{@dashboard.public_token}")}
+            </div>
+            <button phx-click="revoke_share" class="btn btn-sm btn-error">Revoke Link</button>
+          </div>
+          <div :if={!@dashboard.public_token}>
+            <p class="text-sm text-base-content/60 mb-4">
+              Generate a public link to share this dashboard without requiring login.
+            </p>
+            <button phx-click="generate_share" class="btn btn-sm btn-primary">Generate Link</button>
+          </div>
+          <div class="flex justify-end mt-4">
+            <button phx-click="toggle_share" class="btn btn-sm">Close</button>
+          </div>
         </div>
       </div>
     </Layouts.app>
@@ -288,6 +321,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         saved_queries: [],
         auto_refresh_interval: 0,
         auto_refresh_ref: nil,
+        show_share_modal?: false,
         dashboard_param_names: all_param_names,
         dashboard_params: %{}
       )
@@ -297,6 +331,22 @@ defmodule OnesqlxWeb.DashboardLive.Show do
   end
 
   @impl true
+  def handle_event("toggle_share", _params, socket) do
+    {:noreply, assign(socket, show_share_modal?: !socket.assigns.show_share_modal?)}
+  end
+
+  def handle_event("generate_share", _params, socket) do
+    scope = socket.assigns.current_scope
+    {:ok, updated} = Dashboards.generate_public_token(scope, socket.assigns.dashboard)
+    {:noreply, assign(socket, dashboard: updated)}
+  end
+
+  def handle_event("revoke_share", _params, socket) do
+    scope = socket.assigns.current_scope
+    {:ok, updated} = Dashboards.revoke_public_token(scope, socket.assigns.dashboard)
+    {:noreply, assign(socket, dashboard: updated)}
+  end
+
   def handle_event("toggle_edit", _params, socket) do
     {:noreply, assign(socket, editing?: !socket.assigns.editing?)}
   end
