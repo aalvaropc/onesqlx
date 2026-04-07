@@ -65,8 +65,14 @@ defmodule OnesqlxWeb.Router do
   scope "/api/v1", OnesqlxWeb.Api do
     pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth, :api_rate_limit]
 
-    resources "/saved-queries", SavedQueryController, only: [:index, :show]
-    resources "/dashboards", DashboardController, only: [:index, :show]
+    resources "/saved-queries", SavedQueryController,
+      only: [:index, :show, :create, :update, :delete]
+
+    resources "/dashboards", DashboardController, only: [:index, :show, :create, :delete]
+
+    resources "/schedules", ScheduledQueryController,
+      only: [:index, :show, :create, :update, :delete]
+
     resources "/data-sources", DataSourceController, only: [:index]
   end
 
