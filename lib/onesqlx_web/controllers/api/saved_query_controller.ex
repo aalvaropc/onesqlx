@@ -11,6 +11,44 @@ defmodule OnesqlxWeb.Api.SavedQueryController do
   alias Onesqlx.Querying.Executor
   alias Onesqlx.SavedQueries
 
+  def create(conn, %{"saved_query" => params}) do
+    scope = conn.assigns.current_scope
+
+    case SavedQueries.create_saved_query(scope, params) do
+      {:ok, query} ->
+        conn
+        |> put_status(:created)
+        |> json(%{data: serialize_query(query)})
+
+      {:error, changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: format_errors(changeset)})
+    end
+  end
+
+  def update(conn, %{"id" => id, "saved_query" => params}) do
+    scope = conn.assigns.current_scope
+    query = SavedQueries.get_saved_query!(scope, id)
+
+    case SavedQueries.update_saved_query(scope, query, params) do
+      {:ok, query} ->
+        json(conn, %{data: serialize_query(query)})
+
+      {:error, changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: format_errors(changeset)})
+    end
+  end
+
+  def delete(conn, %{"id" => id}) do
+    scope = conn.assigns.current_scope
+    query = SavedQueries.get_saved_query!(scope, id)
+    {:ok, _} = SavedQueries.delete_saved_query(scope, query)
+    send_resp(conn, :no_content, "")
+  end
+
   def index(conn, params) do
     scope = conn.assigns.current_scope
     pagination = extract_pagination(params)
@@ -73,5 +111,16 @@ defmodule OnesqlxWeb.Api.SavedQueryController do
       inserted_at: q.inserted_at,
       updated_at: q.updated_at
     }
+  end
+
+  defp format_errors(changeset) do
+    errors =
+      Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+        Regex.replace(~r"%{(\w+)}", msg, fn _, key ->
+          opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+        end)
+      end)
+
+    %{code: "validation_error", details: errors}
   end
 end

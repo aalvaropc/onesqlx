@@ -9,6 +9,29 @@ defmodule OnesqlxWeb.Api.DashboardController do
 
   alias Onesqlx.Dashboards
 
+  def create(conn, %{"dashboard" => params}) do
+    scope = conn.assigns.current_scope
+
+    case Dashboards.create_dashboard(scope, params) do
+      {:ok, dashboard} ->
+        conn
+        |> put_status(:created)
+        |> json(%{data: serialize_dashboard(dashboard)})
+
+      {:error, changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: format_errors(changeset)})
+    end
+  end
+
+  def delete(conn, %{"id" => id}) do
+    scope = conn.assigns.current_scope
+    dashboard = Dashboards.get_dashboard!(scope, id)
+    {:ok, _} = Dashboards.delete_dashboard(scope, dashboard)
+    send_resp(conn, :no_content, "")
+  end
+
   def index(conn, params) do
     scope = conn.assigns.current_scope
     pagination = extract_pagination(params)
@@ -50,5 +73,16 @@ defmodule OnesqlxWeb.Api.DashboardController do
       position: c.position,
       saved_query_title: c.saved_query && c.saved_query.title
     }
+  end
+
+  defp format_errors(changeset) do
+    errors =
+      Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+        Regex.replace(~r"%{(\w+)}", msg, fn _, key ->
+          opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+        end)
+      end)
+
+    %{code: "validation_error", details: errors}
   end
 end

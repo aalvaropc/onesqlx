@@ -28,6 +28,31 @@ defmodule OnesqlxWeb.Api.DashboardControllerTest do
     end
   end
 
+  describe "POST /api/v1/dashboards" do
+    test "creates a dashboard", %{conn: conn, raw_token: raw} do
+      params = %{"dashboard" => %{"title" => "New Dashboard"}}
+
+      conn = conn |> auth_conn(raw) |> post("/api/v1/dashboards", params)
+      assert %{"data" => %{"title" => "New Dashboard"}} = json_response(conn, 201)
+    end
+
+    test "returns 422 for invalid params", %{conn: conn, raw_token: raw} do
+      params = %{"dashboard" => %{"title" => ""}}
+
+      conn = conn |> auth_conn(raw) |> post("/api/v1/dashboards", params)
+      assert %{"error" => %{"code" => "validation_error"}} = json_response(conn, 422)
+    end
+  end
+
+  describe "DELETE /api/v1/dashboards/:id" do
+    test "deletes a dashboard", %{conn: conn, raw_token: raw, scope: scope} do
+      dashboard = dashboard_fixture(scope)
+
+      conn = conn |> auth_conn(raw) |> delete("/api/v1/dashboards/#{dashboard.id}")
+      assert response(conn, 204)
+    end
+  end
+
   describe "GET /api/dashboards/:id" do
     test "returns dashboard with cards", %{conn: conn, raw_token: raw, scope: scope} do
       dashboard = dashboard_fixture(scope, %{title: "Detail Dashboard"})
