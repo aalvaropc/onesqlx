@@ -1,6 +1,9 @@
-defmodule OnesqlxWeb.DashboardLive.Public do
+defmodule OnesqlxWeb.DashboardLive.Embed do
   @moduledoc """
-  Read-only public view of a shared dashboard. No authentication required.
+  Embeddable dashboard view designed for iframe embedding.
+
+  Renders a minimal, chrome-free dashboard without navigation or footer.
+  Supports query parameters for passing dashboard-level parameters via the iframe URL.
   """
 
   use OnesqlxWeb, :live_view
@@ -9,44 +12,38 @@ defmodule OnesqlxWeb.DashboardLive.Public do
 
   alias Onesqlx.Dashboards
 
+  @reserved_params ~w(token)
+
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-7xl mx-auto px-4 py-6">
-      <div class="flex items-center gap-4 mb-6">
-        <h1 class="text-2xl font-bold flex-1">{@dashboard.title}</h1>
-        <p :if={@dashboard.description} class="text-sm text-base-content/60">
-          {@dashboard.description}
-        </p>
-      </div>
+    <div class="w-full px-4 py-3">
+      <h1 class="text-lg font-semibold mb-3">{@dashboard.title}</h1>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div
           :for={card <- @dashboard.cards}
           id={"card-#{card.id}"}
-          class="card border border-base-300 p-4"
+          class="card border border-base-300 p-3"
         >
-          <h3 class="font-semibold mb-3">
+          <h3 class="font-medium text-sm mb-2">
             {card.title || (card.saved_query && card.saved_query.title) || "Untitled Card"}
           </h3>
           <.card_content card={card} result={Map.get(@card_results, card.id, :loading)} />
         </div>
       </div>
 
-      <div :if={@dashboard.cards == []} class="text-center py-12">
-        <p class="text-base-content/60">This dashboard has no cards yet.</p>
+      <div :if={@dashboard.cards == []} class="text-center py-8">
+        <p class="text-base-content/60 text-sm">This dashboard has no cards yet.</p>
       </div>
-
-      <p class="text-center text-xs text-base-content/30 mt-8">
-        Powered by OneSQLx
-      </p>
     </div>
     """
   end
 
   @impl true
-  def mount(%{"token" => token}, _session, socket) do
+  def mount(%{"token" => token} = params, _session, socket) do
     dashboard = Dashboards.get_public_dashboard!(token)
+    url_params = Map.drop(params, @reserved_params)
 
     card_results =
       Map.new(dashboard.cards, fn card ->
@@ -56,7 +53,7 @@ defmodule OnesqlxWeb.DashboardLive.Public do
     socket =
       socket
       |> assign(dashboard: dashboard, card_results: card_results)
-      |> start_card_async_tasks(dashboard.cards)
+      |> start_card_async_tasks(dashboard.cards, url_params)
 
     {:ok, socket, layout: false}
   end

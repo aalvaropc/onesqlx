@@ -1,0 +1,123 @@
+defmodule OnesqlxWeb.DashboardLive.CardHelpers do
+  @moduledoc """
+  Shared card rendering and async execution helpers for public and embed dashboard views.
+  """
+
+  use Phoenix.Component
+
+  require Phoenix.LiveView
+
+  alias Onesqlx.Dashboards.CardRenderer
+  alias Onesqlx.Querying.Executor
+
+  attr :card, :map, required: true
+  attr :result, :any, required: true
+
+  def card_content(%{result: :loading} = assigns) do
+    ~H"""
+    <div class="flex items-center justify-center py-8">
+      <span class="loading loading-spinner loading-md"></span>
+    </div>
+    """
+  end
+
+  def card_content(%{result: {:error, _msg}} = assigns) do
+    ~H"""
+    <div class="alert alert-error text-sm">{elem(@result, 1)}</div>
+    """
+  end
+
+  def card_content(%{card: %{type: "kpi"}, result: {:ok, result}} = assigns) do
+    kpi = CardRenderer.kpi_value_for(result)
+    assigns = assign(assigns, :kpi, kpi)
+
+    ~H"""
+    <div :if={@kpi} class="text-center py-4">
+      <p class="text-4xl font-bold">{elem(@kpi, 0)}</p>
+      <p class="text-sm text-base-content/60 mt-1">{elem(@kpi, 1)}</p>
+    </div>
+    <div :if={!@kpi} class="text-center py-4 text-base-content/50 text-sm">No data</div>
+    """
+  end
+
+  def card_content(%{card: %{type: type}, result: {:ok, result}} = assigns)
+      when type in ["bar", "line", "pie", "doughnut", "area", "scatter"] do
+    chart_data = CardRenderer.chart_data_for(result)
+    assigns = assign(assigns, chart_data: Jason.encode!(chart_data), chart_type: type)
+
+    ~H"""
+    <div
+      id={"chart-#{@card.id}"}
+      phx-hook="ChartCard"
+      data-chart-type={@chart_type}
+      data-chart-data={@chart_data}
+      class="h-48"
+    >
+      <canvas></canvas>
+    </div>
+    """
+  end
+
+  def card_content(%{result: {:ok, result}} = assigns) do
+    rows = Enum.take(result.rows, 20)
+    assigns = assign(assigns, columns: result.columns, rows: rows, total: result.row_count)
+
+    ~H"""
+    <div class="overflow-x-auto">
+      <table class="table table-xs">
+        <thead>
+          <tr>
+            <th :for={col <- @columns}>{col}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr :for={row <- @rows}>
+            <td :for={cell <- row} class="font-mono text-xs">{format_cell(cell)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p :if={length(@rows) < @total} class="text-xs text-base-content/50 mt-1">
+        Showing {length(@rows)} of {@total} rows
+      </p>
+    </div>
+    """
+  end
+
+  def format_cell(nil), do: "NULL"
+  def format_cell(true), do: "true"
+  def format_cell(false), do: "false"
+  def format_cell(%Decimal{} = value), do: Decimal.to_string(value)
+  def format_cell(%Date{} = value), do: Date.to_string(value)
+  def format_cell(%DateTime{} = value), do: DateTime.to_string(value)
+  def format_cell(%NaiveDateTime{} = value), do: NaiveDateTime.to_string(value)
+  def format_cell(%Time{} = value), do: Time.to_string(value)
+
+  def format_cell(value) when is_binary(value) do
+    if String.length(value) > 500, do: String.slice(value, 0, 500) <> "...", else: value
+  end
+
+  def format_cell(value) when is_number(value), do: to_string(value)
+  def format_cell(value), do: inspect(value)
+
+  def initial_card_result(%{saved_query: %{data_source: %{}} = _sq}), do: :loading
+  def initial_card_result(_card), do: {:error, "No query assigned"}
+
+  def start_card_async_tasks(socket, cards, url_params \\ %{}) do
+    Enum.reduce(cards, socket, &maybe_start_card_async(&2, &1, url_params))
+  end
+
+  defp maybe_start_card_async(socket, card, url_params) do
+    case card do
+      %{saved_query: %{data_source: data_source, sql: sql}} when not is_nil(data_source) ->
+        card_params = get_in(card.config, ["params"]) || %{}
+        params = Map.merge(card_params, url_params)
+
+        Phoenix.LiveView.start_async(socket, {:execute_card, card.id}, fn ->
+          Executor.execute(data_source, sql, params: params)
+        end)
+
+      _ ->
+        socket
+    end
+  end
+end
