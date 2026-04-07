@@ -189,8 +189,14 @@ defmodule OnesqlxWeb.DashboardLive.Show do
             <p class="text-sm text-base-content/60 mb-2">
               Public link (anyone with this link can view):
             </p>
-            <div class="bg-base-200 rounded p-3 font-mono text-sm break-all select-all mb-4">
+            <div class="bg-base-200 rounded p-3 font-mono text-sm break-all select-all mb-3">
               {url(~p"/share/#{@dashboard.public_token}")}
+            </div>
+            <p class="text-sm text-base-content/60 mb-2">
+              Embed in your site or app:
+            </p>
+            <div class="bg-base-200 rounded p-3 font-mono text-xs break-all select-all mb-4">
+              {"<iframe src=\"#{url(~p"/embed/#{@dashboard.public_token}")}\" width=\"100%\" height=\"600\" frameborder=\"0\"></iframe>"}
             </div>
             <button phx-click="revoke_share" class="btn btn-sm btn-error">Revoke Link</button>
           </div>

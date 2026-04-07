@@ -25,6 +25,17 @@ defmodule OnesqlxWeb.Router do
     plug OnesqlxWeb.Plugs.RateLimit, max_requests: 20
   end
 
+  pipeline :embed do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {OnesqlxWeb.Layouts, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+    plug OnesqlxWeb.Plugs.AllowIframe
+    plug :fetch_current_scope_for_user
+  end
+
   # Health check endpoints (unauthenticated)
   scope "/", OnesqlxWeb do
     pipe_through :api
@@ -40,6 +51,14 @@ defmodule OnesqlxWeb.Router do
 
     live_session :public, on_mount: [{OnesqlxWeb.UserAuth, :mount_current_scope}] do
       live "/share/:token", DashboardLive.Public, :show
+    end
+  end
+
+  scope "/", OnesqlxWeb do
+    pipe_through :embed
+
+    live_session :embed, on_mount: [{OnesqlxWeb.UserAuth, :mount_current_scope}] do
+      live "/embed/:token", DashboardLive.Embed, :show
     end
   end
 
