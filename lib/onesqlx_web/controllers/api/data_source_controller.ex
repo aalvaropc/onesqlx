@@ -6,10 +6,24 @@ defmodule OnesqlxWeb.Api.DataSourceController do
   """
 
   use OnesqlxWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   import OnesqlxWeb.ApiPagination
 
   alias Onesqlx.DataSources
+  alias OnesqlxWeb.Schemas
+
+  tags(["Data Sources"])
+  security([%{"bearer" => []}])
+
+  operation(:index,
+    summary: "List data sources",
+    parameters: [
+      limit: [in: :query, schema: %OpenApiSpex.Schema{type: :integer}, required: false],
+      offset: [in: :query, schema: %OpenApiSpex.Schema{type: :integer}, required: false]
+    ],
+    responses: [ok: {"Data source list", "application/json", Schemas.DataSourceListResponse}]
+  )
 
   def index(conn, params) do
     scope = conn.assigns.current_scope

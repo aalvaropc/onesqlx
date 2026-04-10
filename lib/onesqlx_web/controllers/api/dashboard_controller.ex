@@ -4,10 +4,53 @@ defmodule OnesqlxWeb.Api.DashboardController do
   """
 
   use OnesqlxWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   import OnesqlxWeb.ApiPagination
 
   alias Onesqlx.Dashboards
+  alias OnesqlxWeb.Schemas
+
+  tags(["Dashboards"])
+  security([%{"bearer" => []}])
+
+  operation(:index,
+    summary: "List dashboards",
+    parameters: [
+      limit: [in: :query, schema: %OpenApiSpex.Schema{type: :integer}, required: false],
+      offset: [in: :query, schema: %OpenApiSpex.Schema{type: :integer}, required: false]
+    ],
+    responses: [ok: {"Dashboard list", "application/json", Schemas.DashboardListResponse}]
+  )
+
+  operation(:show,
+    summary: "Get a dashboard with cards",
+    parameters: [
+      id: [in: :path, schema: %OpenApiSpex.Schema{type: :string, format: :uuid}, required: true]
+    ],
+    responses: [
+      ok: {"Dashboard details", "application/json", Schemas.DashboardShowResponse},
+      not_found: {"Not found", "application/json", Schemas.ErrorResponse}
+    ]
+  )
+
+  operation(:create,
+    summary: "Create a dashboard",
+    request_body: {"Dashboard params", "application/json", Schemas.DashboardCreateRequest},
+    responses: [
+      created: {"Created dashboard", "application/json", Schemas.DashboardShowResponse},
+      unprocessable_entity:
+        {"Validation errors", "application/json", Schemas.ValidationErrorResponse}
+    ]
+  )
+
+  operation(:delete,
+    summary: "Delete a dashboard",
+    parameters: [
+      id: [in: :path, schema: %OpenApiSpex.Schema{type: :string, format: :uuid}, required: true]
+    ],
+    responses: [no_content: "Deleted"]
+  )
 
   def create(conn, %{"dashboard" => params}) do
     scope = conn.assigns.current_scope

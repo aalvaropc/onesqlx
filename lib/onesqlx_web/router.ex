@@ -44,6 +44,19 @@ defmodule OnesqlxWeb.Router do
     get "/ready", HealthController, :readiness
   end
 
+  # OpenAPI documentation (unauthenticated)
+  pipeline :api_docs do
+    plug :accepts, ["json", "html"]
+    plug OpenApiSpex.Plug.PutApiSpec, module: OnesqlxWeb.ApiSpec
+  end
+
+  scope "/api" do
+    pipe_through :api_docs
+
+    get "/openapi", OpenApiSpex.Plug.RenderSpec, []
+    get "/docs", OpenApiSpex.Plug.SwaggerUI, path: "/api/openapi"
+  end
+
   scope "/", OnesqlxWeb do
     pipe_through :browser
 

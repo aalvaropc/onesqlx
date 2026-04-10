@@ -74,7 +74,8 @@ defmodule Onesqlx.MixProject do
       {:stream_data, "~> 1.0", only: :test},
       {:ueberauth, "~> 0.10"},
       {:ueberauth_google, "~> 0.12"},
-      {:ueberauth_github, "~> 0.8"}
+      {:ueberauth_github, "~> 0.8"},
+      {:open_api_spex, "~> 3.21"}
     ]
   end
 
