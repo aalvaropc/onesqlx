@@ -329,7 +329,8 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         auto_refresh_ref: nil,
         show_share_modal?: false,
         dashboard_param_names: all_param_names,
-        dashboard_params: %{}
+        dashboard_params: %{},
+        skip_cache?: false
       )
       |> start_card_async_tasks(dashboard.cards)
 
@@ -370,8 +371,14 @@ defmodule OnesqlxWeb.DashboardLive.Show do
 
     socket =
       socket
-      |> assign(dashboard: dashboard, card_results: card_results, card_timeouts: %{})
+      |> assign(
+        dashboard: dashboard,
+        card_results: card_results,
+        card_timeouts: %{},
+        skip_cache?: true
+      )
       |> start_card_async_tasks(dashboard.cards)
+      |> assign(skip_cache?: false)
 
     {:noreply, socket}
   end
@@ -625,18 +632,25 @@ defmodule OnesqlxWeb.DashboardLive.Show do
     Enum.reduce(cards, socket, &maybe_start_card_async(&2, &1))
   end
 
+  @default_cache_ttl 300_000
+
   defp maybe_start_card_async(socket, card) do
     case card do
       %{saved_query: %{data_source: data_source, sql: sql}} when not is_nil(data_source) ->
         card_params = get_in(card.config, ["params"]) || %{}
         dashboard_params = socket.assigns.dashboard_params || %{}
         merged_params = Map.merge(card_params, dashboard_params)
+        skip_cache? = socket.assigns[:skip_cache?] || false
         ref = Process.send_after(self(), {:card_timeout, card.id}, @query_timeout_ms)
 
         socket
         |> update(:card_timeouts, &Map.put(&1, card.id, ref))
         |> start_async({:execute_card, card.id}, fn ->
-          Executor.execute(data_source, sql, params: merged_params)
+          Executor.execute(data_source, sql,
+            params: merged_params,
+            cache_ttl: @default_cache_ttl,
+            skip_cache: skip_cache?
+          )
         end)
 
       _ ->
