@@ -4,12 +4,79 @@ defmodule OnesqlxWeb.Api.SavedQueryController do
   """
 
   use OnesqlxWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   import OnesqlxWeb.ApiPagination
 
   alias Onesqlx.DataSources
   alias Onesqlx.Querying.Executor
   alias Onesqlx.SavedQueries
+  alias OnesqlxWeb.Schemas
+
+  tags(["Saved Queries"])
+  security([%{"bearer" => []}])
+
+  operation(:index,
+    summary: "List saved queries",
+    parameters: [
+      limit: [in: :query, schema: %OpenApiSpex.Schema{type: :integer}, required: false],
+      offset: [in: :query, schema: %OpenApiSpex.Schema{type: :integer}, required: false]
+    ],
+    responses: [ok: {"Saved queries list", "application/json", Schemas.SavedQueryListResponse}]
+  )
+
+  operation(:show,
+    summary: "Get a saved query",
+    parameters: [
+      id: [in: :path, schema: %OpenApiSpex.Schema{type: :string, format: :uuid}, required: true]
+    ],
+    responses: [
+      ok: {"Saved query details", "application/json", Schemas.SavedQueryShowResponse},
+      not_found: {"Not found", "application/json", Schemas.ErrorResponse}
+    ]
+  )
+
+  operation(:create,
+    summary: "Create a saved query",
+    request_body: {"Saved query params", "application/json", Schemas.SavedQueryCreateRequest},
+    responses: [
+      created: {"Created saved query", "application/json", Schemas.SavedQueryShowResponse},
+      unprocessable_entity:
+        {"Validation errors", "application/json", Schemas.ValidationErrorResponse}
+    ]
+  )
+
+  operation(:update,
+    summary: "Update a saved query",
+    parameters: [
+      id: [in: :path, schema: %OpenApiSpex.Schema{type: :string, format: :uuid}, required: true]
+    ],
+    request_body: {"Saved query params", "application/json", Schemas.SavedQueryUpdateRequest},
+    responses: [
+      ok: {"Updated saved query", "application/json", Schemas.SavedQueryShowResponse},
+      unprocessable_entity:
+        {"Validation errors", "application/json", Schemas.ValidationErrorResponse}
+    ]
+  )
+
+  operation(:delete,
+    summary: "Delete a saved query",
+    parameters: [
+      id: [in: :path, schema: %OpenApiSpex.Schema{type: :string, format: :uuid}, required: true]
+    ],
+    responses: [no_content: "Deleted"]
+  )
+
+  operation(:execute,
+    summary: "Execute a saved query",
+    parameters: [
+      id: [in: :path, schema: %OpenApiSpex.Schema{type: :string, format: :uuid}, required: true]
+    ],
+    responses: [
+      ok: {"Query results", "application/json", Schemas.ExecuteResultResponse},
+      unprocessable_entity: {"Execution error", "application/json", Schemas.ErrorResponse}
+    ]
+  )
 
   def create(conn, %{"saved_query" => params}) do
     scope = conn.assigns.current_scope

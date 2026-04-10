@@ -4,10 +4,66 @@ defmodule OnesqlxWeb.Api.ScheduledQueryController do
   """
 
   use OnesqlxWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   import OnesqlxWeb.ApiPagination
 
   alias Onesqlx.Scheduling
+  alias OnesqlxWeb.Schemas
+
+  tags(["Schedules"])
+  security([%{"bearer" => []}])
+
+  operation(:index,
+    summary: "List schedules",
+    parameters: [
+      limit: [in: :query, schema: %OpenApiSpex.Schema{type: :integer}, required: false],
+      offset: [in: :query, schema: %OpenApiSpex.Schema{type: :integer}, required: false]
+    ],
+    responses: [ok: {"Schedule list", "application/json", Schemas.ScheduleListResponse}]
+  )
+
+  operation(:show,
+    summary: "Get a schedule",
+    parameters: [
+      id: [in: :path, schema: %OpenApiSpex.Schema{type: :string, format: :uuid}, required: true]
+    ],
+    responses: [
+      ok: {"Schedule details", "application/json", Schemas.ScheduleShowResponse},
+      not_found: {"Not found", "application/json", Schemas.ErrorResponse}
+    ]
+  )
+
+  operation(:create,
+    summary: "Create a schedule",
+    request_body: {"Schedule params", "application/json", Schemas.ScheduleCreateRequest},
+    responses: [
+      created: {"Created schedule", "application/json", Schemas.ScheduleShowResponse},
+      unprocessable_entity:
+        {"Validation errors", "application/json", Schemas.ValidationErrorResponse}
+    ]
+  )
+
+  operation(:update,
+    summary: "Update a schedule",
+    parameters: [
+      id: [in: :path, schema: %OpenApiSpex.Schema{type: :string, format: :uuid}, required: true]
+    ],
+    request_body: {"Schedule params", "application/json", Schemas.ScheduleUpdateRequest},
+    responses: [
+      ok: {"Updated schedule", "application/json", Schemas.ScheduleShowResponse},
+      unprocessable_entity:
+        {"Validation errors", "application/json", Schemas.ValidationErrorResponse}
+    ]
+  )
+
+  operation(:delete,
+    summary: "Delete a schedule",
+    parameters: [
+      id: [in: :path, schema: %OpenApiSpex.Schema{type: :string, format: :uuid}, required: true]
+    ],
+    responses: [no_content: "Deleted"]
+  )
 
   def index(conn, params) do
     scope = conn.assigns.current_scope
