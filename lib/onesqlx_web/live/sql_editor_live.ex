@@ -85,15 +85,18 @@ defmodule OnesqlxWeb.SqlEditorLive do
           </form>
 
           <button
+            :if={!@tab.running?}
             phx-click="execute"
-            disabled={@tab.running? || @tab.data_source_id == nil}
+            disabled={@tab.data_source_id == nil}
             class={[
               "btn btn-primary btn-sm",
-              (@tab.running? || @tab.data_source_id == nil) && "btn-disabled"
+              @tab.data_source_id == nil && "btn-disabled"
             ]}
           >
-            <span :if={@tab.running?} class="loading loading-spinner loading-xs"></span>
-            {if @tab.running?, do: "Running...", else: "Run"}
+            Run
+          </button>
+          <button :if={@tab.running?} phx-click="cancel_query" class="btn btn-error btn-sm">
+            <span class="loading loading-spinner loading-xs"></span> Cancel
           </button>
 
           <button
@@ -511,6 +514,35 @@ defmodule OnesqlxWeb.SqlEditorLive do
     {:noreply, put_tab(socket, updated)}
   end
 
+  # -- Cancel ------------------------------------------------------------------
+
+  def handle_event("cancel_query", _params, socket) do
+    tab = get_active_tab(socket)
+
+    if tab.running? && tab.cancel_ref && tab.data_source_id do
+      scope = socket.assigns.current_scope
+      data_source = DataSources.get_data_source!(scope, tab.data_source_id)
+      cancel_ref = tab.cancel_ref
+
+      Task.start(fn -> Executor.cancel_query(data_source, cancel_ref) end)
+
+      cancel_timeout(tab.timeout_ref)
+
+      updated = %{
+        tab
+        | running?: false,
+          error: "Query cancelled.",
+          active_result_tab: :messages,
+          timeout_ref: nil,
+          cancel_ref: nil
+      }
+
+      {:noreply, put_tab(socket, updated)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   # -- Explain -----------------------------------------------------------------
 
   def handle_event("explain", _params, socket) do
@@ -769,7 +801,8 @@ defmodule OnesqlxWeb.SqlEditorLive do
       query_params: [],
       show_params_form?: false,
       execute_sql: "",
-      timeout_ref: nil
+      timeout_ref: nil,
+      cancel_ref: nil
     }
   end
 
@@ -844,6 +877,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
     scope = socket.assigns.current_scope
     tab = get_active_tab(socket)
     data_source = DataSources.get_data_source!(scope, tab.data_source_id)
+    cancel_ref = Ecto.UUID.generate()
 
     cancel_timeout(tab.timeout_ref)
     timeout_ref = Process.send_after(self(), {:query_timeout, tab.id}, @query_timeout_ms)
@@ -854,14 +888,17 @@ defmodule OnesqlxWeb.SqlEditorLive do
         result: nil,
         error: nil,
         show_params_form?: false,
-        timeout_ref: timeout_ref
+        timeout_ref: timeout_ref,
+        cancel_ref: cancel_ref
     }
 
     socket =
       socket
       |> put_tab(updated)
       |> start_async({:execute_query, tab.id}, fn ->
-        Querying.execute_query(scope, data_source, tab.execute_sql, tab.param_values)
+        Querying.execute_query(scope, data_source, tab.execute_sql, tab.param_values,
+          cancel_ref: cancel_ref
+        )
       end)
 
     {:noreply, socket}
