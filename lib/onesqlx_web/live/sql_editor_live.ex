@@ -1,7 +1,9 @@
 defmodule OnesqlxWeb.SqlEditorLive do
   @moduledoc """
-  LiveView for the SQL Editor — write and execute read-only SQL against connected
-  PostgreSQL data sources with CodeMirror 6, result display, and query history.
+  LiveView for the SQL Editor with multi-tab support.
+
+  Each tab maintains its own SQL, data source, results, and execution state.
+  A single CodeMirror instance swaps content on tab switch.
   """
 
   use OnesqlxWeb, :live_view
@@ -17,11 +19,53 @@ defmodule OnesqlxWeb.SqlEditorLive do
   alias Onesqlx.SavedQueries
   alias Onesqlx.SavedQueries.SavedQuery
 
+  # -- Render ------------------------------------------------------------------
+
   @impl true
   def render(assigns) do
+    tab = assigns.tabs[assigns.active_tab_id]
+    assigns = assign(assigns, :tab, tab)
+
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} wide>
       <div class="flex flex-col h-[calc(100vh-10rem)]">
+        <%!-- Tab bar --%>
+        <div class="flex items-center gap-1 mb-2 border-b border-base-300 overflow-x-auto">
+          <div
+            :for={tab_id <- @tab_order}
+            class={[
+              "flex items-center gap-1 px-3 py-1.5 text-sm cursor-pointer border-b-2 whitespace-nowrap flex-shrink-0",
+              tab_id == @active_tab_id && "border-primary font-semibold",
+              tab_id != @active_tab_id && "border-transparent hover:bg-base-200"
+            ]}
+          >
+            <span phx-click="switch_tab" phx-value-id={tab_id}>
+              {@tabs[tab_id].name}
+              <span
+                :if={@tabs[tab_id].running?}
+                class="loading loading-spinner loading-xs ml-1"
+              >
+              </span>
+            </span>
+            <button
+              :if={length(@tab_order) > 1}
+              phx-click="close_tab"
+              phx-value-id={tab_id}
+              class="btn btn-ghost btn-xs px-0.5 ml-1"
+              aria-label="Close tab"
+            >
+              <.icon name="hero-x-mark" class="size-3" />
+            </button>
+          </div>
+          <button
+            phx-click="new_tab"
+            class="btn btn-ghost btn-xs px-2 flex-shrink-0"
+            aria-label="New tab"
+          >
+            <.icon name="hero-plus" class="size-3" />
+          </button>
+        </div>
+
         <%!-- Toolbar --%>
         <div class="flex items-center gap-4 mb-4">
           <form phx-change="select_data_source" class="flex-1 max-w-xs">
@@ -33,7 +77,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
               <option
                 :for={ds <- @data_sources}
                 value={ds.id}
-                selected={ds.id == @selected_data_source_id}
+                selected={ds.id == @tab.data_source_id}
               >
                 {ds.name}
               </option>
@@ -42,22 +86,22 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
           <button
             phx-click="execute"
-            disabled={@running? || @selected_data_source_id == nil}
+            disabled={@tab.running? || @tab.data_source_id == nil}
             class={[
               "btn btn-primary btn-sm",
-              (@running? || @selected_data_source_id == nil) && "btn-disabled"
+              (@tab.running? || @tab.data_source_id == nil) && "btn-disabled"
             ]}
           >
-            <span :if={@running?} class="loading loading-spinner loading-xs"></span>
-            {if @running?, do: "Running...", else: "Run"}
+            <span :if={@tab.running?} class="loading loading-spinner loading-xs"></span>
+            {if @tab.running?, do: "Running...", else: "Run"}
           </button>
 
           <button
             phx-click="explain"
-            disabled={@running? || @selected_data_source_id == nil}
+            disabled={@tab.running? || @tab.data_source_id == nil}
             class={[
               "btn btn-sm",
-              (@running? || @selected_data_source_id == nil) && "btn-disabled"
+              (@tab.running? || @tab.data_source_id == nil) && "btn-disabled"
             ]}
           >
             Explain
@@ -65,24 +109,24 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
           <button
             phx-click="open_save_modal"
-            disabled={@selected_data_source_id == nil || @sql == ""}
+            disabled={@tab.data_source_id == nil || @tab.sql == ""}
             class={[
               "btn btn-sm",
-              (@selected_data_source_id == nil || @sql == "") && "btn-disabled"
+              (@tab.data_source_id == nil || @tab.sql == "") && "btn-disabled"
             ]}
           >
             Save
           </button>
 
           <form
-            :if={@result && @selected_data_source_id}
+            :if={@tab.result && @tab.data_source_id}
             action={~p"/exports/csv"}
             method="post"
             class="inline"
           >
             <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
-            <input type="hidden" name="data_source_id" value={@selected_data_source_id} />
-            <input type="hidden" name="sql" value={@sql} />
+            <input type="hidden" name="data_source_id" value={@tab.data_source_id} />
+            <input type="hidden" name="sql" value={@tab.sql} />
             <input type="hidden" name="label" value="sql_editor" />
             <button type="submit" class="btn btn-sm">
               <.icon name="hero-arrow-down-tray" class="size-4" /> CSV
@@ -106,21 +150,21 @@ defmodule OnesqlxWeb.SqlEditorLive do
             </div>
 
             <%!-- Parameter input form --%>
-            <div :if={@show_params_form?} class="border border-base-300 rounded-lg p-4 mt-2">
+            <div :if={@tab.show_params_form?} class="border border-base-300 rounded-lg p-4 mt-2">
               <div class="flex items-center justify-between mb-2">
                 <h4 class="text-sm font-semibold">Query Parameters</h4>
                 <button phx-click="close_params_form" aria-label="Close" class="btn btn-xs btn-ghost">
                   <.icon name="hero-x-mark" class="size-3" />
                 </button>
               </div>
-              <div :for={param <- @query_params} class="flex items-center gap-2 mb-2">
+              <div :for={param <- @tab.query_params} class="flex items-center gap-2 mb-2">
                 <label class="text-sm font-mono w-32">:{param}</label>
                 <input
                   type="text"
                   phx-blur="update_param"
                   phx-value-name={param}
                   name={"params[#{param}]"}
-                  value={Map.get(@param_values, param, "")}
+                  value={Map.get(@tab.param_values, param, "")}
                   phx-debounce="300"
                   class="input input-bordered input-sm flex-1"
                 />
@@ -132,32 +176,29 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
             <%!-- Results area --%>
             <div class="flex flex-col flex-1 mt-4 min-h-0">
-              <%!-- Tabs --%>
+              <%!-- Result tabs --%>
               <div class="tabs tabs-bordered">
                 <button
-                  phx-click="set_tab"
+                  phx-click="set_result_tab"
                   phx-value-tab="results"
-                  class={["tab", @active_tab == :results && "tab-active"]}
+                  class={["tab", @tab.active_result_tab == :results && "tab-active"]}
                 >
                   Results
-                  <span
-                    :if={@result}
-                    class="badge badge-sm ml-1"
-                  >
-                    {@result.row_count}
+                  <span :if={@tab.result} class="badge badge-sm ml-1">
+                    {@tab.result.row_count}
                   </span>
                 </button>
                 <button
-                  phx-click="set_tab"
+                  phx-click="set_result_tab"
                   phx-value-tab="messages"
-                  class={["tab", @active_tab == :messages && "tab-active"]}
+                  class={["tab", @tab.active_result_tab == :messages && "tab-active"]}
                 >
                   Messages
                 </button>
                 <button
-                  phx-click="set_tab"
+                  phx-click="set_result_tab"
                   phx-value-tab="explain"
-                  class={["tab", @active_tab == :explain && "tab-active"]}
+                  class={["tab", @tab.active_result_tab == :explain && "tab-active"]}
                 >
                   Explain
                 </button>
@@ -165,18 +206,18 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
               <%!-- Tab content --%>
               <div class="flex-1 overflow-auto mt-2">
-                <div :if={@active_tab == :results}>
-                  <div :if={@result} class="overflow-x-auto">
+                <div :if={@tab.active_result_tab == :results}>
+                  <div :if={@tab.result} class="overflow-x-auto">
                     <table class="table table-xs table-pin-rows">
                       <thead>
                         <tr>
-                          <th :for={col <- @result.columns} class="bg-base-200">
+                          <th :for={col <- @tab.result.columns} class="bg-base-200">
                             {col}
                           </th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr :for={row <- @result.rows}>
+                        <tr :for={row <- @tab.result.rows}>
                           <td :for={cell <- row} class="font-mono text-xs">
                             {format_cell(cell)}
                           </td>
@@ -184,41 +225,44 @@ defmodule OnesqlxWeb.SqlEditorLive do
                       </tbody>
                     </table>
                     <p
-                      :if={length(@result.rows) < @result.row_count}
+                      :if={length(@tab.result.rows) < @tab.result.row_count}
                       class="text-xs text-base-content/50 mt-2"
                     >
-                      Showing {length(@result.rows)} of {@result.row_count} rows
+                      Showing {length(@tab.result.rows)} of {@tab.result.row_count} rows
                     </p>
                     <p class="text-xs text-base-content/50 mt-1">
-                      Completed in {@result.duration_ms}ms
+                      Completed in {@tab.result.duration_ms}ms
                     </p>
                   </div>
-                  <p :if={!@result && !@error} class="text-base-content/50 text-sm py-4">
+                  <p :if={!@tab.result && !@tab.error} class="text-base-content/50 text-sm py-4">
                     Run a query to see results.
                   </p>
                 </div>
 
-                <div :if={@active_tab == :messages}>
-                  <div :if={@error} class="alert alert-error text-sm">
-                    {@error}
+                <div :if={@tab.active_result_tab == :messages}>
+                  <div :if={@tab.error} class="alert alert-error text-sm">
+                    {@tab.error}
                   </div>
-                  <p :if={!@error && @result} class="text-success text-sm py-4">
+                  <p :if={!@tab.error && @tab.result} class="text-success text-sm py-4">
                     Query executed successfully.
                   </p>
-                  <p :if={!@error && !@result} class="text-base-content/50 text-sm py-4">
+                  <p :if={!@tab.error && !@tab.result} class="text-base-content/50 text-sm py-4">
                     No messages.
                   </p>
                 </div>
 
-                <div :if={@active_tab == :explain}>
+                <div :if={@tab.active_result_tab == :explain}>
                   <pre
-                    :if={@explain_plan}
+                    :if={@tab.explain_plan}
                     class="text-xs font-mono whitespace-pre overflow-x-auto bg-base-200 rounded p-4"
-                  >{@explain_plan}</pre>
-                  <div :if={@explain_error} class="alert alert-error text-sm">
-                    {@explain_error}
+                  >{@tab.explain_plan}</pre>
+                  <div :if={@tab.explain_error} class="alert alert-error text-sm">
+                    {@tab.explain_error}
                   </div>
-                  <p :if={!@explain_plan && !@explain_error} class="text-base-content/50 text-sm py-4">
+                  <p
+                    :if={!@tab.explain_plan && !@tab.explain_error}
+                    class="text-base-content/50 text-sm py-4"
+                  >
                     Click "Explain" to see the query execution plan.
                   </p>
                 </div>
@@ -254,7 +298,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
                 <p class="text-xs font-mono truncate">{run.sql}</p>
               </div>
               <p
-                :if={@selected_data_source_id == nil}
+                :if={@tab.data_source_id == nil}
                 class="text-xs text-base-content/50"
               >
                 Select a data source to view history.
@@ -294,35 +338,31 @@ defmodule OnesqlxWeb.SqlEditorLive do
     """
   end
 
+  # -- Mount -------------------------------------------------------------------
+
   @impl true
   def mount(_params, _session, socket) do
     scope = socket.assigns.current_scope
     data_sources = DataSources.list_data_sources(scope)
+    tab = new_tab("Tab 1")
 
     socket =
       socket
       |> assign(
         data_sources: data_sources,
-        selected_data_source_id: nil,
-        sql: "",
-        running?: false,
-        result: nil,
-        error: nil,
-        active_tab: :results,
+        tabs: %{tab.id => tab},
+        active_tab_id: tab.id,
+        tab_order: [tab.id],
+        tab_counter: 1,
         show_save_modal?: false,
-        save_form: nil,
-        query_params: [],
-        param_values: %{},
-        show_params_form?: false,
-        timeout_ref: nil,
-        execute_sql: "",
-        explain_plan: nil,
-        explain_error: nil
+        save_form: nil
       )
       |> stream(:history, [])
 
     {:ok, socket}
   end
+
+  # -- Handle Params -----------------------------------------------------------
 
   @impl true
   def handle_params(%{"saved_query_id" => id}, _uri, socket) do
@@ -331,11 +371,73 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
   def handle_params(_params, _uri, socket), do: {:noreply, socket}
 
+  # -- Tab Management Events ---------------------------------------------------
+
   @impl true
-  def handle_event("select_data_source", %{"data_source_id" => ""}, socket) do
+  def handle_event("new_tab", _params, socket) do
+    counter = socket.assigns.tab_counter + 1
+    tab = new_tab("Tab #{counter}")
+
     socket =
       socket
-      |> assign(selected_data_source_id: nil, result: nil, error: nil)
+      |> update(:tabs, &Map.put(&1, tab.id, tab))
+      |> update(:tab_order, &(&1 ++ [tab.id]))
+      |> assign(active_tab_id: tab.id, tab_counter: counter)
+      |> push_event("set_sql", %{sql: ""})
+      |> stream(:history, [], reset: true)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("close_tab", %{"id" => tab_id}, socket) do
+    if length(socket.assigns.tab_order) <= 1 do
+      {:noreply, socket}
+    else
+      closing_tab = socket.assigns.tabs[tab_id]
+      cancel_timeout(closing_tab.timeout_ref)
+
+      new_order = Enum.reject(socket.assigns.tab_order, &(&1 == tab_id))
+      new_tabs = Map.delete(socket.assigns.tabs, tab_id)
+
+      new_active =
+        if socket.assigns.active_tab_id == tab_id do
+          idx = Enum.find_index(socket.assigns.tab_order, &(&1 == tab_id))
+          Enum.at(new_order, min(idx, length(new_order) - 1))
+        else
+          socket.assigns.active_tab_id
+        end
+
+      socket =
+        socket
+        |> assign(tabs: new_tabs, tab_order: new_order, active_tab_id: new_active)
+        |> sync_editor_to_active_tab()
+
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("switch_tab", %{"id" => tab_id}, socket) do
+    if tab_id == socket.assigns.active_tab_id do
+      {:noreply, socket}
+    else
+      socket =
+        socket
+        |> assign(active_tab_id: tab_id)
+        |> sync_editor_to_active_tab()
+
+      {:noreply, socket}
+    end
+  end
+
+  # -- Data Source Selection ---------------------------------------------------
+
+  def handle_event("select_data_source", %{"data_source_id" => ""}, socket) do
+    tab = get_active_tab(socket)
+    updated = %{tab | data_source_id: nil, result: nil, error: nil}
+
+    socket =
+      socket
+      |> put_tab(updated)
       |> stream(:history, [], reset: true)
 
     {:noreply, socket}
@@ -344,39 +446,49 @@ defmodule OnesqlxWeb.SqlEditorLive do
   def handle_event("select_data_source", %{"data_source_id" => ds_id}, socket) do
     scope = socket.assigns.current_scope
     runs = Querying.list_recent_runs(scope, ds_id)
+    schema_map = load_schema_map(scope, ds_id)
 
-    schema_map =
-      case Catalog.autocomplete_schema(scope, ds_id) do
-        map when is_map(map) -> map
-        _ -> %{}
-      end
+    tab = get_active_tab(socket)
+    updated = %{tab | data_source_id: ds_id, result: nil, error: nil}
 
     socket =
       socket
-      |> assign(selected_data_source_id: ds_id, result: nil, error: nil)
+      |> put_tab(updated)
       |> stream(:history, runs, reset: true)
       |> push_event("set_catalog", %{schema: schema_map})
 
     {:noreply, socket}
   end
 
+  # -- SQL Update --------------------------------------------------------------
+
   def handle_event("update_sql", %{"sql" => sql}, socket) do
-    {:noreply, assign(socket, sql: sql)}
+    tab = get_active_tab(socket)
+    {:noreply, put_tab(socket, %{tab | sql: sql})}
   end
 
-  def handle_event("execute", params, socket) do
-    ds_id = socket.assigns.selected_data_source_id
-    sql = Map.get(params, "sql", socket.assigns.sql)
+  # -- Execute -----------------------------------------------------------------
 
-    if ds_id == nil || String.trim(sql) == "" do
+  def handle_event("execute", params, socket) do
+    tab = get_active_tab(socket)
+    sql = Map.get(params, "sql", tab.sql)
+
+    if tab.data_source_id == nil || String.trim(sql) == "" do
       {:noreply, socket}
     else
-      socket = assign(socket, execute_sql: sql)
+      updated = %{tab | execute_sql: sql}
+      socket = put_tab(socket, updated)
       detected_params = Params.extract(sql)
 
-      if detected_params != [] && !socket.assigns.show_params_form? do
-        {:noreply,
-         assign(socket, query_params: detected_params, show_params_form?: true, param_values: %{})}
+      if detected_params != [] && !tab.show_params_form? do
+        updated2 = %{
+          updated
+          | query_params: detected_params,
+            show_params_form?: true,
+            param_values: %{}
+        }
+
+        {:noreply, put_tab(socket, updated2)}
       else
         execute_sql(socket)
       end
@@ -384,8 +496,9 @@ defmodule OnesqlxWeb.SqlEditorLive do
   end
 
   def handle_event("update_param", %{"name" => name, "value" => value}, socket) do
-    param_values = Map.put(socket.assigns.param_values, name, value)
-    {:noreply, assign(socket, param_values: param_values)}
+    tab = get_active_tab(socket)
+    updated = %{tab | param_values: Map.put(tab.param_values, name, value)}
+    {:noreply, put_tab(socket, updated)}
   end
 
   def handle_event("execute_with_params", _params, socket) do
@@ -393,53 +506,73 @@ defmodule OnesqlxWeb.SqlEditorLive do
   end
 
   def handle_event("close_params_form", _params, socket) do
-    {:noreply, assign(socket, show_params_form?: false, query_params: [], param_values: %{})}
+    tab = get_active_tab(socket)
+    updated = %{tab | show_params_form?: false, query_params: [], param_values: %{}}
+    {:noreply, put_tab(socket, updated)}
   end
 
-  def handle_event("explain", _params, socket) do
-    ds_id = socket.assigns.selected_data_source_id
-    sql = socket.assigns.sql
+  # -- Explain -----------------------------------------------------------------
 
-    if ds_id == nil || String.trim(sql) == "" do
+  def handle_event("explain", _params, socket) do
+    tab = get_active_tab(socket)
+
+    if tab.data_source_id == nil || String.trim(tab.sql) == "" do
       {:noreply, socket}
     else
       scope = socket.assigns.current_scope
-      data_source = DataSources.get_data_source!(scope, ds_id)
+      data_source = DataSources.get_data_source!(scope, tab.data_source_id)
+      tab_id = tab.id
+
+      updated = %{
+        tab
+        | running?: true,
+          explain_plan: nil,
+          explain_error: nil,
+          active_result_tab: :explain
+      }
 
       socket =
         socket
-        |> assign(running?: true, explain_plan: nil, explain_error: nil, active_tab: :explain)
-        |> start_async(:explain_query, fn ->
-          Executor.explain(data_source, sql)
+        |> put_tab(updated)
+        |> start_async({:explain_query, tab_id}, fn ->
+          Executor.explain(data_source, tab.sql)
         end)
 
       {:noreply, socket}
     end
   end
 
-  def handle_event("set_tab", %{"tab" => tab}, socket) do
-    tab = String.to_existing_atom(tab)
-    {:noreply, assign(socket, active_tab: tab)}
+  # -- Result Tab Switch -------------------------------------------------------
+
+  def handle_event("set_result_tab", %{"tab" => tab_name}, socket) do
+    tab = get_active_tab(socket)
+    updated = %{tab | active_result_tab: String.to_existing_atom(tab_name)}
+    {:noreply, put_tab(socket, updated)}
   end
+
+  # -- History Reopen ----------------------------------------------------------
 
   def handle_event("reopen_query", %{"id" => run_id}, socket) do
     scope = socket.assigns.current_scope
     run = Querying.get_query_run!(scope, run_id)
+    tab = get_active_tab(socket)
+
+    updated =
+      if run.data_source_id && run.data_source_id != tab.data_source_id do
+        %{tab | sql: run.sql, data_source_id: run.data_source_id}
+      else
+        %{tab | sql: run.sql}
+      end
 
     socket =
       socket
-      |> assign(sql: run.sql)
+      |> put_tab(updated)
       |> push_event("set_sql", %{sql: run.sql})
-
-    socket =
-      if run.data_source_id && run.data_source_id != socket.assigns.selected_data_source_id do
-        assign(socket, selected_data_source_id: run.data_source_id)
-      else
-        socket
-      end
 
     {:noreply, socket}
   end
+
+  # -- Save Modal --------------------------------------------------------------
 
   def handle_event("open_save_modal", _params, socket) do
     changeset = SavedQueries.change_saved_query(%SavedQuery{})
@@ -462,11 +595,12 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
   def handle_event("save_query", %{"saved_query" => params}, socket) do
     scope = socket.assigns.current_scope
+    tab = get_active_tab(socket)
 
     attrs =
       Map.merge(params, %{
-        "sql" => socket.assigns.sql,
-        "data_source_id" => socket.assigns.selected_data_source_id,
+        "sql" => tab.sql,
+        "data_source_id" => tab.data_source_id,
         "user_id" => scope.user.id
       })
 
@@ -482,102 +616,186 @@ defmodule OnesqlxWeb.SqlEditorLive do
     end
   end
 
-  @impl true
-  def handle_async(:execute_query, {:ok, {:ok, result}}, socket) do
-    if socket.assigns.running? do
-      cancel_timeout(socket.assigns.timeout_ref)
-
-      socket =
-        socket
-        |> assign(
-          running?: false,
-          result: result,
-          error: nil,
-          active_tab: :results,
-          timeout_ref: nil
-        )
-        |> refresh_history()
-
-      {:noreply, socket}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_async(:execute_query, {:ok, {:error, _type, message}}, socket) do
-    if socket.assigns.running? do
-      cancel_timeout(socket.assigns.timeout_ref)
-
-      socket =
-        socket
-        |> assign(
-          running?: false,
-          result: nil,
-          error: message,
-          active_tab: :messages,
-          timeout_ref: nil
-        )
-        |> refresh_history()
-
-      {:noreply, socket}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_async(:execute_query, {:exit, reason}, socket) do
-    if socket.assigns.running? do
-      cancel_timeout(socket.assigns.timeout_ref)
-
-      socket =
-        socket
-        |> assign(
-          running?: false,
-          result: nil,
-          error: "Query process crashed: #{inspect(reason)}",
-          timeout_ref: nil
-        )
-        |> refresh_history()
-
-      {:noreply, socket}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_async(:explain_query, {:ok, {:ok, plan_text}}, socket) do
-    {:noreply, assign(socket, running?: false, explain_plan: plan_text, explain_error: nil)}
-  end
-
-  def handle_async(:explain_query, {:ok, {:error, _type, message}}, socket) do
-    {:noreply, assign(socket, running?: false, explain_plan: nil, explain_error: message)}
-  end
-
-  def handle_async(:explain_query, {:exit, reason}, socket) do
-    {:noreply,
-     assign(socket,
-       running?: false,
-       explain_plan: nil,
-       explain_error: "Explain crashed: #{inspect(reason)}"
-     )}
-  end
+  # -- Handle Async ------------------------------------------------------------
 
   @impl true
-  def handle_info(:query_timeout, socket) do
-    if socket.assigns.running? do
-      socket =
-        socket
-        |> assign(
-          running?: false,
-          result: nil,
-          error: @timeout_message,
-          active_tab: :messages,
-          timeout_ref: nil
-        )
+  def handle_async({:execute_query, tab_id}, {:ok, {:ok, result}}, socket) do
+    case socket.assigns.tabs[tab_id] do
+      %{running?: true} = tab ->
+        cancel_timeout(tab.timeout_ref)
 
-      {:noreply, socket}
+        updated = %{
+          tab
+          | running?: false,
+            result: result,
+            error: nil,
+            active_result_tab: :results,
+            timeout_ref: nil
+        }
+
+        socket =
+          socket
+          |> put_tab(updated)
+          |> maybe_refresh_history(tab_id)
+
+        {:noreply, socket}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_async({:execute_query, tab_id}, {:ok, {:error, _type, message}}, socket) do
+    case socket.assigns.tabs[tab_id] do
+      %{running?: true} = tab ->
+        cancel_timeout(tab.timeout_ref)
+
+        updated = %{
+          tab
+          | running?: false,
+            result: nil,
+            error: message,
+            active_result_tab: :messages,
+            timeout_ref: nil
+        }
+
+        socket =
+          socket
+          |> put_tab(updated)
+          |> maybe_refresh_history(tab_id)
+
+        {:noreply, socket}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_async({:execute_query, tab_id}, {:exit, reason}, socket) do
+    case socket.assigns.tabs[tab_id] do
+      %{running?: true} = tab ->
+        cancel_timeout(tab.timeout_ref)
+        msg = "Query process crashed: #{inspect(reason)}"
+        updated = %{tab | running?: false, result: nil, error: msg, timeout_ref: nil}
+
+        socket =
+          socket
+          |> put_tab(updated)
+          |> maybe_refresh_history(tab_id)
+
+        {:noreply, socket}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_async({:explain_query, tab_id}, {:ok, {:ok, plan_text}}, socket) do
+    case socket.assigns.tabs[tab_id] do
+      nil ->
+        {:noreply, socket}
+
+      tab ->
+        updated = %{tab | running?: false, explain_plan: plan_text, explain_error: nil}
+        {:noreply, put_tab(socket, updated)}
+    end
+  end
+
+  def handle_async({:explain_query, tab_id}, {:ok, {:error, _type, message}}, socket) do
+    case socket.assigns.tabs[tab_id] do
+      nil ->
+        {:noreply, socket}
+
+      tab ->
+        updated = %{tab | running?: false, explain_plan: nil, explain_error: message}
+        {:noreply, put_tab(socket, updated)}
+    end
+  end
+
+  def handle_async({:explain_query, tab_id}, {:exit, reason}, socket) do
+    case socket.assigns.tabs[tab_id] do
+      nil ->
+        {:noreply, socket}
+
+      tab ->
+        updated = %{
+          tab
+          | running?: false,
+            explain_plan: nil,
+            explain_error: "Explain crashed: #{inspect(reason)}"
+        }
+
+        {:noreply, put_tab(socket, updated)}
+    end
+  end
+
+  # -- Handle Info (timeout) ---------------------------------------------------
+
+  @impl true
+  def handle_info({:query_timeout, tab_id}, socket) do
+    case socket.assigns.tabs[tab_id] do
+      %{running?: true} = tab ->
+        updated = %{
+          tab
+          | running?: false,
+            result: nil,
+            error: @timeout_message,
+            active_result_tab: :messages,
+            timeout_ref: nil
+        }
+
+        {:noreply, put_tab(socket, updated)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  # -- Private Helpers ---------------------------------------------------------
+
+  defp new_tab(name) do
+    %{
+      id: Ecto.UUID.generate(),
+      name: name,
+      sql: "",
+      data_source_id: nil,
+      result: nil,
+      error: nil,
+      running?: false,
+      active_result_tab: :results,
+      explain_plan: nil,
+      explain_error: nil,
+      param_values: %{},
+      query_params: [],
+      show_params_form?: false,
+      execute_sql: "",
+      timeout_ref: nil
+    }
+  end
+
+  defp get_active_tab(socket) do
+    socket.assigns.tabs[socket.assigns.active_tab_id]
+  end
+
+  defp put_tab(socket, tab) do
+    update(socket, :tabs, &Map.put(&1, tab.id, tab))
+  end
+
+  defp sync_editor_to_active_tab(socket) do
+    tab = socket.assigns.tabs[socket.assigns.active_tab_id]
+
+    socket = push_event(socket, "set_sql", %{sql: tab.sql})
+
+    if tab.data_source_id do
+      scope = socket.assigns.current_scope
+      runs = Querying.list_recent_runs(scope, tab.data_source_id)
+      schema_map = load_schema_map(scope, tab.data_source_id)
+
+      socket
+      |> stream(:history, runs, reset: true)
+      |> push_event("set_catalog", %{schema: schema_map})
     else
-      {:noreply, socket}
+      stream(socket, :history, [], reset: true)
     end
   end
 
@@ -585,23 +803,36 @@ defmodule OnesqlxWeb.SqlEditorLive do
     scope = socket.assigns.current_scope
     saved_query = SavedQueries.get_saved_query!(scope, saved_query_id)
 
+    current_tab = get_active_tab(socket)
+
     socket =
-      socket
-      |> assign(sql: saved_query.sql)
-      |> push_event("set_sql", %{sql: saved_query.sql})
+      if current_tab.sql == "" && current_tab.data_source_id == nil do
+        # Reuse current empty tab
+        updated = %{current_tab | sql: saved_query.sql, name: saved_query.title}
+        put_tab(socket, updated)
+      else
+        # Create new tab
+        counter = socket.assigns.tab_counter + 1
+        tab = %{new_tab(saved_query.title) | sql: saved_query.sql}
+
+        socket
+        |> update(:tabs, &Map.put(&1, tab.id, tab))
+        |> update(:tab_order, &(&1 ++ [tab.id]))
+        |> assign(active_tab_id: tab.id, tab_counter: counter)
+      end
+
+    socket = push_event(socket, "set_sql", %{sql: saved_query.sql})
 
     if saved_query.data_source_id do
       ds_id = saved_query.data_source_id
       runs = Querying.list_recent_runs(scope, ds_id)
+      schema_map = load_schema_map(scope, ds_id)
 
-      schema_map =
-        case Catalog.autocomplete_schema(scope, ds_id) do
-          map when is_map(map) -> map
-          _ -> %{}
-        end
+      tab = socket.assigns.tabs[socket.assigns.active_tab_id]
+      updated = %{tab | data_source_id: ds_id, result: nil, error: nil}
 
       socket
-      |> assign(selected_data_source_id: ds_id, result: nil, error: nil)
+      |> put_tab(updated)
       |> stream(:history, runs, reset: true)
       |> push_event("set_catalog", %{schema: schema_map})
     else
@@ -611,39 +842,53 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
   defp execute_sql(socket) do
     scope = socket.assigns.current_scope
-    ds_id = socket.assigns.selected_data_source_id
-    sql = socket.assigns.execute_sql
-    params = socket.assigns.param_values
-    data_source = DataSources.get_data_source!(scope, ds_id)
+    tab = get_active_tab(socket)
+    data_source = DataSources.get_data_source!(scope, tab.data_source_id)
 
-    cancel_timeout(socket.assigns.timeout_ref)
-    timeout_ref = Process.send_after(self(), :query_timeout, @query_timeout_ms)
+    cancel_timeout(tab.timeout_ref)
+    timeout_ref = Process.send_after(self(), {:query_timeout, tab.id}, @query_timeout_ms)
 
-    socket =
-      socket
-      |> assign(
-        running?: true,
+    updated = %{
+      tab
+      | running?: true,
         result: nil,
         error: nil,
         show_params_form?: false,
         timeout_ref: timeout_ref
-      )
-      |> start_async(:execute_query, fn ->
-        Querying.execute_query(scope, data_source, sql, params)
+    }
+
+    socket =
+      socket
+      |> put_tab(updated)
+      |> start_async({:execute_query, tab.id}, fn ->
+        Querying.execute_query(scope, data_source, tab.execute_sql, tab.param_values)
       end)
 
     {:noreply, socket}
   end
 
-  defp refresh_history(socket) do
-    case socket.assigns.selected_data_source_id do
-      nil ->
-        socket
+  defp maybe_refresh_history(socket, tab_id) do
+    if tab_id == socket.assigns.active_tab_id do
+      tab = socket.assigns.tabs[tab_id]
 
-      ds_id ->
-        scope = socket.assigns.current_scope
-        runs = Querying.list_recent_runs(scope, ds_id)
-        stream(socket, :history, runs, reset: true)
+      case tab.data_source_id do
+        nil ->
+          socket
+
+        ds_id ->
+          scope = socket.assigns.current_scope
+          runs = Querying.list_recent_runs(scope, ds_id)
+          stream(socket, :history, runs, reset: true)
+      end
+    else
+      socket
+    end
+  end
+
+  defp load_schema_map(scope, ds_id) do
+    case Catalog.autocomplete_schema(scope, ds_id) do
+      map when is_map(map) -> map
+      _ -> %{}
     end
   end
 

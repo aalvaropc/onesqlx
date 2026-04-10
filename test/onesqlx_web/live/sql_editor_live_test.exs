@@ -120,9 +120,10 @@ defmodule OnesqlxWeb.SqlEditorLiveTest do
 
       # Simulate: user triggered execute, then timeout fires
       # We set running? manually via the assign by sending the timeout message
-      send(lv.pid, :query_timeout)
+      # Send timeout with a random tab_id — should be ignored since no tab matches
+      send(lv.pid, {:query_timeout, Ecto.UUID.generate()})
 
-      # Timeout should be ignored since running? is false (no execute happened)
+      # Timeout should be ignored since no matching tab is running
       refute render(lv) =~ "timed out"
     end
   end
@@ -137,7 +138,7 @@ defmodule OnesqlxWeb.SqlEditorLiveTest do
 
     test "explain tab shows empty state", %{conn: conn} do
       {:ok, lv, _html} = live(conn, ~p"/sql-editor")
-      html = render_click(lv, "set_tab", %{tab: "explain"})
+      html = render_click(lv, "set_result_tab", %{tab: "explain"})
       assert html =~ "Click &quot;Explain&quot; to see the query execution plan"
     end
 
