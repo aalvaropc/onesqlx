@@ -15,17 +15,22 @@ defmodule Onesqlx.Querying do
   alias Onesqlx.Querying.QueryRun
   alias Onesqlx.Repo
 
-  @spec execute_query(Scope.t(), DataSource.t(), String.t(), map()) ::
+  @spec execute_query(Scope.t(), DataSource.t(), String.t(), map(), keyword()) ::
           {:ok, map()} | {:error, atom(), String.t()}
   @doc """
   Executes a SQL query and records the run for audit.
 
   Returns the result from `Executor.execute/2`.
+
+  ## Options
+
+    * `:cancel_ref` — unique reference for query cancellation support
   """
-  def execute_query(%Scope{} = scope, %DataSource{} = data_source, sql, params \\ %{}) do
+  def execute_query(%Scope{} = scope, %DataSource{} = data_source, sql, params \\ %{}, opts \\ []) do
     started_at = DateTime.utc_now(:second)
     start_mono = System.monotonic_time(:millisecond)
-    result = Executor.execute(data_source, sql, params: params)
+    cancel_ref = Keyword.get(opts, :cancel_ref)
+    result = Executor.execute(data_source, sql, params: params, cancel_ref: cancel_ref)
     duration_ms = System.monotonic_time(:millisecond) - start_mono
 
     run_attrs = build_run_attrs(scope, data_source, sql, result, duration_ms, started_at)

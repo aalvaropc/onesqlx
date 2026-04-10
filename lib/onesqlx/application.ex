@@ -14,6 +14,7 @@ defmodule Onesqlx.Application do
       {Phoenix.PubSub, name: Onesqlx.PubSub},
       {Finch, name: Onesqlx.Finch},
       {Oban, Application.fetch_env!(:onesqlx, Oban)},
+      Onesqlx.Querying.CancelRegistry,
       # Endpoint last: on shutdown it stops first, then Oban drains jobs
       OnesqlxWeb.Endpoint
     ]

@@ -8,6 +8,7 @@ defmodule Onesqlx.Querying.Executor do
 
   alias Onesqlx.DataSources.Connection
   alias Onesqlx.DataSources.DataSource
+  alias Onesqlx.Querying.CancelRegistry
   alias Onesqlx.Querying.Params
   alias Onesqlx.Querying.SqlGuard
 
@@ -31,12 +32,14 @@ defmodule Onesqlx.Querying.Executor do
 
     * `:row_limit` — max rows returned (default 1000)
     * `:params` — map of named parameter values for `:param_name` substitution
+    * `:cancel_ref` — unique reference for query cancellation support
   """
   @spec execute(DataSource.t(), String.t(), keyword()) ::
           {:ok, result()} | {:error, atom(), String.t()}
   def execute(%DataSource{} = data_source, sql, opts \\ []) do
     row_limit = Keyword.get(opts, :row_limit, @default_row_limit)
     params = Keyword.get(opts, :params, %{})
+    cancel_ref = Keyword.get(opts, :cancel_ref)
 
     {prepared_sql, values} =
       if params != %{} && Params.parameterized?(sql) do
@@ -52,8 +55,36 @@ defmodule Onesqlx.Querying.Executor do
       :ok ->
         Connection.impl().with_connection(data_source, fn conn ->
           Postgrex.query!(conn, "SET statement_timeout = '#{@statement_timeout}'", [])
-          run_query(conn, prepared_sql, values, row_limit)
+          register_cancel(conn, cancel_ref)
+
+          try do
+            run_query(conn, prepared_sql, values, row_limit)
+          after
+            unregister_cancel(cancel_ref)
+          end
         end)
+    end
+  end
+
+  @doc """
+  Cancels a running query by sending `pg_cancel_backend` to PostgreSQL.
+
+  Opens a new connection to the same data source and sends the cancel signal.
+  Returns `:ok` regardless of whether the query was found or already finished.
+  """
+  def cancel_query(%DataSource{} = data_source, cancel_ref) do
+    case CancelRegistry.lookup(cancel_ref) do
+      {:ok, backend_pid} ->
+        CancelRegistry.unregister(cancel_ref)
+
+        Connection.impl().with_connection(data_source, fn conn ->
+          Postgrex.query(conn, "SELECT pg_cancel_backend($1)", [backend_pid])
+        end)
+
+        :ok
+
+      :error ->
+        :ok
     end
   end
 
@@ -101,6 +132,21 @@ defmodule Onesqlx.Querying.Executor do
         {:error, :execution, Exception.message(error)}
     end
   end
+
+  defp register_cancel(_conn, nil), do: :ok
+
+  defp register_cancel(conn, cancel_ref) do
+    case Postgrex.query(conn, "SELECT pg_backend_pid()", []) do
+      {:ok, %Postgrex.Result{rows: [[backend_pid]]}} ->
+        CancelRegistry.register(cancel_ref, backend_pid)
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp unregister_cancel(nil), do: :ok
+  defp unregister_cancel(cancel_ref), do: CancelRegistry.unregister(cancel_ref)
 
   defp run_query(conn, sql, values, row_limit) do
     start = System.monotonic_time(:millisecond)
