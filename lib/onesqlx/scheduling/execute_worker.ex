@@ -11,6 +11,7 @@ defmodule Onesqlx.Scheduling.ExecuteWorker do
 
   alias Onesqlx.Querying.Executor
   alias Onesqlx.Scheduling
+  alias Onesqlx.Scheduling.AlertEvaluator
   alias Onesqlx.Scheduling.Notifier
 
   @max_stored_rows 100
@@ -25,15 +26,13 @@ defmodule Onesqlx.Scheduling.ExecuteWorker do
       {:ok, run_attrs} ->
         attrs = Map.put(run_attrs, :started_at, started_at)
         Scheduling.record_run(sq, attrs)
-        Notifier.deliver_run_result(sq, attrs)
-        Notifier.deliver_webhook(sq, attrs)
+        maybe_notify(sq, attrs)
         :ok
 
       {:transient, run_attrs} when last_attempt? ->
         attrs = Map.put(run_attrs, :started_at, started_at)
         Scheduling.record_run(sq, attrs)
-        Notifier.deliver_run_result(sq, attrs)
-        Notifier.deliver_webhook(sq, attrs)
+        maybe_notify(sq, attrs)
         :ok
 
       {:transient, run_attrs} ->
@@ -42,8 +41,7 @@ defmodule Onesqlx.Scheduling.ExecuteWorker do
       {:permanent, run_attrs} ->
         attrs = Map.put(run_attrs, :started_at, started_at)
         Scheduling.record_run(sq, attrs)
-        Notifier.deliver_run_result(sq, attrs)
-        Notifier.deliver_webhook(sq, attrs)
+        maybe_notify(sq, attrs)
         :ok
     end
   end
@@ -102,6 +100,13 @@ defmodule Onesqlx.Scheduling.ExecuteWorker do
             {:permanent,
              %{status: "error", completed_at: DateTime.utc_now(:second), error_message: message}}
         end
+    end
+  end
+
+  defp maybe_notify(sq, attrs) do
+    if AlertEvaluator.should_alert?(sq, attrs) do
+      Notifier.deliver_run_result(sq, attrs)
+      Notifier.deliver_webhook(sq, attrs)
     end
   end
 end

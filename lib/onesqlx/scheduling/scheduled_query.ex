@@ -25,6 +25,8 @@ defmodule Onesqlx.Scheduling.ScheduledQuery do
     field :notify_email, :string
     field :webhook_url, :string
     field :max_retries, :integer, default: 3
+    field :alert_condition, :string
+    field :alert_threshold, :decimal
 
     belongs_to :workspace, Onesqlx.Workspaces.Workspace
     belongs_to :user, Onesqlx.Accounts.User
@@ -43,8 +45,12 @@ defmodule Onesqlx.Scheduling.ScheduledQuery do
     :notify_email,
     :webhook_url,
     :max_retries,
+    :alert_condition,
+    :alert_threshold,
     :user_id
   ]
+
+  @valid_alert_conditions ~w(always row_count_gt row_count_eq_zero value_gt value_lt)
 
   def changeset(scheduled_query, attrs) do
     scheduled_query
@@ -55,6 +61,7 @@ defmodule Onesqlx.Scheduling.ScheduledQuery do
     |> validate_cron_expression()
     |> validate_email_format()
     |> validate_number(:max_retries, greater_than_or_equal_to: 0, less_than_or_equal_to: 10)
+    |> validate_alert_condition()
     |> foreign_key_constraint(:workspace_id)
     |> foreign_key_constraint(:user_id)
     |> foreign_key_constraint(:saved_query_id)
@@ -82,6 +89,23 @@ defmodule Onesqlx.Scheduling.ScheduledQuery do
   end
 
   defp valid_cron_format?(_), do: false
+
+  defp validate_alert_condition(changeset) do
+    case get_field(changeset, :alert_condition) do
+      nil ->
+        changeset
+
+      condition when condition in @valid_alert_conditions ->
+        changeset
+
+      _ ->
+        add_error(
+          changeset,
+          :alert_condition,
+          "must be one of: #{Enum.join(@valid_alert_conditions, ", ")}"
+        )
+    end
+  end
 
   defp validate_email_format(changeset) do
     case get_field(changeset, :notify_email) do
