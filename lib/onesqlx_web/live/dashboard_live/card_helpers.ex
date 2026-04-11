@@ -107,6 +107,21 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
   def format_cell(value) when is_number(value), do: to_string(value)
   def format_cell(value), do: inspect(value)
 
+  @doc """
+  Returns the Tailwind col-span class for a card based on its config span value.
+  Default span is 2 (half of the 4-column grid).
+  """
+  def card_span_class(%{config: config}) do
+    case config["span"] do
+      1 -> "md:col-span-1"
+      3 -> "md:col-span-3"
+      4 -> "md:col-span-4"
+      _ -> "md:col-span-2"
+    end
+  end
+
+  def card_span_class(_), do: "md:col-span-2"
+
   def initial_card_result(%{saved_query: %{data_source: %{}} = _sq}), do: :loading
   def initial_card_result(_card), do: {:error, "No query assigned"}
 

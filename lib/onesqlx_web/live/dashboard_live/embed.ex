@@ -20,11 +20,11 @@ defmodule OnesqlxWeb.DashboardLive.Embed do
     <div class="w-full px-4 py-3">
       <h1 class="text-lg font-semibold mb-3">{@dashboard.title}</h1>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div
           :for={card <- @dashboard.cards}
           id={"card-#{card.id}"}
-          class="card border border-base-300 p-3"
+          class={["card border border-base-300 p-3", card_span_class(card)]}
         >
           <h3 class="font-medium text-sm mb-2">
             {card.title || (card.saved_query && card.saved_query.title) || "Untitled Card"}
