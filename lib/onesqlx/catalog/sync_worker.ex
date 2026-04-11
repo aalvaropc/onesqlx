@@ -19,6 +19,7 @@ defmodule Onesqlx.Catalog.SyncWorker do
       {:ok, data} ->
         {:ok, _} = Catalog.sync_catalog(data_source, data)
         DataSources.update_data_source_status(data_source, "connected")
+        Phoenix.PubSub.broadcast(Onesqlx.PubSub, "catalog:#{id}", :sync_complete)
         :ok
 
       {:error, reason} ->

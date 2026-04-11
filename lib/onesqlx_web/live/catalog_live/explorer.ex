@@ -108,6 +108,10 @@ defmodule OnesqlxWeb.CatalogLive.Explorer do
     data_source = DataSources.get_data_source!(scope, data_source_id)
     schemas = Catalog.list_schemas(scope, data_source.id)
 
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Onesqlx.PubSub, "catalog:#{data_source_id}")
+    end
+
     socket =
       socket
       |> assign(:data_source, data_source)
@@ -163,7 +167,30 @@ defmodule OnesqlxWeb.CatalogLive.Explorer do
     socket =
       socket
       |> assign(:syncing?, true)
-      |> put_flash(:info, "Catalog sync started. Refresh the page in a moment to see results.")
+      |> put_flash(
+        :info,
+        "Catalog sync started. The page will update automatically when complete."
+      )
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info(:sync_complete, socket) do
+    scope = socket.assigns.current_scope
+    data_source = socket.assigns.data_source
+    schemas = Catalog.list_schemas(scope, data_source.id)
+
+    socket =
+      socket
+      |> assign(:schemas, schemas)
+      |> assign(:synced?, schemas != [])
+      |> assign(:syncing?, false)
+      |> assign(:selected_schema, nil)
+      |> assign(:tables, [])
+      |> assign(:selected_table, nil)
+      |> assign(:columns, [])
+      |> put_flash(:info, "Catalog sync complete.")
 
     {:noreply, socket}
   end
