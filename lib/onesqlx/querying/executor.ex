@@ -10,6 +10,7 @@ defmodule Onesqlx.Querying.Executor do
   alias Onesqlx.DataSources.DataSource
   alias Onesqlx.Querying.CancelRegistry
   alias Onesqlx.Querying.Params
+  alias Onesqlx.Querying.QueryCache
   alias Onesqlx.Querying.SqlGuard
 
   @default_row_limit 1_000
@@ -33,6 +34,8 @@ defmodule Onesqlx.Querying.Executor do
     * `:row_limit` — max rows returned (default 1000)
     * `:params` — map of named parameter values for `:param_name` substitution
     * `:cancel_ref` — unique reference for query cancellation support
+    * `:cache_ttl` — cache TTL in milliseconds; when set, results are cached
+    * `:skip_cache` — when `true`, bypasses cache read but still writes result
   """
   @spec execute(DataSource.t(), String.t(), keyword()) ::
           {:ok, result()} | {:error, atom(), String.t()}
@@ -40,6 +43,8 @@ defmodule Onesqlx.Querying.Executor do
     row_limit = Keyword.get(opts, :row_limit, @default_row_limit)
     params = Keyword.get(opts, :params, %{})
     cancel_ref = Keyword.get(opts, :cancel_ref)
+    cache_ttl = Keyword.get(opts, :cache_ttl)
+    skip_cache = Keyword.get(opts, :skip_cache, false)
 
     {prepared_sql, values} =
       if params != %{} && Params.parameterized?(sql) do
@@ -53,16 +58,16 @@ defmodule Onesqlx.Querying.Executor do
         {:error, :blocked, message}
 
       :ok ->
-        Connection.impl().with_connection(data_source, fn conn ->
-          Postgrex.query!(conn, "SET statement_timeout = '#{@statement_timeout}'", [])
-          register_cancel(conn, cancel_ref)
-
-          try do
-            run_query(conn, prepared_sql, values, row_limit)
-          after
-            unregister_cancel(cancel_ref)
-          end
-        end)
+        maybe_cached_execute(
+          data_source,
+          prepared_sql,
+          values,
+          row_limit,
+          cancel_ref,
+          cache_ttl,
+          skip_cache,
+          params
+        )
     end
   end
 
@@ -131,6 +136,67 @@ defmodule Onesqlx.Querying.Executor do
       {:error, %Postgrex.Error{} = error} ->
         {:error, :execution, Exception.message(error)}
     end
+  end
+
+  defp maybe_cached_execute(data_source, sql, values, row_limit, cancel_ref, nil, _skip, _params) do
+    do_execute(data_source, sql, values, row_limit, cancel_ref)
+  end
+
+  defp maybe_cached_execute(
+         data_source,
+         sql,
+         values,
+         row_limit,
+         cancel_ref,
+         cache_ttl,
+         true,
+         params
+       ) do
+    execute_and_cache(data_source, sql, values, row_limit, cancel_ref, cache_ttl, params)
+  end
+
+  defp maybe_cached_execute(
+         data_source,
+         sql,
+         values,
+         row_limit,
+         cancel_ref,
+         cache_ttl,
+         false,
+         params
+       ) do
+    case QueryCache.get(data_source.id, sql, params) do
+      {:hit, result} ->
+        {:ok, result}
+
+      :miss ->
+        execute_and_cache(data_source, sql, values, row_limit, cancel_ref, cache_ttl, params)
+    end
+  end
+
+  defp execute_and_cache(data_source, sql, values, row_limit, cancel_ref, cache_ttl, params) do
+    result = do_execute(data_source, sql, values, row_limit, cancel_ref)
+    maybe_store_in_cache(result, data_source.id, sql, params, cache_ttl)
+    result
+  end
+
+  defp maybe_store_in_cache({:ok, data}, ds_id, sql, params, ttl) do
+    QueryCache.put(ds_id, sql, params, data, ttl)
+  end
+
+  defp maybe_store_in_cache(_error, _ds_id, _sql, _params, _ttl), do: :ok
+
+  defp do_execute(data_source, sql, values, row_limit, cancel_ref) do
+    Connection.impl().with_connection(data_source, fn conn ->
+      Postgrex.query!(conn, "SET statement_timeout = '#{@statement_timeout}'", [])
+      register_cancel(conn, cancel_ref)
+
+      try do
+        run_query(conn, sql, values, row_limit)
+      after
+        unregister_cancel(cancel_ref)
+      end
+    end)
   end
 
   defp register_cancel(_conn, nil), do: :ok

@@ -15,6 +15,7 @@ defmodule Onesqlx.Application do
       {Finch, name: Onesqlx.Finch},
       {Oban, Application.fetch_env!(:onesqlx, Oban)},
       Onesqlx.Querying.CancelRegistry,
+      {Cachex, name: :query_cache},
       # Endpoint last: on shutdown it stops first, then Oban drains jobs
       OnesqlxWeb.Endpoint
     ]

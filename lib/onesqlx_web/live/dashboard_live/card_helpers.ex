@@ -102,6 +102,8 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
   def initial_card_result(%{saved_query: %{data_source: %{}} = _sq}), do: :loading
   def initial_card_result(_card), do: {:error, "No query assigned"}
 
+  @default_cache_ttl 300_000
+
   def start_card_async_tasks(socket, cards, url_params \\ %{}) do
     Enum.reduce(cards, socket, &maybe_start_card_async(&2, &1, url_params))
   end
@@ -113,7 +115,7 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
         params = Map.merge(card_params, url_params)
 
         Phoenix.LiveView.start_async(socket, {:execute_card, card.id}, fn ->
-          Executor.execute(data_source, sql, params: params)
+          Executor.execute(data_source, sql, params: params, cache_ttl: @default_cache_ttl)
         end)
 
       _ ->
