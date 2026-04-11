@@ -19,6 +19,8 @@ defmodule OnesqlxWeb.SqlEditorLive do
   alias Onesqlx.Querying.SqlFormatter
   alias Onesqlx.SavedQueries
   alias Onesqlx.SavedQueries.SavedQuery
+  alias Onesqlx.Snippets
+  alias Onesqlx.Snippets.SqlSnippet
 
   # -- Render ------------------------------------------------------------------
 
@@ -333,10 +335,26 @@ defmodule OnesqlxWeb.SqlEditorLive do
             </div>
           </div>
 
-          <%!-- History side panel --%>
+          <%!-- Side panel --%>
           <div class="hidden lg:flex w-72 flex-shrink-0 flex-col min-h-0 border-l border-base-300 pl-4">
-            <h3 class="text-sm font-semibold mb-2">Recent Queries</h3>
-            <div class="flex-1 overflow-y-auto space-y-2">
+            <div class="flex items-center gap-2 mb-2">
+              <button
+                phx-click="set_side_tab"
+                phx-value-tab="history"
+                class={["btn btn-xs", @side_panel_tab == :history && "btn-active"]}
+              >
+                History
+              </button>
+              <button
+                phx-click="set_side_tab"
+                phx-value-tab="snippets"
+                class={["btn btn-xs", @side_panel_tab == :snippets && "btn-active"]}
+              >
+                Snippets
+              </button>
+            </div>
+
+            <div :if={@side_panel_tab == :history} class="flex-1 overflow-y-auto space-y-2">
               <div
                 :for={{dom_id, run} <- @streams.history}
                 id={dom_id}
@@ -360,11 +378,45 @@ defmodule OnesqlxWeb.SqlEditorLive do
                 </div>
                 <p class="text-xs font-mono truncate">{run.sql}</p>
               </div>
-              <p
-                :if={@tab.data_source_id == nil}
-                class="text-xs text-base-content/50"
-              >
+              <p :if={@tab.data_source_id == nil} class="text-xs text-base-content/50">
                 Select a data source to view history.
+              </p>
+            </div>
+
+            <div :if={@side_panel_tab == :snippets} class="flex-1 overflow-y-auto space-y-2">
+              <button phx-click="open_snippet_modal" class="btn btn-xs btn-primary w-full mb-2">
+                <.icon name="hero-plus" class="size-3" /> New Snippet
+              </button>
+              <div
+                :for={snippet <- @snippets}
+                class="p-2 border border-base-300 rounded"
+              >
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-xs font-semibold truncate">{snippet.title}</span>
+                  <div class="flex items-center gap-0.5">
+                    <button
+                      phx-click="insert_snippet"
+                      phx-value-sql={snippet.sql}
+                      class="btn btn-ghost btn-xs px-1"
+                      title="Insert into editor"
+                    >
+                      <.icon name="hero-arrow-down-on-square" class="size-3" />
+                    </button>
+                    <button
+                      phx-click="delete_snippet"
+                      phx-value-id={snippet.id}
+                      data-confirm="Delete this snippet?"
+                      class="btn btn-ghost btn-xs px-1 text-error"
+                      title="Delete"
+                    >
+                      <.icon name="hero-trash" class="size-3" />
+                    </button>
+                  </div>
+                </div>
+                <p class="text-xs font-mono truncate text-base-content/60">{snippet.sql}</p>
+              </div>
+              <p :if={@snippets == []} class="text-xs text-base-content/50">
+                No snippets yet. Save reusable SQL here.
               </p>
             </div>
           </div>
@@ -415,6 +467,31 @@ defmodule OnesqlxWeb.SqlEditorLive do
           <pre class="flex-1 overflow-auto bg-base-200 rounded p-4 text-xs font-mono whitespace-pre-wrap break-all">{@viewing_cell}</pre>
         </div>
       </div>
+
+      <div
+        :if={@show_snippet_modal?}
+        role="dialog"
+        aria-modal="true"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+      >
+        <div class="fixed inset-0 bg-black/50" phx-click="close_snippet_modal"></div>
+        <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
+          <h3 class="text-lg font-semibold mb-4">Save Snippet</h3>
+          <.form
+            for={@snippet_form}
+            id="snippet-form"
+            phx-submit="create_snippet"
+          >
+            <.input field={@snippet_form[:title]} type="text" label="Title" required />
+            <.input field={@snippet_form[:description]} type="text" label="Description (optional)" />
+            <.input field={@snippet_form[:sql]} type="textarea" label="SQL" required />
+            <div class="flex justify-end gap-2 mt-4">
+              <button type="button" phx-click="close_snippet_modal" class="btn btn-sm">Cancel</button>
+              <.button variant="primary" phx-disable-with="Saving...">Save</.button>
+            </div>
+          </.form>
+        </div>
+      </div>
     </Layouts.app>
     """
   end
@@ -437,7 +514,11 @@ defmodule OnesqlxWeb.SqlEditorLive do
         tab_counter: 1,
         show_save_modal?: false,
         save_form: nil,
-        viewing_cell: nil
+        viewing_cell: nil,
+        side_panel_tab: :history,
+        snippets: Snippets.list_snippets(scope),
+        show_snippet_modal?: false,
+        snippet_form: nil
       )
       |> stream(:history, [])
 
@@ -767,6 +848,61 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
   def handle_event("close_cell_view", _params, socket) do
     {:noreply, assign(socket, viewing_cell: nil)}
+  end
+
+  # -- Side Panel & Snippets ---------------------------------------------------
+
+  def handle_event("set_side_tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, side_panel_tab: String.to_existing_atom(tab))}
+  end
+
+  def handle_event("insert_snippet", %{"sql" => sql}, socket) do
+    tab = get_active_tab(socket)
+    new_sql = if tab.sql == "", do: sql, else: tab.sql <> "\n" <> sql
+    updated = %{tab | sql: new_sql}
+
+    socket =
+      socket
+      |> put_tab(updated)
+      |> push_event("set_sql", %{sql: new_sql})
+
+    {:noreply, socket}
+  end
+
+  def handle_event("open_snippet_modal", _params, socket) do
+    tab = get_active_tab(socket)
+    changeset = Snippets.change_snippet(%SqlSnippet{}, %{sql: tab.sql})
+
+    {:noreply,
+     assign(socket, show_snippet_modal?: true, snippet_form: to_form(changeset, as: "snippet"))}
+  end
+
+  def handle_event("close_snippet_modal", _params, socket) do
+    {:noreply, assign(socket, show_snippet_modal?: false, snippet_form: nil)}
+  end
+
+  def handle_event("create_snippet", %{"snippet" => params}, socket) do
+    scope = socket.assigns.current_scope
+
+    case Snippets.create_snippet(scope, params) do
+      {:ok, _snippet} ->
+        snippets = Snippets.list_snippets(scope)
+
+        {:noreply,
+         socket
+         |> assign(snippets: snippets, show_snippet_modal?: false, snippet_form: nil)
+         |> put_flash(:info, "Snippet saved.")}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, snippet_form: to_form(changeset, as: "snippet"))}
+    end
+  end
+
+  def handle_event("delete_snippet", %{"id" => id}, socket) do
+    scope = socket.assigns.current_scope
+    {:ok, _} = Snippets.delete_snippet(scope, id)
+    snippets = Snippets.list_snippets(scope)
+    {:noreply, assign(socket, snippets: snippets)}
   end
 
   # -- Handle Async ------------------------------------------------------------
