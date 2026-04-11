@@ -16,8 +16,10 @@ defmodule OnesqlxWeb.Plugs.ApiAuth do
 
   def call(conn, _opts) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         {:ok, scope} <- Accounts.get_scope_by_api_token(token) do
-      assign(conn, :current_scope, scope)
+         {:ok, scope, scopes} <- Accounts.get_scope_by_api_token(token) do
+      conn
+      |> assign(:current_scope, scope)
+      |> assign(:api_scopes, scopes)
     else
       _ ->
         conn

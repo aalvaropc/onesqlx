@@ -29,9 +29,10 @@ defmodule Onesqlx.Accounts.ApiTokenTest do
       {raw, token} = ApiToken.build_token(user, workspace, "verify-test")
       {:ok, _} = token |> ApiToken.changeset(%{}) |> Repo.insert()
 
-      assert {:ok, found_user, found_workspace} = ApiToken.verify_token(raw)
+      assert {:ok, found_user, found_workspace, scopes} = ApiToken.verify_token(raw)
       assert found_user.id == user.id
       assert found_workspace.id == workspace.id
+      assert scopes == ["read", "execute", "manage"]
     end
 
     test "rejects invalid token" do
@@ -53,7 +54,7 @@ defmodule Onesqlx.Accounts.ApiTokenTest do
       {raw, token} = ApiToken.build_token(user, workspace, "no-expiry")
       {:ok, _} = token |> ApiToken.changeset(%{}) |> Repo.insert()
 
-      assert {:ok, _, _} = ApiToken.verify_token(raw)
+      assert {:ok, _, _, _} = ApiToken.verify_token(raw)
     end
   end
 
@@ -62,9 +63,10 @@ defmodule Onesqlx.Accounts.ApiTokenTest do
       {raw, token} = ApiToken.build_token(user, workspace, "scope-test")
       {:ok, _} = token |> ApiToken.changeset(%{}) |> Repo.insert()
 
-      assert {:ok, scope} = ApiToken.get_scope(raw)
+      assert {:ok, scope, scopes} = ApiToken.get_scope(raw)
       assert scope.user.id == user.id
       assert scope.workspace.id == workspace.id
+      assert scopes == ["read", "execute", "manage"]
     end
 
     test "returns error for invalid token" do
