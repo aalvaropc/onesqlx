@@ -16,6 +16,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
   alias Onesqlx.Querying
   alias Onesqlx.Querying.Executor
   alias Onesqlx.Querying.Params
+  alias Onesqlx.Querying.SqlFormatter
   alias Onesqlx.SavedQueries
   alias Onesqlx.SavedQueries.SavedQuery
 
@@ -119,6 +120,14 @@ defmodule OnesqlxWeb.SqlEditorLive do
             ]}
           >
             Save
+          </button>
+
+          <button
+            phx-click="format_sql"
+            disabled={@tab.sql == ""}
+            class={["btn btn-sm", @tab.sql == "" && "btn-disabled"]}
+          >
+            Format
           </button>
 
           <form
@@ -582,6 +591,19 @@ defmodule OnesqlxWeb.SqlEditorLive do
     tab = get_active_tab(socket)
     updated = %{tab | show_params_form?: false, query_params: [], param_values: %{}}
     {:noreply, put_tab(socket, updated)}
+  end
+
+  def handle_event("format_sql", _params, socket) do
+    tab = get_active_tab(socket)
+    formatted = SqlFormatter.format(tab.sql)
+    updated = %{tab | sql: formatted}
+
+    socket =
+      socket
+      |> put_tab(updated)
+      |> push_event("set_sql", %{sql: formatted})
+
+    {:noreply, socket}
   end
 
   # -- Cancel ------------------------------------------------------------------
