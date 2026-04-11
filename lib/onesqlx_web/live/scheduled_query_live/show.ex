@@ -206,6 +206,38 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
               label="Webhook URL (optional)"
               placeholder="https://hooks.slack.com/..."
             />
+            <div class="form-control mb-4">
+              <label class="label"><span class="label-text">Alert Condition</span></label>
+              <select name="schedule[alert_condition]" class="select select-bordered w-full">
+                <option value="" selected={is_nil(@edit_form[:alert_condition].value)}>
+                  Always notify
+                </option>
+                <option
+                  value="row_count_gt"
+                  selected={@edit_form[:alert_condition].value == "row_count_gt"}
+                >
+                  Row count greater than
+                </option>
+                <option
+                  value="row_count_eq_zero"
+                  selected={@edit_form[:alert_condition].value == "row_count_eq_zero"}
+                >
+                  Row count is zero
+                </option>
+                <option value="value_gt" selected={@edit_form[:alert_condition].value == "value_gt"}>
+                  First value greater than
+                </option>
+                <option value="value_lt" selected={@edit_form[:alert_condition].value == "value_lt"}>
+                  First value less than
+                </option>
+              </select>
+            </div>
+            <.input
+              field={@edit_form[:alert_threshold]}
+              type="number"
+              label="Alert Threshold"
+              step="any"
+            />
             <div class="flex justify-end gap-2 mt-4">
               <button type="button" phx-click="close_edit_modal" class="btn btn-sm">Cancel</button>
               <.button variant="primary" phx-disable-with="Saving...">Save</.button>
