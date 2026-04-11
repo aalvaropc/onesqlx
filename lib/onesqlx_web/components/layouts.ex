@@ -48,6 +48,15 @@ defmodule OnesqlxWeb.Layouts do
             {@current_scope.workspace.name}
           </p>
         </div>
+        <div class="p-2">
+          <.link
+            navigate={~p"/search"}
+            class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-base-300/50 hover:bg-base-300 text-base-content/50 w-full"
+          >
+            <.icon name="hero-magnifying-glass" class="size-4" />
+            <span>Search...</span>
+          </.link>
+        </div>
         <div class="flex-1 overflow-y-auto p-2 space-y-1">
           <.nav_link href={~p"/sql-editor"} icon="hero-command-line" label="SQL Editor" />
           <.nav_link href={~p"/saved-queries"} icon="hero-bookmark" label="Saved Queries" />
