@@ -307,6 +307,31 @@ defmodule OnesqlxWeb.CoreComponents do
   end
 
   @doc """
+  Renders breadcrumb navigation.
+
+  ## Examples
+
+      <.breadcrumb items={[{"Dashboards", ~p"/dashboards"}, {"Sales Dashboard", nil}]} />
+  """
+  attr :items, :list, required: true
+
+  def breadcrumb(assigns) do
+    ~H"""
+    <nav class="text-sm mb-4">
+      <ol class="flex items-center gap-1 text-base-content/60">
+        <li :for={{label, path} <- @items} class="flex items-center gap-1">
+          <.link :if={path} navigate={path} class="hover:text-base-content">
+            {label}
+          </.link>
+          <span :if={!path} class="text-base-content font-medium">{label}</span>
+          <.icon :if={path} name="hero-chevron-right-micro" class="size-3" />
+        </li>
+      </ol>
+    </nav>
+    """
+  end
+
+  @doc """
   Renders a header with title.
   """
   slot :inner_block, required: true

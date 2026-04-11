@@ -21,10 +21,8 @@ defmodule OnesqlxWeb.DashboardLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
+      <.breadcrumb items={[{"Dashboards", ~p"/dashboards"}, {@dashboard.title, nil}]} />
       <div class="flex flex-wrap items-center gap-2 md:gap-4 mb-6">
-        <.link navigate={~p"/dashboards"} class="btn btn-sm btn-ghost">
-          <.icon name="hero-arrow-left" class="size-4" /> Back
-        </.link>
         <h1 class="text-2xl font-bold flex-1">{@dashboard.title}</h1>
 
         <div :if={@dashboard_param_names != []} class="flex items-center gap-2">
