@@ -57,6 +57,9 @@ defmodule OnesqlxWeb.DashboardLive.Show do
           <option value="300000" selected={@auto_refresh_interval == 300_000}>5m</option>
           <option value="900000" selected={@auto_refresh_interval == 900_000}>15m</option>
         </select>
+        <button phx-click="duplicate_dashboard" class="btn btn-sm">
+          <.icon name="hero-document-duplicate" class="size-4" /> Duplicate
+        </button>
         <button phx-click="toggle_share" class="btn btn-sm">
           <.icon name="hero-share" class="size-4" /> Share
         </button>
@@ -425,6 +428,21 @@ defmodule OnesqlxWeb.DashboardLive.Show do
   @impl true
   def handle_event("toggle_share", _params, socket) do
     {:noreply, assign(socket, show_share_modal?: !socket.assigns.show_share_modal?)}
+  end
+
+  def handle_event("duplicate_dashboard", _params, socket) do
+    scope = socket.assigns.current_scope
+
+    case Dashboards.duplicate_dashboard(scope, socket.assigns.dashboard) do
+      {:ok, new_dashboard} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Dashboard duplicated.")
+         |> push_navigate(to: ~p"/dashboards/#{new_dashboard.id}")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to duplicate dashboard.")}
+    end
   end
 
   def handle_event("generate_share", _params, socket) do
