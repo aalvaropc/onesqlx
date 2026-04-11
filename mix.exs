@@ -76,7 +76,8 @@ defmodule Onesqlx.MixProject do
       {:ueberauth_google, "~> 0.12"},
       {:ueberauth_github, "~> 0.8"},
       {:open_api_spex, "~> 3.21"},
-      {:cachex, "~> 4.0"}
+      {:cachex, "~> 4.0"},
+      {:telemetry_metrics_prometheus_core, "~> 1.2"}
     ]
   end
 
