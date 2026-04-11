@@ -3,11 +3,11 @@ defmodule Onesqlx.Scheduling.ExecuteWorker do
   Oban worker that executes a scheduled query and records the result.
 
   Invoked by `EnqueueDueWorker` for recurring schedules or manually via "Run Now".
-  Always returns `:ok` to avoid retrying on query-level errors (SQL failures, timeouts).
-  Oban retries are reserved for infrastructure errors (process crashes).
+  Transient errors (timeout, connection) are retried via Oban up to `max_retries`.
+  Permanent errors (blocked SQL, execution errors) are recorded immediately.
   """
 
-  use Oban.Worker, queue: :scheduled_queries, max_attempts: 3
+  use Oban.Worker, queue: :scheduled_queries, max_attempts: 4
 
   alias Onesqlx.Querying.Executor
   alias Onesqlx.Scheduling
@@ -16,70 +16,91 @@ defmodule Onesqlx.Scheduling.ExecuteWorker do
   @max_stored_rows 100
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"scheduled_query_id" => id}}) do
+  def perform(%Oban.Job{args: %{"scheduled_query_id" => id}, attempt: attempt, max_attempts: max}) do
     sq = Scheduling.get_scheduled_query_for_execution!(id)
     started_at = DateTime.utc_now(:second)
+    last_attempt? = attempt >= max
 
-    run_attrs = execute_and_build_attrs(sq, started_at)
-    Scheduling.record_run(sq, run_attrs)
-    Notifier.deliver_run_result(sq, run_attrs)
-    Notifier.deliver_webhook(sq, run_attrs)
+    case execute_query(sq) do
+      {:ok, run_attrs} ->
+        attrs = Map.put(run_attrs, :started_at, started_at)
+        Scheduling.record_run(sq, attrs)
+        Notifier.deliver_run_result(sq, attrs)
+        Notifier.deliver_webhook(sq, attrs)
+        :ok
 
-    :ok
+      {:transient, run_attrs} when last_attempt? ->
+        attrs = Map.put(run_attrs, :started_at, started_at)
+        Scheduling.record_run(sq, attrs)
+        Notifier.deliver_run_result(sq, attrs)
+        Notifier.deliver_webhook(sq, attrs)
+        :ok
+
+      {:transient, run_attrs} ->
+        {:error, run_attrs.error_message}
+
+      {:permanent, run_attrs} ->
+        attrs = Map.put(run_attrs, :started_at, started_at)
+        Scheduling.record_run(sq, attrs)
+        Notifier.deliver_run_result(sq, attrs)
+        Notifier.deliver_webhook(sq, attrs)
+        :ok
+    end
   end
 
   @doc """
-  Enqueues an execution job for the given scheduled query ID.
+  Enqueues an execution job for the given scheduled query.
+
+  Uses the query's `max_retries` to set Oban's `max_attempts`.
   """
-  def enqueue(scheduled_query_id) do
+  def enqueue(scheduled_query_id, max_retries \\ 3) do
     %{"scheduled_query_id" => scheduled_query_id}
-    |> __MODULE__.new()
+    |> __MODULE__.new(max_attempts: max_retries + 1)
     |> Oban.insert()
   end
 
-  defp execute_and_build_attrs(sq, started_at) do
-    base = %{started_at: started_at}
-
+  defp execute_query(sq) do
     case {sq.saved_query, sq.saved_query && sq.saved_query.data_source} do
       {nil, _} ->
-        Map.merge(base, %{
-          status: "error",
-          completed_at: DateTime.utc_now(:second),
-          error_message: "No saved query assigned"
-        })
+        {:permanent,
+         %{
+           status: "error",
+           completed_at: DateTime.utc_now(:second),
+           error_message: "No saved query assigned"
+         }}
 
       {_, nil} ->
-        Map.merge(base, %{
-          status: "error",
-          completed_at: DateTime.utc_now(:second),
-          error_message: "No data source assigned to saved query"
-        })
+        {:permanent,
+         %{
+           status: "error",
+           completed_at: DateTime.utc_now(:second),
+           error_message: "No data source assigned to saved query"
+         }}
 
       {saved_query, data_source} ->
         case Executor.execute(data_source, saved_query.sql, row_limit: @max_stored_rows) do
           {:ok, result} ->
-            Map.merge(base, %{
-              status: "success",
-              completed_at: DateTime.utc_now(:second),
-              duration_ms: result.duration_ms,
-              row_count: result.row_count,
-              result_columns: result.columns,
-              result_rows: %{"rows" => Enum.take(result.rows, @max_stored_rows)}
-            })
+            {:ok,
+             %{
+               status: "success",
+               completed_at: DateTime.utc_now(:second),
+               duration_ms: result.duration_ms,
+               row_count: result.row_count,
+               result_columns: result.columns,
+               result_rows: %{"rows" => Enum.take(result.rows, @max_stored_rows)}
+             }}
 
           {:error, :timeout, message} ->
-            Map.merge(base, %{
-              status: "timeout",
-              completed_at: DateTime.utc_now(:second),
-              error_message: message
-            })
+            {:transient,
+             %{status: "timeout", completed_at: DateTime.utc_now(:second), error_message: message}}
+
+          {:error, :connection, message} ->
+            {:transient,
+             %{status: "error", completed_at: DateTime.utc_now(:second), error_message: message}}
 
           {:error, _type, message} ->
-            Map.merge(base, %{
-              status: "error",
-              completed_at: DateTime.utc_now(:second),
-              error_message: message
-            })
+            {:permanent,
+             %{status: "error", completed_at: DateTime.utc_now(:second), error_message: message}}
         end
     end
   end
