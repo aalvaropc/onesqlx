@@ -9,12 +9,12 @@ defmodule OnesqlxWeb.CatalogLive.Explorer do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} wide>
+      <.breadcrumb items={[
+        {"Data Sources", ~p"/data-sources"},
+        {"#{@data_source.name} — Catalog", nil}
+      ]} />
       <.header>
-        <.link navigate={~p"/data-sources"} class="text-base-content/60 hover:text-base-content">
-          Data Sources
-        </.link>
-        <span class="text-base-content/40 mx-2">/</span>
-        {@data_source.name} — Catalog Explorer
+        Catalog Explorer
         <:actions>
           <.button phx-click="sync" variant="primary" disabled={@syncing?}>
             <span :if={@syncing?}>Syncing...</span>

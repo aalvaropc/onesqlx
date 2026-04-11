@@ -12,10 +12,8 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
+      <.breadcrumb items={[{"Schedules", ~p"/schedules"}, {@scheduled_query.name, nil}]} />
       <div class="flex items-center gap-4 mb-6">
-        <.link navigate={~p"/schedules"} class="btn btn-sm btn-ghost">
-          <.icon name="hero-arrow-left" class="size-4" /> Back
-        </.link>
         <h1 class="text-2xl font-bold flex-1">{@scheduled_query.name}</h1>
         <button phx-click="open_edit_modal" class="btn btn-sm btn-ghost">
           <.icon name="hero-pencil-square" class="size-4" /> Edit
