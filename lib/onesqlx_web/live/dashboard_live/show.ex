@@ -60,6 +60,9 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         <button phx-click="duplicate_dashboard" class="btn btn-sm">
           <.icon name="hero-document-duplicate" class="size-4" /> Duplicate
         </button>
+        <button id="fullscreen-btn" phx-hook="Fullscreen" class="btn btn-sm">
+          Fullscreen
+        </button>
         <button phx-click="toggle_share" class="btn btn-sm">
           <.icon name="hero-share" class="size-4" /> Share
         </button>
