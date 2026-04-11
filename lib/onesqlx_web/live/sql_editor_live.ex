@@ -256,6 +256,15 @@ defmodule OnesqlxWeb.SqlEditorLive do
                             title="Click to copy"
                           >
                             {format_cell(cell)}
+                            <button
+                              :if={truncated?(cell)}
+                              phx-click="view_cell"
+                              phx-value-text={raw_cell(cell)}
+                              class="btn btn-ghost btn-xs px-0.5 ml-1 opacity-40 hover:opacity-100"
+                              title="View full text"
+                            >
+                              <.icon name="hero-arrows-pointing-out" class="size-3" />
+                            </button>
                           </td>
                           <td class="px-1">
                             <button
@@ -379,6 +388,24 @@ defmodule OnesqlxWeb.SqlEditorLive do
           </.form>
         </div>
       </div>
+
+      <div
+        :if={@viewing_cell}
+        role="dialog"
+        aria-modal="true"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+      >
+        <div class="fixed inset-0 bg-black/50" phx-click="close_cell_view"></div>
+        <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-2xl max-h-[70vh] shadow-xl flex flex-col">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold">Cell Content</h3>
+            <button phx-click="close_cell_view" class="btn btn-sm btn-ghost">
+              <.icon name="hero-x-mark" class="size-4" />
+            </button>
+          </div>
+          <pre class="flex-1 overflow-auto bg-base-200 rounded p-4 text-xs font-mono whitespace-pre-wrap break-all">{@viewing_cell}</pre>
+        </div>
+      </div>
     </Layouts.app>
     """
   end
@@ -400,7 +427,8 @@ defmodule OnesqlxWeb.SqlEditorLive do
         tab_order: [tab.id],
         tab_counter: 1,
         show_save_modal?: false,
-        save_form: nil
+        save_form: nil,
+        viewing_cell: nil
       )
       |> stream(:history, [])
 
@@ -711,6 +739,14 @@ defmodule OnesqlxWeb.SqlEditorLive do
     end
   end
 
+  def handle_event("view_cell", %{"text" => text}, socket) do
+    {:noreply, assign(socket, viewing_cell: text)}
+  end
+
+  def handle_event("close_cell_view", _params, socket) do
+    {:noreply, assign(socket, viewing_cell: nil)}
+  end
+
   # -- Handle Async ------------------------------------------------------------
 
   @impl true
@@ -1018,6 +1054,12 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
   defp format_cell(value) when is_number(value), do: to_string(value)
   defp format_cell(value), do: inspect(value)
+
+  defp truncated?(value) when is_binary(value), do: String.length(value) > 500
+  defp truncated?(_), do: false
+
+  defp raw_cell(value) when is_binary(value), do: value
+  defp raw_cell(value), do: inspect(value)
 
   defp sort_rows(rows, nil, _direction), do: rows
 
