@@ -103,4 +103,26 @@ defmodule Onesqlx.Querying.ParamsTest do
       refute Params.parameterized?("SELECT id::text FROM t")
     end
   end
+
+  describe "infer_input_type/1" do
+    test "date-like params return date" do
+      assert Params.infer_input_type("start_date") == "date"
+      assert Params.infer_input_type("created_at") == "date"
+      assert Params.infer_input_type("since") == "date"
+      assert Params.infer_input_type("date") == "date"
+    end
+
+    test "number-like params return number" do
+      assert Params.infer_input_type("limit") == "number"
+      assert Params.infer_input_type("row_count") == "number"
+      assert Params.infer_input_type("total") == "number"
+      assert Params.infer_input_type("amount") == "number"
+    end
+
+    test "generic params return text" do
+      assert Params.infer_input_type("region") == "text"
+      assert Params.infer_input_type("name") == "text"
+      assert Params.infer_input_type("category") == "text"
+    end
+  end
 end

@@ -31,11 +31,12 @@ defmodule OnesqlxWeb.DashboardLive.Show do
           <div :for={param <- @dashboard_param_names} class="flex items-center gap-1">
             <label class="text-xs font-mono text-base-content/60">:{param}</label>
             <input
-              type="text"
+              type={Onesqlx.Querying.Params.infer_input_type(param)}
               phx-blur="set_dashboard_param"
               phx-value-name={param}
               name={"params[#{param}]"}
               value={Map.get(@dashboard_params, param, "")}
+              step={if Onesqlx.Querying.Params.infer_input_type(param) == "number", do: "any"}
               class="input input-bordered input-xs w-24"
             />
           </div>

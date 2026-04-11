@@ -66,6 +66,40 @@ defmodule Onesqlx.Querying.Params do
     {transformed, ordered_values}
   end
 
+  @date_suffixes ~w(_date _at _on _since _until _from _to _start _end)
+  @date_words ~w(date since until)
+  @number_words ~w(count limit offset threshold amount total quantity price cost age id num)
+
+  @doc """
+  Infers an HTML input type from a parameter name.
+
+  Returns `"date"` for date-like names, `"number"` for numeric-like names,
+  or `"text"` as the default.
+  """
+  @spec infer_input_type(String.t()) :: String.t()
+  def infer_input_type(param_name) do
+    lower = String.downcase(param_name)
+
+    cond do
+      lower in @date_words ->
+        "date"
+
+      Enum.any?(@date_suffixes, &String.ends_with?(lower, &1)) ->
+        "date"
+
+      lower in @number_words ->
+        "number"
+
+      Enum.any?(@number_words, fn w ->
+        String.ends_with?(lower, "_#{w}") || String.starts_with?(lower, "#{w}_")
+      end) ->
+        "number"
+
+      true ->
+        "text"
+    end
+  end
+
   defp strip_string_literals(sql) do
     Regex.replace(~r/'[^']*'/, sql, "''")
   end

@@ -163,12 +163,13 @@ defmodule OnesqlxWeb.SqlEditorLive do
               <div :for={param <- @tab.query_params} class="flex items-center gap-2 mb-2">
                 <label class="text-sm font-mono w-32">:{param}</label>
                 <input
-                  type="text"
+                  type={Params.infer_input_type(param)}
                   phx-blur="update_param"
                   phx-value-name={param}
                   name={"params[#{param}]"}
                   value={Map.get(@tab.param_values, param, "")}
                   phx-debounce="300"
+                  step={if Params.infer_input_type(param) == "number", do: "any"}
                   class="input input-bordered input-sm flex-1"
                 />
               </div>
