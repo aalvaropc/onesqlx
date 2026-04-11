@@ -149,6 +149,7 @@ defmodule OnesqlxWeb.Router do
       live "/schedules", ScheduledQueryLive.Index, :index
       live "/schedules/:id", ScheduledQueryLive.Show, :show
       live "/analytics", AnalyticsLive, :index
+      live "/lineage", LineageLive, :index
       live "/settings/api-tokens", ApiTokenLive.Index, :index
       live "/workspace/settings", WorkspaceLive.Settings, :edit
     end
