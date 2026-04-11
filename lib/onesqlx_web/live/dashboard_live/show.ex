@@ -66,6 +66,19 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         </button>
       </div>
 
+      <div :if={@active_filters != %{}} class="flex items-center gap-2 mb-3">
+        <span class="text-xs text-base-content/60">Filters:</span>
+        <span
+          :for={{field, value} <- @active_filters}
+          class="badge badge-sm badge-primary gap-1"
+        >
+          {field} = {value}
+        </span>
+        <button phx-click="clear_filters" class="btn btn-xs btn-ghost">
+          <.icon name="hero-x-mark" class="size-3" /> Clear
+        </button>
+      </div>
+
       <div
         id="card-grid"
         phx-hook="SortableCards"
@@ -212,6 +225,17 @@ defmodule OnesqlxWeb.DashboardLive.Show do
                 />
               </div>
             </div>
+            <div class="form-control mt-2">
+              <label class="label">
+                <span class="label-text text-xs">Filter Field (cross-filtering param name)</span>
+              </label>
+              <input
+                type="text"
+                name="card[config][filter_field]"
+                placeholder="e.g. category"
+                class="input input-bordered input-sm w-full"
+              />
+            </div>
             <div class="flex justify-end gap-2 mt-4">
               <button type="button" phx-click="close_add_card_modal" class="btn btn-sm">
                 Cancel
@@ -299,10 +323,17 @@ defmodule OnesqlxWeb.DashboardLive.Show do
     """
   end
 
-  defp card_content(%{card: %{type: type}, result: {:ok, result}} = assigns)
+  defp card_content(%{card: %{type: type} = card, result: {:ok, result}} = assigns)
        when type in ["bar", "line", "pie", "doughnut", "area", "scatter"] do
     chart_data = CardRenderer.chart_data_for(result)
-    assigns = assign(assigns, chart_data: Jason.encode!(chart_data), chart_type: type)
+    filter_field = get_in(card.config, ["filter_field"])
+
+    assigns =
+      assign(assigns,
+        chart_data: Jason.encode!(chart_data),
+        chart_type: type,
+        filter_field: filter_field
+      )
 
     ~H"""
     <div
@@ -310,6 +341,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
       phx-hook="ChartCard"
       data-chart-type={@chart_type}
       data-chart-data={@chart_data}
+      data-filter-field={@filter_field}
       class="h-48"
     >
       <canvas></canvas>
@@ -383,6 +415,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         show_share_modal?: false,
         dashboard_param_names: all_param_names,
         dashboard_params: %{},
+        active_filters: %{},
         skip_cache?: false
       )
       |> start_card_async_tasks(dashboard.cards)
@@ -598,6 +631,67 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         dashboard = Dashboards.get_dashboard_with_cards!(scope, socket.assigns.dashboard.id)
         {:noreply, assign(socket, dashboard: dashboard)}
     end
+  end
+
+  def handle_event("chart_filter", %{"field" => field, "value" => value}, socket) do
+    scope = socket.assigns.current_scope
+    dashboard = Dashboards.get_dashboard_with_cards!(scope, socket.assigns.dashboard.id)
+
+    params = Map.put(socket.assigns.dashboard_params, field, value)
+    filters = Map.put(socket.assigns.active_filters, field, value)
+
+    cancel_all_card_timeouts(socket.assigns.card_timeouts)
+
+    card_results =
+      Map.new(dashboard.cards, fn card ->
+        {card.id, initial_card_result(card)}
+      end)
+
+    socket =
+      socket
+      |> assign(
+        dashboard: dashboard,
+        dashboard_params: params,
+        active_filters: filters,
+        card_results: card_results,
+        card_timeouts: %{},
+        skip_cache?: true
+      )
+      |> start_card_async_tasks(dashboard.cards)
+      |> assign(skip_cache?: false)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("clear_filters", _params, socket) do
+    scope = socket.assigns.current_scope
+    dashboard = Dashboards.get_dashboard_with_cards!(scope, socket.assigns.dashboard.id)
+
+    # Remove filter params from dashboard_params
+    filter_keys = Map.keys(socket.assigns.active_filters)
+    params = Map.drop(socket.assigns.dashboard_params, filter_keys)
+
+    cancel_all_card_timeouts(socket.assigns.card_timeouts)
+
+    card_results =
+      Map.new(dashboard.cards, fn card ->
+        {card.id, initial_card_result(card)}
+      end)
+
+    socket =
+      socket
+      |> assign(
+        dashboard: dashboard,
+        dashboard_params: params,
+        active_filters: %{},
+        card_results: card_results,
+        card_timeouts: %{},
+        skip_cache?: true
+      )
+      |> start_card_async_tasks(dashboard.cards)
+      |> assign(skip_cache?: false)
+
+    {:noreply, socket}
   end
 
   @impl true
