@@ -161,6 +161,14 @@ defmodule Onesqlx.Scheduling do
     |> Repo.all()
   end
 
+  @spec get_run!(String.t()) :: ScheduledQueryRun.t()
+  @doc """
+  Gets a single run by ID. Raises if not found.
+  """
+  def get_run!(id) do
+    Repo.get!(ScheduledQueryRun, id)
+  end
+
   @spec record_run(ScheduledQuery.t(), map()) :: {:ok, ScheduledQueryRun.t()} | {:error, term()}
   @doc """
   Records a run for a scheduled query and updates parent timestamps.
