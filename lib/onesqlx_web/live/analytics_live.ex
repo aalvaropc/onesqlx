@@ -74,7 +74,21 @@ defmodule OnesqlxWeb.AnalyticsLive do
         </div>
 
         <div>
-          <h3 class="text-lg font-semibold mb-3">Recent Activity</h3>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold">Recent Activity</h3>
+            <form phx-change="filter_activity">
+              <select name="event_type" class="select select-bordered select-xs w-40">
+                <option value="">All events</option>
+                <option
+                  :for={t <- @event_types}
+                  value={t}
+                  selected={@filter_event_type == t}
+                >
+                  {t}
+                </option>
+              </select>
+            </form>
+          </div>
           <div id="activity" phx-update="stream" class="space-y-2">
             <div
               :for={{dom_id, event} <- @streams.activity}
@@ -104,17 +118,28 @@ defmodule OnesqlxWeb.AnalyticsLive do
 
   @impl true
   def handle_event("set_range", %{"days" => days}, socket) do
-    {:noreply, load_data(socket, String.to_integer(days))}
+    {:noreply, load_data(socket, String.to_integer(days), socket.assigns[:filter_event_type])}
   end
 
-  defp load_data(socket, range_days) do
+  def handle_event("filter_activity", %{"event_type" => type}, socket) do
+    filter = if type == "", do: nil, else: type
+    {:noreply, load_data(socket, socket.assigns.range_days, filter)}
+  end
+
+  defp load_data(socket, range_days, filter_event_type \\ nil) do
     scope = socket.assigns.current_scope
     since = DateTime.add(DateTime.utc_now(:second), -range_days * 86_400, :second)
 
     stats = Audit.query_execution_stats(scope, since: since)
     active_users = Audit.most_active_users(scope, since: since)
     slowest = Audit.slowest_queries(scope, since: since, limit: 10)
-    events = Audit.list_events(scope, since: since, limit: 20)
+    event_types = Audit.distinct_event_types(scope)
+
+    event_opts =
+      [since: since, limit: 20] ++
+        if(filter_event_type, do: [event_type: filter_event_type], else: [])
+
+    events = Audit.list_events(scope, event_opts)
 
     socket
     |> assign(
@@ -122,7 +147,9 @@ defmodule OnesqlxWeb.AnalyticsLive do
       stats: stats,
       active_users: active_users,
       slowest_queries: slowest,
-      has_activity?: events != []
+      has_activity?: events != [],
+      event_types: event_types,
+      filter_event_type: filter_event_type
     )
     |> stream(:activity, events, reset: true)
   end
