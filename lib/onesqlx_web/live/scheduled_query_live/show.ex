@@ -103,12 +103,56 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
             <span :if={run.error_message} class="text-sm text-error truncate flex-1">
               {run.error_message}
             </span>
+            <button
+              :if={run.status == "success" && run.result_columns != []}
+              phx-click="view_run_results"
+              phx-value-id={run.id}
+              class="btn btn-xs btn-ghost ml-auto"
+            >
+              <.icon name="hero-table-cells" class="size-3" /> Results
+            </button>
           </div>
         </div>
       </div>
 
       <div :if={!@has_runs?} class="text-center py-8">
         <p class="text-base-content/60">No runs yet. Click "Run Now" to execute manually.</p>
+      </div>
+
+      <div
+        :if={@viewing_run}
+        role="dialog"
+        aria-modal="true"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+      >
+        <div class="fixed inset-0 bg-black/50" phx-click="close_results_modal"></div>
+        <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-4xl max-h-[80vh] shadow-xl flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">
+              Run Results — {Calendar.strftime(@viewing_run.started_at, "%Y-%m-%d %H:%M:%S")}
+            </h3>
+            <button phx-click="close_results_modal" class="btn btn-sm btn-ghost">
+              <.icon name="hero-x-mark" class="size-4" />
+            </button>
+          </div>
+          <div class="text-xs text-base-content/50 mb-2">
+            {@viewing_run.row_count} rows, {@viewing_run.duration_ms}ms
+          </div>
+          <div class="overflow-auto flex-1">
+            <table class="table table-xs table-pin-rows">
+              <thead>
+                <tr>
+                  <th :for={col <- @viewing_run.result_columns} class="bg-base-200">{col}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={row <- @viewing_run.result_rows["rows"] || []}>
+                  <td :for={cell <- row} class="font-mono text-xs">{format_run_cell(cell)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div
@@ -186,7 +230,8 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
         has_runs?: runs != [],
         show_edit_modal?: false,
         show_cron_field?: sq.schedule_type == "cron",
-        edit_form: nil
+        edit_form: nil,
+        viewing_run: nil
       )
       |> stream(:runs, runs)
 
@@ -199,6 +244,15 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
     {:ok, _job} = ExecuteWorker.enqueue(sq.id)
 
     {:noreply, put_flash(socket, :info, "Execution queued. Refresh to see results.")}
+  end
+
+  def handle_event("view_run_results", %{"id" => run_id}, socket) do
+    run = Scheduling.get_run!(run_id)
+    {:noreply, assign(socket, viewing_run: run)}
+  end
+
+  def handle_event("close_results_modal", _params, socket) do
+    {:noreply, assign(socket, viewing_run: nil)}
   end
 
   def handle_event("open_edit_modal", _params, socket) do
@@ -246,4 +300,11 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
         {:noreply, assign(socket, edit_form: to_form(changeset, as: "schedule"))}
     end
   end
+
+  defp format_run_cell(nil), do: "NULL"
+  defp format_run_cell(value) when is_binary(value), do: value
+  defp format_run_cell(value) when is_number(value), do: to_string(value)
+  defp format_run_cell(true), do: "true"
+  defp format_run_cell(false), do: "false"
+  defp format_run_cell(value), do: inspect(value)
 end
