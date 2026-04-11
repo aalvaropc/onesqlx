@@ -1,6 +1,6 @@
 defmodule OnesqlxWeb.ExportController do
   @moduledoc """
-  Controller for exporting query results as CSV files.
+  Controller for exporting query results as CSV, JSON, or Excel files.
   """
 
   use OnesqlxWeb, :controller
@@ -10,21 +10,62 @@ defmodule OnesqlxWeb.ExportController do
   alias Onesqlx.Querying.Executor
 
   def csv(conn, %{"data_source_id" => ds_id, "sql" => sql, "label" => label}) do
+    with_result(conn, ds_id, sql, fn result ->
+      filename = Csv.filename(label)
+
+      conn =
+        conn
+        |> put_resp_content_type("text/csv")
+        |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+        |> send_chunked(200)
+
+      {:ok, conn} = chunk(conn, [Csv.encode_row(result.columns), "\r\n"])
+      stream_rows(conn, result.rows)
+    end)
+  end
+
+  def json(conn, %{"data_source_id" => ds_id, "sql" => sql, "label" => label}) do
+    with_result(conn, ds_id, sql, fn result ->
+      filename = export_filename(label, "json")
+
+      data =
+        Enum.map(result.rows, fn row ->
+          Enum.zip(result.columns, row) |> Map.new()
+        end)
+
+      conn
+      |> put_resp_content_type("application/json")
+      |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+      |> send_resp(200, Jason.encode!(data))
+    end)
+  end
+
+  def xlsx(conn, %{"data_source_id" => ds_id, "sql" => sql, "label" => label}) do
+    with_result(conn, ds_id, sql, fn result ->
+      filename = export_filename(label, "xlsx")
+      header = Enum.map(result.columns, &to_string/1)
+      rows = Enum.map(result.rows, fn row -> Enum.map(row, &xlsx_cell/1) end)
+
+      sheet = %Elixlsx.Sheet{name: "Results", rows: [header | rows]}
+      workbook = %Elixlsx.Workbook{sheets: [sheet]}
+      {:ok, {_, binary}} = Elixlsx.write_to_memory(workbook, filename)
+
+      conn
+      |> put_resp_content_type(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      )
+      |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+      |> send_resp(200, binary)
+    end)
+  end
+
+  defp with_result(conn, ds_id, sql, success_fn) do
     scope = conn.assigns.current_scope
     data_source = DataSources.get_data_source!(scope, ds_id)
 
     case Executor.execute(data_source, sql, row_limit: 10_000) do
       {:ok, result} ->
-        filename = Csv.filename(label)
-
-        conn =
-          conn
-          |> put_resp_content_type("text/csv")
-          |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
-          |> send_chunked(200)
-
-        {:ok, conn} = chunk(conn, [Csv.encode_row(result.columns), "\r\n"])
-        stream_rows(conn, result.rows)
+        success_fn.(result)
 
       {:error, _type, message} ->
         conn
@@ -41,4 +82,17 @@ defmodule OnesqlxWeb.ExportController do
       end
     end)
   end
+
+  defp export_filename(label, ext) do
+    timestamp = Calendar.strftime(DateTime.utc_now(), "%Y%m%d_%H%M%S")
+    safe_label = label |> String.replace(~r/[^a-zA-Z0-9_-]/, "_") |> String.slice(0, 50)
+    "#{safe_label}_#{timestamp}.#{ext}"
+  end
+
+  defp xlsx_cell(nil), do: ""
+  defp xlsx_cell(true), do: "true"
+  defp xlsx_cell(false), do: "false"
+  defp xlsx_cell(%Decimal{} = d), do: Decimal.to_float(d)
+  defp xlsx_cell(v) when is_number(v), do: v
+  defp xlsx_cell(v), do: to_string(v)
 end
