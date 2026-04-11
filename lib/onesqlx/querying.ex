@@ -30,7 +30,13 @@ defmodule Onesqlx.Querying do
     started_at = DateTime.utc_now(:second)
     start_mono = System.monotonic_time(:millisecond)
     cancel_ref = Keyword.get(opts, :cancel_ref)
-    result = Executor.execute(data_source, sql, params: params, cancel_ref: cancel_ref)
+    row_limit = Keyword.get(opts, :row_limit)
+
+    exec_opts =
+      [params: params, cancel_ref: cancel_ref] ++
+        if(row_limit, do: [row_limit: row_limit], else: [])
+
+    result = Executor.execute(data_source, sql, exec_opts)
     duration_ms = System.monotonic_time(:millisecond) - start_mono
 
     run_attrs = build_run_attrs(scope, data_source, sql, result, duration_ms, started_at)
