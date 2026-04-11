@@ -125,7 +125,8 @@ defmodule Onesqlx.Accounts.ApiToken do
     case verify_token(raw_token) do
       {:ok, user, workspace, scopes} ->
         touch_usage(raw_token)
-        {:ok, Scope.for_user(user, workspace), scopes}
+        role = Onesqlx.Workspaces.get_member_role(workspace, user)
+        {:ok, Scope.for_user(user, workspace, role), scopes}
 
       :error ->
         :error

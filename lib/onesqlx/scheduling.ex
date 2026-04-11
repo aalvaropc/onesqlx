@@ -210,7 +210,7 @@ defmodule Onesqlx.Scheduling do
     if resource.workspace_id != scope.workspace.id,
       do: raise(Ecto.NoResultsError, queryable: ScheduledQuery)
 
-    resource
+    Onesqlx.Authorization.authorize_manage!(scope, resource)
   end
 
   defp maybe_filter_enabled(query, true), do: where(query, [sq], sq.enabled == true)
