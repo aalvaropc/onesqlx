@@ -16,7 +16,7 @@ defmodule Onesqlx.Scheduling.EnqueueDueWorker do
     due_queries = Scheduling.list_due_queries()
 
     Enum.each(due_queries, fn sq ->
-      ExecuteWorker.enqueue(sq.id)
+      ExecuteWorker.enqueue(sq.id, sq.max_retries)
     end)
 
     :ok

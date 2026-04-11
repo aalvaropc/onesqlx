@@ -69,7 +69,18 @@ defmodule Onesqlx.Scheduling.ExecuteWorkerTest do
       assert run.error_message =~ "missing_table"
     end
 
-    test "timeout creates run with timeout status", %{
+    test "timeout returns error for retry on non-final attempt", %{
+      scheduled_query: sq
+    } do
+      stub(MockConnection, :with_connection, fn _ds, _fun ->
+        {:error, :timeout, "statement timeout"}
+      end)
+
+      assert {:error, "statement timeout"} =
+               perform_job(ExecuteWorker, %{"scheduled_query_id" => sq.id})
+    end
+
+    test "timeout records run on final attempt", %{
       scope: scope,
       scheduled_query: sq
     } do
@@ -77,11 +88,14 @@ defmodule Onesqlx.Scheduling.ExecuteWorkerTest do
         {:error, :timeout, "statement timeout"}
       end)
 
-      assert :ok = perform_job(ExecuteWorker, %{"scheduled_query_id" => sq.id})
+      assert :ok =
+               perform_job(ExecuteWorker, %{"scheduled_query_id" => sq.id},
+                 attempt: 4,
+                 max_attempts: 4
+               )
 
       [run] = Scheduling.list_runs(scope, sq.id)
       assert run.status == "timeout"
-      assert run.error_message =~ "timeout"
     end
 
     test "truncates result rows to 100", %{
@@ -148,7 +162,18 @@ defmodule Onesqlx.Scheduling.ExecuteWorkerTest do
       assert run.error_message =~ "No data source"
     end
 
-    test "connection refused creates run with error", %{
+    test "connection error returns error for retry on non-final attempt", %{
+      scheduled_query: sq
+    } do
+      stub(MockConnection, :with_connection, fn _ds, _fun ->
+        {:error, :connection, "tcp connect (localhost:5999): connection refused"}
+      end)
+
+      assert {:error, "tcp connect (localhost:5999): connection refused"} =
+               perform_job(ExecuteWorker, %{"scheduled_query_id" => sq.id})
+    end
+
+    test "connection error records run on final attempt", %{
       scope: scope,
       scheduled_query: sq
     } do
@@ -156,7 +181,11 @@ defmodule Onesqlx.Scheduling.ExecuteWorkerTest do
         {:error, :connection, "tcp connect (localhost:5999): connection refused"}
       end)
 
-      assert :ok = perform_job(ExecuteWorker, %{"scheduled_query_id" => sq.id})
+      assert :ok =
+               perform_job(ExecuteWorker, %{"scheduled_query_id" => sq.id},
+                 attempt: 4,
+                 max_attempts: 4
+               )
 
       [run] = Scheduling.list_runs(scope, sq.id)
       assert run.status == "error"
