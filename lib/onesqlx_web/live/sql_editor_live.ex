@@ -132,20 +132,35 @@ defmodule OnesqlxWeb.SqlEditorLive do
             Format
           </button>
 
-          <form
-            :if={@tab.result && @tab.data_source_id}
-            action={~p"/exports/csv"}
-            method="post"
-            class="inline"
-          >
-            <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
-            <input type="hidden" name="data_source_id" value={@tab.data_source_id} />
-            <input type="hidden" name="sql" value={@tab.sql} />
-            <input type="hidden" name="label" value="sql_editor" />
-            <button type="submit" class="btn btn-sm">
-              <.icon name="hero-arrow-down-tray" class="size-4" /> CSV
-            </button>
-          </form>
+          <div :if={@tab.result && @tab.data_source_id} class="dropdown dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-sm">
+              <.icon name="hero-arrow-down-tray" class="size-4" /> Export
+            </div>
+            <ul
+              tabindex="0"
+              class="dropdown-content menu bg-base-100 rounded-box z-10 w-36 p-1 shadow border border-base-300"
+            >
+              <li :for={
+                {label, path} <- [
+                  {"CSV", ~p"/exports/csv"},
+                  {"JSON", ~p"/exports/json"},
+                  {"Excel", ~p"/exports/xlsx"}
+                ]
+              }>
+                <form action={path} method="post">
+                  <input
+                    type="hidden"
+                    name="_csrf_token"
+                    value={Plug.CSRFProtection.get_csrf_token()}
+                  />
+                  <input type="hidden" name="data_source_id" value={@tab.data_source_id} />
+                  <input type="hidden" name="sql" value={@tab.sql} />
+                  <input type="hidden" name="label" value="sql_editor" />
+                  <button type="submit" class="w-full text-left text-sm">{label}</button>
+                </form>
+              </li>
+            </ul>
+          </div>
 
           <form phx-change="set_row_limit" class="inline">
             <select name="row_limit" class="select select-bordered select-sm w-28">

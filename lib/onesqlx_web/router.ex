@@ -158,6 +158,8 @@ defmodule OnesqlxWeb.Router do
     end
 
     post "/exports/csv", ExportController, :csv
+    post "/exports/json", ExportController, :json
+    post "/exports/xlsx", ExportController, :xlsx
     post "/exports/audit-csv", AuditExportController, :export
     post "/users/update-password", UserSessionController, :update_password
   end
