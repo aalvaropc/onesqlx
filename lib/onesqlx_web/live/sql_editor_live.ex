@@ -221,7 +221,12 @@ defmodule OnesqlxWeb.SqlEditorLive do
               <%!-- Tab content --%>
               <div class="flex-1 overflow-auto mt-2">
                 <div :if={@tab.active_result_tab == :results}>
-                  <div :if={@tab.result} class="overflow-x-auto">
+                  <div
+                    :if={@tab.result}
+                    id="result-table"
+                    phx-hook="CopyTable"
+                    class="overflow-x-auto"
+                  >
                     <table class="table table-xs table-pin-rows">
                       <thead>
                         <tr>
@@ -244,8 +249,22 @@ defmodule OnesqlxWeb.SqlEditorLive do
                         <tr :for={
                           row <- sort_rows(@tab.result.rows, @tab.sort_column, @tab.sort_direction)
                         }>
-                          <td :for={cell <- row} class="font-mono text-xs">
+                          <td
+                            :for={cell <- row}
+                            data-copy={format_cell(cell)}
+                            class="font-mono text-xs cursor-pointer hover:bg-base-200"
+                            title="Click to copy"
+                          >
                             {format_cell(cell)}
+                          </td>
+                          <td class="px-1">
+                            <button
+                              data-copy-row
+                              class="btn btn-ghost btn-xs px-0.5 opacity-30 hover:opacity-100"
+                              title="Copy row"
+                            >
+                              <.icon name="hero-clipboard" class="size-3" />
+                            </button>
                           </td>
                         </tr>
                       </tbody>
