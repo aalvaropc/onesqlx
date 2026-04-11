@@ -43,4 +43,83 @@ defmodule Onesqlx.Dashboards.CardRenderer do
   def kpi_value_for(%{columns: [col_name | _], rows: [[first_cell | _] | _]}) do
     {to_string(first_cell), col_name}
   end
+
+  @doc """
+  Formats a KPI value string with thousands separators and optional prefix/suffix.
+
+  Reads `"prefix"` and `"suffix"` from the card config map.
+
+  ## Examples
+
+      iex> format_kpi_value("42000", %{})
+      "42,000"
+
+      iex> format_kpi_value("1500.50", %{"prefix" => "$"})
+      "$1,500.50"
+
+      iex> format_kpi_value("85", %{"suffix" => "%"})
+      "85%"
+  """
+  def format_kpi_value(value, config \\ %{})
+
+  def format_kpi_value(value, config) when is_binary(value) do
+    prefix = config["prefix"] || ""
+    suffix = config["suffix"] || ""
+    formatted = format_number_string(value)
+    "#{prefix}#{formatted}#{suffix}"
+  end
+
+  def format_kpi_value(value, config), do: format_kpi_value(to_string(value), config)
+
+  defp format_number_string(value) do
+    case parse_number_parts(value) do
+      {:ok, integer_part, decimal_part} ->
+        formatted_int = add_thousands_separator(integer_part)
+
+        if decimal_part do
+          "#{formatted_int}.#{decimal_part}"
+        else
+          formatted_int
+        end
+
+      :not_a_number ->
+        value
+    end
+  end
+
+  defp parse_number_parts(value) do
+    trimmed = String.trim(value)
+
+    case Regex.run(~r/\A-?(\d+)(?:\.(\d+))?\z/, trimmed) do
+      [_, integer_part] ->
+        prefix = if String.starts_with?(trimmed, "-"), do: "-", else: ""
+        {:ok, prefix <> integer_part, nil}
+
+      [_, integer_part, decimal_part] ->
+        prefix = if String.starts_with?(trimmed, "-"), do: "-", else: ""
+        {:ok, prefix <> integer_part, decimal_part}
+
+      nil ->
+        :not_a_number
+    end
+  end
+
+  defp add_thousands_separator(integer_str) do
+    {sign, digits} =
+      if String.starts_with?(integer_str, "-") do
+        {"-", String.trim_leading(integer_str, "-")}
+      else
+        {"", integer_str}
+      end
+
+    formatted =
+      digits
+      |> String.reverse()
+      |> String.graphemes()
+      |> Enum.chunk_every(3)
+      |> Enum.join(",")
+      |> String.reverse()
+
+    sign <> formatted
+  end
 end

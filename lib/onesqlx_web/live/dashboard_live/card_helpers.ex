@@ -27,9 +27,17 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
     """
   end
 
-  def card_content(%{card: %{type: "kpi"}, result: {:ok, result}} = assigns) do
+  def card_content(%{card: %{type: "kpi"} = card, result: {:ok, result}} = assigns) do
     kpi = CardRenderer.kpi_value_for(result)
-    assigns = assign(assigns, :kpi, kpi)
+    config = card.config || %{}
+
+    formatted =
+      case kpi do
+        {value, label} -> {CardRenderer.format_kpi_value(value, config), label}
+        nil -> nil
+      end
+
+    assigns = assign(assigns, :kpi, formatted)
 
     ~H"""
     <div :if={@kpi} class="text-center py-4">
