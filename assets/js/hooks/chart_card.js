@@ -32,13 +32,23 @@ const ChartCard = {
     const isPieType = type === "pie" || type === "doughnut"
     const showLegend = isPieType || data.datasets?.length > 1
 
+    const filterField = this.el.dataset.filterField
+    const hook = this
+
     this._chart = new Chart(canvas, {
       type,
       data,
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: showLegend } }
+        plugins: { legend: { display: showLegend } },
+        onClick: filterField ? (event, elements) => {
+          if (elements.length > 0) {
+            const index = elements[0].index
+            const label = data.labels[index]
+            hook.pushEvent("chart_filter", {field: filterField, value: String(label)})
+          }
+        } : undefined
       }
     })
   }

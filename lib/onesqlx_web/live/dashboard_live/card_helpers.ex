@@ -48,10 +48,17 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
     """
   end
 
-  def card_content(%{card: %{type: type}, result: {:ok, result}} = assigns)
+  def card_content(%{card: %{type: type} = card, result: {:ok, result}} = assigns)
       when type in ["bar", "line", "pie", "doughnut", "area", "scatter"] do
     chart_data = CardRenderer.chart_data_for(result)
-    assigns = assign(assigns, chart_data: Jason.encode!(chart_data), chart_type: type)
+    filter_field = get_in(card.config, ["filter_field"])
+
+    assigns =
+      assign(assigns,
+        chart_data: Jason.encode!(chart_data),
+        chart_type: type,
+        filter_field: filter_field
+      )
 
     ~H"""
     <div
@@ -59,6 +66,7 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
       phx-hook="ChartCard"
       data-chart-type={@chart_type}
       data-chart-data={@chart_data}
+      data-filter-field={@filter_field}
       class="h-48"
     >
       <canvas></canvas>
