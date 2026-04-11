@@ -123,6 +123,38 @@ defmodule Onesqlx.Dashboards do
   end
 
   @doc """
+  Duplicates a dashboard with all its cards.
+
+  Creates a new dashboard with " (copy)" appended to the title,
+  and clones all cards preserving saved_query_id, type, config, and position.
+  """
+  def duplicate_dashboard(%Scope{} = scope, %Dashboard{} = dashboard) do
+    dashboard = get_dashboard_with_cards!(scope, dashboard.id)
+
+    Repo.transaction(fn ->
+      {:ok, new_dashboard} =
+        create_dashboard(scope, %{
+          title: dashboard.title <> " (copy)",
+          description: dashboard.description
+        })
+
+      Enum.each(dashboard.cards, fn card ->
+        %DashboardCard{dashboard_id: new_dashboard.id}
+        |> DashboardCard.changeset(%{
+          type: card.type,
+          title: card.title,
+          position: card.position,
+          config: card.config,
+          saved_query_id: card.saved_query_id
+        })
+        |> Repo.insert!()
+      end)
+
+      new_dashboard
+    end)
+  end
+
+  @doc """
   Generates a public sharing token for a dashboard.
   """
   @spec generate_public_token(Scope.t(), Dashboard.t()) ::
