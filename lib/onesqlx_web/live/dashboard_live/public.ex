@@ -20,11 +20,11 @@ defmodule OnesqlxWeb.DashboardLive.Public do
         </p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div
           :for={card <- @dashboard.cards}
           id={"card-#{card.id}"}
-          class="card border border-base-300 p-4"
+          class={["card border border-base-300 p-4", card_span_class(card)]}
         >
           <h3 class="font-semibold mb-3">
             {card.title || (card.saved_query && card.saved_query.title) || "Untitled Card"}

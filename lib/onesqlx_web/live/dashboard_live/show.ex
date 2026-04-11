@@ -8,6 +8,8 @@ defmodule OnesqlxWeb.DashboardLive.Show do
   @query_timeout_ms 60_000
   @timeout_message "Query timed out after 60 seconds. The database may still be processing the query."
 
+  import OnesqlxWeb.DashboardLive.CardHelpers, only: [card_span_class: 1]
+
   alias Onesqlx.Dashboards
   alias Onesqlx.Dashboards.CardRenderer
   alias Onesqlx.Dashboards.DashboardCard
@@ -68,12 +70,12 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         id="card-grid"
         phx-hook="SortableCards"
         data-editing={to_string(@editing?)}
-        class="grid grid-cols-1 md:grid-cols-2 gap-4"
+        class="grid grid-cols-1 md:grid-cols-4 gap-4"
       >
         <div
           :for={card <- @dashboard.cards}
           id={"card-#{card.id}"}
-          class="card border border-base-300 p-4"
+          class={["card border border-base-300 p-4", card_span_class(card)]}
         >
           <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-2">
@@ -109,6 +111,20 @@ defmodule OnesqlxWeb.DashboardLive.Show do
               >
                 <.icon name="hero-arrow-top-right-on-square" class="size-3" />
               </.link>
+              <div class="flex items-center border border-base-300 rounded text-xs">
+                <button
+                  :for={span <- 1..4}
+                  phx-click="set_card_span"
+                  phx-value-id={card.id}
+                  phx-value-span={span}
+                  class={[
+                    "px-1.5 py-0.5",
+                    (card.config["span"] || 2) == span && "bg-primary text-primary-content rounded"
+                  ]}
+                >
+                  {span}
+                </button>
+              </div>
               <button
                 phx-click="remove_card"
                 phx-value-id={card.id}
@@ -566,6 +582,22 @@ defmodule OnesqlxWeb.DashboardLive.Show do
     Dashboards.reorder_cards(scope, dashboard, card_ids)
     dashboard = Dashboards.get_dashboard_with_cards!(scope, dashboard.id)
     {:noreply, assign(socket, dashboard: dashboard)}
+  end
+
+  def handle_event("set_card_span", %{"id" => card_id, "span" => span_str}, socket) do
+    scope = socket.assigns.current_scope
+    span = String.to_integer(span_str)
+
+    case Enum.find(socket.assigns.dashboard.cards, &(&1.id == card_id)) do
+      nil ->
+        {:noreply, socket}
+
+      card ->
+        config = Map.put(card.config || %{}, "span", span)
+        {:ok, _} = Dashboards.update_card(scope, card, %{config: config})
+        dashboard = Dashboards.get_dashboard_with_cards!(scope, socket.assigns.dashboard.id)
+        {:noreply, assign(socket, dashboard: dashboard)}
+    end
   end
 
   @impl true
