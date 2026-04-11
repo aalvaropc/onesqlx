@@ -9,11 +9,8 @@ defmodule OnesqlxWeb.Telemetry do
   @impl true
   def init(_arg) do
     children = [
-      # Telemetry poller will execute the given period measurements
-      # every 10_000ms. Learn more here: https://hexdocs.pm/telemetry_metrics
-      {:telemetry_poller, measurements: periodic_measurements(), period: 10_000}
-      # Add reporters as children of your supervision tree.
-      # {Telemetry.Metrics.ConsoleReporter, metrics: metrics()}
+      {:telemetry_poller, measurements: periodic_measurements(), period: 10_000},
+      {TelemetryMetricsPrometheus.Core, metrics: prometheus_metrics(), name: :onesqlx_prometheus}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
@@ -102,6 +99,50 @@ defmodule OnesqlxWeb.Telemetry do
       ),
 
       # Custom Business Metrics
+      last_value("onesqlx.scheduled_queries.active.count",
+        description: "Number of enabled scheduled queries"
+      ),
+      last_value("onesqlx.data_sources.total.count",
+        description: "Number of configured data sources"
+      )
+    ]
+  end
+
+  @doc false
+  def prometheus_metrics do
+    [
+      # Phoenix request counter
+      counter("phoenix.router_dispatch.stop.duration",
+        tags: [:route],
+        description: "HTTP request count by route"
+      ),
+      counter("phoenix.router_dispatch.exception.duration",
+        tags: [:route],
+        description: "HTTP exception count by route"
+      ),
+
+      # Database query counter
+      counter("onesqlx.repo.query.total_time",
+        description: "Database query count"
+      ),
+
+      # Oban counters
+      counter("oban.job.stop.duration",
+        tags: [:worker, :queue, :state],
+        description: "Completed Oban jobs count"
+      ),
+      counter("oban.job.exception.duration",
+        tags: [:worker],
+        description: "Failed Oban jobs count"
+      ),
+
+      # VM gauges
+      last_value("vm.memory.total", unit: {:byte, :kilobyte}),
+      last_value("vm.total_run_queue_lengths.total"),
+      last_value("vm.total_run_queue_lengths.cpu"),
+      last_value("vm.total_run_queue_lengths.io"),
+
+      # Custom business gauges
       last_value("onesqlx.scheduled_queries.active.count",
         description: "Number of enabled scheduled queries"
       ),

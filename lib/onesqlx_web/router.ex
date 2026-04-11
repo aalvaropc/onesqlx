@@ -42,6 +42,7 @@ defmodule OnesqlxWeb.Router do
 
     get "/health", HealthController, :liveness
     get "/ready", HealthController, :readiness
+    get "/metrics", MetricsController, :index
   end
 
   # OpenAPI documentation (unauthenticated)
