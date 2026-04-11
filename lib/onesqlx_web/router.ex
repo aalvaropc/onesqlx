@@ -152,6 +152,7 @@ defmodule OnesqlxWeb.Router do
       live "/analytics", AnalyticsLive, :index
       live "/lineage", LineageLive, :index
       live "/audit", AuditLive, :index
+      live "/search", SearchLive, :index
       live "/settings/api-tokens", ApiTokenLive.Index, :index
       live "/workspace/settings", WorkspaceLive.Settings, :edit
     end
