@@ -60,8 +60,15 @@ defmodule OnesqlxWeb.Plugs.RateLimit do
 
   defp ensure_table do
     case :ets.info(@table) do
-      :undefined -> :ets.new(@table, [:set, :public, :named_table])
-      _ -> :ok
+      :undefined ->
+        try do
+          :ets.new(@table, [:set, :public, :named_table])
+        rescue
+          ArgumentError -> :ok
+        end
+
+      _ ->
+        :ok
     end
   end
 
