@@ -13,6 +13,27 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
   attr :card, :map, required: true
   attr :result, :any, required: true
 
+  def card_content(%{card: %{type: "markdown"}} = assigns) do
+    content = get_in(assigns.card.config, ["content"]) || ""
+    assigns = assign(assigns, :content, content)
+
+    ~H"""
+    <div class="prose prose-sm max-w-none">
+      <p
+        :for={line <- String.split(@content, "\n")}
+        class={[
+          String.starts_with?(line, "## ") && "text-lg font-bold mt-3",
+          String.starts_with?(line, "# ") && "text-xl font-bold mt-4",
+          String.starts_with?(line, "### ") && "text-base font-semibold mt-2",
+          !String.starts_with?(line, "#") && "text-sm"
+        ]}
+      >
+        {strip_heading_markers(line)}
+      </p>
+    </div>
+    """
+  end
+
   def card_content(%{result: :loading} = assigns) do
     ~H"""
     <div class="flex items-center justify-center py-8">
@@ -130,6 +151,11 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
 
   def card_span_class(_), do: "md:col-span-2"
 
+  defp strip_heading_markers(line) do
+    String.replace(line, ~r/^\x23{1,3}\s*/, "")
+  end
+
+  def initial_card_result(%{type: "markdown"}), do: :not_applicable
   def initial_card_result(%{saved_query: %{data_source: %{}} = _sq}), do: :loading
   def initial_card_result(_card), do: {:error, "No query assigned"}
 

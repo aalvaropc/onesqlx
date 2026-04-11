@@ -204,6 +204,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
                 <option value="doughnut">Doughnut Chart</option>
                 <option value="area">Area Chart</option>
                 <option value="scatter">Scatter Plot</option>
+                <option value="markdown">Text / Markdown</option>
               </select>
             </div>
             <.input field={@add_card_form[:title]} type="text" label="Title (optional)" />
@@ -226,6 +227,17 @@ defmodule OnesqlxWeb.DashboardLive.Show do
                   class="input input-bordered input-sm w-full"
                 />
               </div>
+            </div>
+            <div class="form-control mt-2">
+              <label class="label">
+                <span class="label-text text-xs">Content (for Markdown cards)</span>
+              </label>
+              <textarea
+                name="card[config][content]"
+                placeholder="## Section Title&#10;&#10;Some explanatory text..."
+                rows="3"
+                class="textarea textarea-bordered textarea-sm w-full"
+              ></textarea>
             </div>
             <div class="form-control mt-2">
               <label class="label">
@@ -289,6 +301,27 @@ defmodule OnesqlxWeb.DashboardLive.Show do
 
   attr :card, :map, required: true
   attr :result, :any, required: true
+
+  defp card_content(%{card: %{type: "markdown"}} = assigns) do
+    content = get_in(assigns.card.config, ["content"]) || ""
+    assigns = assign(assigns, :content, content)
+
+    ~H"""
+    <div class="prose prose-sm max-w-none">
+      <p
+        :for={line <- String.split(@content, "\n")}
+        class={[
+          String.starts_with?(line, "## ") && "text-lg font-bold mt-3",
+          String.starts_with?(line, "# ") && "text-xl font-bold mt-4",
+          String.starts_with?(line, "### ") && "text-base font-semibold mt-2",
+          !String.starts_with?(line, "#") && "text-sm"
+        ]}
+      >
+        {strip_heading_markers(line)}
+      </p>
+    </div>
+    """
+  end
 
   defp card_content(%{result: :loading} = assigns) do
     ~H"""
@@ -814,6 +847,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
     |> Enum.uniq()
   end
 
+  defp initial_card_result(%{type: "markdown"}), do: :not_applicable
   defp initial_card_result(%{saved_query: %{data_source: %{}} = _sq}), do: :loading
   defp initial_card_result(_card), do: {:error, "No query assigned"}
 
@@ -873,4 +907,8 @@ defmodule OnesqlxWeb.DashboardLive.Show do
 
   defp format_cell(value) when is_number(value), do: to_string(value)
   defp format_cell(value), do: inspect(value)
+
+  defp strip_heading_markers(line) do
+    String.replace(line, ~r/^\x23{1,3}\s*/, "")
+  end
 end
