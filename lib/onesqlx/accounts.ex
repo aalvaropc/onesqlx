@@ -319,10 +319,10 @@ defmodule Onesqlx.Accounts do
   Returns `{:ok, raw_token, api_token}` on success. The `raw_token` is shown
   once and cannot be recovered.
   """
-  def create_api_token(%Scope{} = scope, name) do
+  def create_api_token(%Scope{} = scope, name, scopes \\ ["read", "execute", "manage"]) do
     {raw_token, api_token} = ApiToken.build_token(scope.user, scope.workspace, name)
 
-    case api_token |> ApiToken.changeset(%{name: name}) |> Repo.insert() do
+    case api_token |> ApiToken.changeset(%{name: name, scopes: scopes}) |> Repo.insert() do
       {:ok, token} -> {:ok, raw_token, token}
       {:error, changeset} -> {:error, changeset}
     end

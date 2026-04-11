@@ -75,24 +75,42 @@ defmodule OnesqlxWeb.Router do
     end
   end
 
+  pipeline :require_read do
+    plug OnesqlxWeb.Plugs.RequireScope, "read"
+  end
+
+  pipeline :require_execute do
+    plug OnesqlxWeb.Plugs.RequireScope, "execute"
+  end
+
+  pipeline :require_manage do
+    plug OnesqlxWeb.Plugs.RequireScope, "manage"
+  end
+
+  # API: read scope (GET endpoints)
   scope "/api/v1", OnesqlxWeb.Api do
-    pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth, :api_rate_limit]
+    pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth, :api_rate_limit, :require_read]
 
-    resources "/saved-queries", SavedQueryController,
-      only: [:index, :show, :create, :update, :delete]
-
-    resources "/dashboards", DashboardController, only: [:index, :show, :create, :delete]
-
-    resources "/schedules", ScheduledQueryController,
-      only: [:index, :show, :create, :update, :delete]
-
+    resources "/saved-queries", SavedQueryController, only: [:index, :show]
+    resources "/dashboards", DashboardController, only: [:index, :show]
+    resources "/schedules", ScheduledQueryController, only: [:index, :show]
     resources "/data-sources", DataSourceController, only: [:index]
   end
 
+  # API: execute scope (query execution)
   scope "/api/v1", OnesqlxWeb.Api do
-    pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth, :api_rate_limit_strict]
+    pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth, :api_rate_limit_strict, :require_execute]
 
     post "/saved-queries/:id/execute", SavedQueryController, :execute
+  end
+
+  # API: manage scope (create, update, delete)
+  scope "/api/v1", OnesqlxWeb.Api do
+    pipe_through [:api, OnesqlxWeb.Plugs.ApiAuth, :api_rate_limit, :require_manage]
+
+    resources "/saved-queries", SavedQueryController, only: [:create, :update, :delete]
+    resources "/dashboards", DashboardController, only: [:create, :delete]
+    resources "/schedules", ScheduledQueryController, only: [:create, :update, :delete]
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

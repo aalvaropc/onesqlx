@@ -28,6 +28,14 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
           <div class="flex items-center justify-between">
             <div>
               <h3 class="font-semibold">{token.name}</h3>
+              <div class="flex items-center gap-2 mt-1">
+                <span
+                  :for={scope <- token.scopes}
+                  class="badge badge-xs badge-outline"
+                >
+                  {scope}
+                </span>
+              </div>
               <div class="flex items-center gap-4 mt-1 text-xs text-base-content/50">
                 <span>Created {Calendar.strftime(token.inserted_at, "%Y-%m-%d")}</span>
                 <span :if={token.last_used_at}>
@@ -72,6 +80,44 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
                 placeholder="e.g. CI Pipeline"
                 class="input input-bordered w-full"
               />
+            </div>
+            <div class="form-control mb-4">
+              <label class="label"><span class="label-text">Scopes</span></label>
+              <div class="flex flex-col gap-2">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="scopes[]"
+                    value="read"
+                    checked
+                    class="checkbox checkbox-sm"
+                  />
+                  <span class="text-sm">read</span>
+                  <span class="text-xs text-base-content/50">— List and view resources</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="scopes[]"
+                    value="execute"
+                    checked
+                    class="checkbox checkbox-sm"
+                  />
+                  <span class="text-sm">execute</span>
+                  <span class="text-xs text-base-content/50">— Run saved queries</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="scopes[]"
+                    value="manage"
+                    checked
+                    class="checkbox checkbox-sm"
+                  />
+                  <span class="text-sm">manage</span>
+                  <span class="text-xs text-base-content/50">— Create, update, delete resources</span>
+                </label>
+              </div>
             </div>
             <div class="flex justify-end gap-2">
               <button type="button" phx-click="close_create_modal" class="btn btn-sm">Cancel</button>
@@ -132,10 +178,12 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
     {:noreply, assign(socket, show_create_modal?: false)}
   end
 
-  def handle_event("create_token", %{"name" => name}, socket) do
+  def handle_event("create_token", params, socket) do
     scope = socket.assigns.current_scope
+    name = params["name"]
+    scopes = params["scopes"] || ["read", "execute", "manage"]
 
-    case Accounts.create_api_token(scope, name) do
+    case Accounts.create_api_token(scope, name, scopes) do
       {:ok, raw_token, token} ->
         socket =
           socket

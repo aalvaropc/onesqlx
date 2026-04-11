@@ -20,6 +20,7 @@ defmodule Onesqlx.Accounts.ApiToken do
   schema "api_tokens" do
     field :name, :string
     field :token_hash, :binary
+    field :scopes, {:array, :string}, default: ["read", "execute", "manage"]
     field :last_used_at, :utc_datetime
     field :expires_at, :utc_datetime
 
@@ -30,17 +31,31 @@ defmodule Onesqlx.Accounts.ApiToken do
   end
 
   @required_fields [:name]
-  @optional_fields [:expires_at]
+  @optional_fields [:expires_at, :scopes]
+  @valid_scopes ~w(read execute manage)
 
   def changeset(token, attrs) do
     token
     |> cast(attrs, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> validate_length(:name, min: 1, max: 100)
+    |> validate_scopes()
     |> unique_constraint([:user_id, :name], error_key: :name)
     |> unique_constraint(:token_hash)
     |> foreign_key_constraint(:user_id)
     |> foreign_key_constraint(:workspace_id)
+  end
+
+  defp validate_scopes(changeset) do
+    validate_change(changeset, :scopes, fn :scopes, scopes ->
+      invalid = Enum.reject(scopes, &(&1 in @valid_scopes))
+
+      if invalid == [] do
+        []
+      else
+        [scopes: "contains invalid scopes: #{Enum.join(invalid, ", ")}"]
+      end
+    end)
   end
 
   @spec build_token(User.t(), Workspace.t(), String.t()) :: {String.t(), %__MODULE__{}}
@@ -64,11 +79,11 @@ defmodule Onesqlx.Accounts.ApiToken do
     {raw, token}
   end
 
-  @spec verify_token(String.t()) :: {:ok, User.t(), Workspace.t()} | :error
+  @spec verify_token(String.t()) :: {:ok, User.t(), Workspace.t(), [String.t()]} | :error
   @doc """
-  Verifies a raw token and returns the user and workspace if valid.
+  Verifies a raw token and returns the user, workspace, and scopes if valid.
 
-  Returns `{:ok, user, workspace}` or `:error`.
+  Returns `{:ok, user, workspace, scopes}` or `:error`.
   """
   def verify_token(raw_token) when is_binary(raw_token) do
     hash = :crypto.hash(:sha256, raw_token)
@@ -85,7 +100,7 @@ defmodule Onesqlx.Accounts.ApiToken do
         :error
 
       token ->
-        {:ok, token.user, token.workspace}
+        {:ok, token.user, token.workspace, token.scopes}
     end
   end
 
@@ -102,15 +117,15 @@ defmodule Onesqlx.Accounts.ApiToken do
     |> Repo.update_all(set: [last_used_at: DateTime.utc_now(:second)])
   end
 
-  @spec get_scope(String.t()) :: {:ok, Scope.t()} | :error
+  @spec get_scope(String.t()) :: {:ok, Scope.t(), [String.t()]} | :error
   @doc """
-  Returns a scope for the given raw API token, or `:error`.
+  Returns a scope and scopes list for the given raw API token, or `:error`.
   """
   def get_scope(raw_token) do
     case verify_token(raw_token) do
-      {:ok, user, workspace} ->
+      {:ok, user, workspace, scopes} ->
         touch_usage(raw_token)
-        {:ok, Scope.for_user(user, workspace)}
+        {:ok, Scope.for_user(user, workspace), scopes}
 
       :error ->
         :error
