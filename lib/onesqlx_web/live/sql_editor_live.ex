@@ -215,13 +215,25 @@ defmodule OnesqlxWeb.SqlEditorLive do
                     <table class="table table-xs table-pin-rows">
                       <thead>
                         <tr>
-                          <th :for={col <- @tab.result.columns} class="bg-base-200">
-                            {col}
+                          <th
+                            :for={{col, idx} <- Enum.with_index(@tab.result.columns)}
+                            class="bg-base-200 cursor-pointer select-none hover:bg-base-300"
+                            phx-click="sort_results"
+                            phx-value-column={idx}
+                          >
+                            <span class="flex items-center gap-1">
+                              {col}
+                              <span :if={@tab.sort_column == idx} class="text-xs">
+                                {if @tab.sort_direction == :asc, do: "↑", else: "↓"}
+                              </span>
+                            </span>
                           </th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr :for={row <- @tab.result.rows}>
+                        <tr :for={
+                          row <- sort_rows(@tab.result.rows, @tab.sort_column, @tab.sort_direction)
+                        }>
                           <td :for={cell <- row} class="font-mono text-xs">
                             {format_cell(cell)}
                           </td>
@@ -583,6 +595,21 @@ defmodule OnesqlxWeb.SqlEditorLive do
     {:noreply, put_tab(socket, updated)}
   end
 
+  def handle_event("sort_results", %{"column" => col_str}, socket) do
+    tab = get_active_tab(socket)
+    col_index = String.to_integer(col_str)
+
+    direction =
+      if tab.sort_column == col_index do
+        if tab.sort_direction == :asc, do: :desc, else: :asc
+      else
+        :asc
+      end
+
+    updated = %{tab | sort_column: col_index, sort_direction: direction}
+    {:noreply, put_tab(socket, updated)}
+  end
+
   # -- History Reopen ----------------------------------------------------------
 
   def handle_event("reopen_query", %{"id" => run_id}, socket) do
@@ -803,7 +830,9 @@ defmodule OnesqlxWeb.SqlEditorLive do
       show_params_form?: false,
       execute_sql: "",
       timeout_ref: nil,
-      cancel_ref: nil
+      cancel_ref: nil,
+      sort_column: nil,
+      sort_direction: :asc
     }
   end
 
@@ -952,4 +981,22 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
   defp format_cell(value) when is_number(value), do: to_string(value)
   defp format_cell(value), do: inspect(value)
+
+  defp sort_rows(rows, nil, _direction), do: rows
+
+  defp sort_rows(rows, column, direction) do
+    sorted =
+      Enum.sort_by(rows, fn row ->
+        val = Enum.at(row, column)
+        sort_key(val)
+      end)
+
+    if direction == :desc, do: Enum.reverse(sorted), else: sorted
+  end
+
+  defp sort_key(nil), do: {0, ""}
+  defp sort_key(val) when is_number(val), do: {1, val}
+  defp sort_key(%Decimal{} = val), do: {1, Decimal.to_float(val)}
+  defp sort_key(val) when is_binary(val), do: {2, String.downcase(val)}
+  defp sort_key(val), do: {3, to_string(val)}
 end
