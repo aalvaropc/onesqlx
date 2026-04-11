@@ -5,6 +5,8 @@ defmodule OnesqlxWeb.Layouts do
   """
   use OnesqlxWeb, :html
 
+  alias Phoenix.LiveView.JS
+
   # Embed all files in layouts/* within this module.
   # The default root.html.heex file contains the HTML
   # skeleton of your application, namely HTML headers
@@ -38,51 +40,42 @@ defmodule OnesqlxWeb.Layouts do
   def app(assigns) do
     ~H"""
     <div :if={@current_scope && @current_scope.user} class="flex h-screen">
+      <%!-- Desktop sidebar --%>
       <nav class="hidden md:flex w-56 flex-shrink-0 border-r border-base-300 flex-col bg-base-200">
-        <div class="p-4 border-b border-base-300">
+        <.sidebar_content current_scope={@current_scope} />
+      </nav>
+
+      <%!-- Mobile overlay --%>
+      <div
+        id="mobile-menu-overlay"
+        class="fixed inset-0 z-40 hidden md:hidden"
+        phx-click={hide_mobile_menu()}
+      >
+        <div class="fixed inset-0 bg-black/50"></div>
+      </div>
+      <nav
+        id="mobile-menu"
+        class="fixed inset-y-0 left-0 z-50 w-64 flex-col bg-base-200 shadow-xl hidden md:hidden"
+      >
+        <.sidebar_content current_scope={@current_scope} mobile />
+      </nav>
+
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <%!-- Mobile header with hamburger --%>
+        <div class="md:hidden flex items-center gap-3 px-4 py-3 border-b border-base-300">
+          <button
+            phx-click={show_mobile_menu()}
+            class="btn btn-sm btn-ghost"
+            aria-label="Open menu"
+          >
+            <.icon name="hero-bars-3" class="size-5" />
+          </button>
           <a href="/" class="flex items-center gap-2">
-            <img src={~p"/images/logo.svg"} width="28" />
+            <img src={~p"/images/logo.svg"} width="24" />
             <span class="text-sm font-bold">OneSQLx</span>
           </a>
-          <p :if={@current_scope.workspace} class="text-xs text-base-content/50 mt-1 truncate">
-            {@current_scope.workspace.name}
-          </p>
         </div>
-        <div class="p-2">
-          <.link
-            navigate={~p"/search"}
-            class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-base-300/50 hover:bg-base-300 text-base-content/50 w-full"
-          >
-            <.icon name="hero-magnifying-glass" class="size-4" />
-            <span>Search...</span>
-          </.link>
-        </div>
-        <div class="flex-1 overflow-y-auto p-2 space-y-1">
-          <.nav_link href={~p"/sql-editor"} icon="hero-command-line" label="SQL Editor" />
-          <.nav_link href={~p"/saved-queries"} icon="hero-bookmark" label="Saved Queries" />
-          <.nav_link href={~p"/dashboards"} icon="hero-chart-bar-square" label="Dashboards" />
-          <.nav_link href={~p"/schedules"} icon="hero-clock" label="Schedules" />
-          <.nav_link href={~p"/data-sources"} icon="hero-circle-stack" label="Data Sources" />
-          <.nav_link href={~p"/analytics"} icon="hero-chart-pie" label="Analytics" />
-          <.nav_link href={~p"/lineage"} icon="hero-map" label="Lineage" />
-          <.nav_link href={~p"/audit"} icon="hero-clipboard-document-list" label="Audit Log" />
-        </div>
-        <div class="p-2 border-t border-base-300 space-y-1">
-          <.nav_link href={~p"/workspace/settings"} icon="hero-cog-6-tooth" label="Workspace" />
-          <.nav_link href={~p"/settings/api-tokens"} icon="hero-key" label="API Tokens" />
-          <.nav_link href={~p"/users/settings"} icon="hero-user" label="Account" />
-          <div class="px-3 py-1">
-            <.link
-              href={~p"/users/log-out"}
-              method="delete"
-              class="text-xs text-base-content/50 hover:text-error"
-            >
-              Sign Out
-            </.link>
-          </div>
-        </div>
-      </nav>
-      <div class="flex-1 flex flex-col overflow-hidden">
+
         <main class="flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-8">
           <div class={["mx-auto space-y-4", (@wide && "max-w-7xl") || "max-w-5xl"]}>
             {render_slot(@inner_block)}
@@ -120,6 +113,84 @@ defmodule OnesqlxWeb.Layouts do
 
     <.flash_group flash={@flash} />
     """
+  end
+
+  attr :current_scope, :any, required: true
+  attr :mobile, :boolean, default: false
+
+  defp sidebar_content(assigns) do
+    ~H"""
+    <div class="p-4 border-b border-base-300">
+      <div class="flex items-center justify-between">
+        <a href="/" class="flex items-center gap-2">
+          <img src={~p"/images/logo.svg"} width="28" />
+          <span class="text-sm font-bold">OneSQLx</span>
+        </a>
+        <button
+          :if={@mobile}
+          phx-click={hide_mobile_menu()}
+          class="btn btn-sm btn-ghost"
+          aria-label="Close menu"
+        >
+          <.icon name="hero-x-mark" class="size-4" />
+        </button>
+      </div>
+      <p :if={@current_scope.workspace} class="text-xs text-base-content/50 mt-1 truncate">
+        {@current_scope.workspace.name}
+      </p>
+    </div>
+    <div class="p-2">
+      <.link
+        navigate={~p"/search"}
+        class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-base-300/50 hover:bg-base-300 text-base-content/50 w-full"
+      >
+        <.icon name="hero-magnifying-glass" class="size-4" />
+        <span>Search...</span>
+      </.link>
+    </div>
+    <div class="flex-1 overflow-y-auto p-2 space-y-1">
+      <.nav_link href={~p"/sql-editor"} icon="hero-command-line" label="SQL Editor" />
+      <.nav_link href={~p"/saved-queries"} icon="hero-bookmark" label="Saved Queries" />
+      <.nav_link href={~p"/dashboards"} icon="hero-chart-bar-square" label="Dashboards" />
+      <.nav_link href={~p"/schedules"} icon="hero-clock" label="Schedules" />
+      <.nav_link href={~p"/data-sources"} icon="hero-circle-stack" label="Data Sources" />
+      <.nav_link href={~p"/analytics"} icon="hero-chart-pie" label="Analytics" />
+      <.nav_link href={~p"/lineage"} icon="hero-map" label="Lineage" />
+      <.nav_link href={~p"/audit"} icon="hero-clipboard-document-list" label="Audit Log" />
+    </div>
+    <div class="p-2 border-t border-base-300 space-y-1">
+      <.nav_link href={~p"/workspace/settings"} icon="hero-cog-6-tooth" label="Workspace" />
+      <.nav_link href={~p"/settings/api-tokens"} icon="hero-key" label="API Tokens" />
+      <.nav_link href={~p"/users/settings"} icon="hero-user" label="Account" />
+      <div class="px-3 py-1">
+        <.link
+          href={~p"/users/log-out"}
+          method="delete"
+          class="text-xs text-base-content/50 hover:text-error"
+        >
+          Sign Out
+        </.link>
+      </div>
+    </div>
+    """
+  end
+
+  defp show_mobile_menu do
+    %JS{}
+    |> JS.show(
+      to: "#mobile-menu",
+      transition: {"transition-transform duration-200", "-translate-x-full", "translate-x-0"}
+    )
+    |> JS.show(to: "#mobile-menu-overlay")
+  end
+
+  defp hide_mobile_menu do
+    %JS{}
+    |> JS.hide(
+      to: "#mobile-menu",
+      transition: {"transition-transform duration-200", "translate-x-0", "-translate-x-full"}
+    )
+    |> JS.hide(to: "#mobile-menu-overlay")
   end
 
   defp nav_link(assigns) do
