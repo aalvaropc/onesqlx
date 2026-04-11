@@ -67,4 +67,47 @@ defmodule Onesqlx.Dashboards.CardRendererTest do
       assert {"3.14", "rate"} = CardRenderer.kpi_value_for(result)
     end
   end
+
+  describe "format_kpi_value/2" do
+    test "adds thousands separator to integer" do
+      assert CardRenderer.format_kpi_value("42000") == "42,000"
+    end
+
+    test "adds thousands separator to large number" do
+      assert CardRenderer.format_kpi_value("1234567") == "1,234,567"
+    end
+
+    test "preserves decimal part" do
+      assert CardRenderer.format_kpi_value("1500.50") == "1,500.50"
+    end
+
+    test "handles small numbers without separator" do
+      assert CardRenderer.format_kpi_value("999") == "999"
+    end
+
+    test "handles negative numbers" do
+      assert CardRenderer.format_kpi_value("-42000") == "-42,000"
+    end
+
+    test "adds prefix from config" do
+      assert CardRenderer.format_kpi_value("1500", %{"prefix" => "$"}) == "$1,500"
+    end
+
+    test "adds suffix from config" do
+      assert CardRenderer.format_kpi_value("85", %{"suffix" => "%"}) == "85%"
+    end
+
+    test "adds both prefix and suffix" do
+      assert CardRenderer.format_kpi_value("1500", %{"prefix" => "$", "suffix" => " USD"}) ==
+               "$1,500 USD"
+    end
+
+    test "returns raw string for non-numeric value" do
+      assert CardRenderer.format_kpi_value("N/A") == "N/A"
+    end
+
+    test "handles zero" do
+      assert CardRenderer.format_kpi_value("0") == "0"
+    end
+  end
 end

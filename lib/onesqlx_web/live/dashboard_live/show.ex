@@ -166,6 +166,26 @@ defmodule OnesqlxWeb.DashboardLive.Show do
               </select>
             </div>
             <.input field={@add_card_form[:title]} type="text" label="Title (optional)" />
+            <div class="flex gap-2 mt-2">
+              <div class="form-control flex-1">
+                <label class="label"><span class="label-text text-xs">Prefix (e.g. $)</span></label>
+                <input
+                  type="text"
+                  name="card[config][prefix]"
+                  placeholder="$"
+                  class="input input-bordered input-sm w-full"
+                />
+              </div>
+              <div class="form-control flex-1">
+                <label class="label"><span class="label-text text-xs">Suffix (e.g. %)</span></label>
+                <input
+                  type="text"
+                  name="card[config][suffix]"
+                  placeholder="%"
+                  class="input input-bordered input-sm w-full"
+                />
+              </div>
+            </div>
             <div class="flex justify-end gap-2 mt-4">
               <button type="button" phx-click="close_add_card_modal" class="btn btn-sm">
                 Cancel
@@ -232,10 +252,17 @@ defmodule OnesqlxWeb.DashboardLive.Show do
     """
   end
 
-  defp card_content(%{card: %{type: "kpi"}, result: {:ok, result}} = assigns) do
+  defp card_content(%{card: %{type: "kpi"} = card, result: {:ok, result}} = assigns) do
     kpi = CardRenderer.kpi_value_for(result)
+    config = card.config || %{}
 
-    assigns = assign(assigns, :kpi, kpi)
+    formatted =
+      case kpi do
+        {value, label} -> {CardRenderer.format_kpi_value(value, config), label}
+        nil -> nil
+      end
+
+    assigns = assign(assigns, :kpi, formatted)
 
     ~H"""
     <div :if={@kpi} class="text-center py-4">
