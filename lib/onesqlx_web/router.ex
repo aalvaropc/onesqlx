@@ -150,11 +150,13 @@ defmodule OnesqlxWeb.Router do
       live "/schedules/:id", ScheduledQueryLive.Show, :show
       live "/analytics", AnalyticsLive, :index
       live "/lineage", LineageLive, :index
+      live "/audit", AuditLive, :index
       live "/settings/api-tokens", ApiTokenLive.Index, :index
       live "/workspace/settings", WorkspaceLive.Settings, :edit
     end
 
     post "/exports/csv", ExportController, :csv
+    post "/exports/audit-csv", AuditExportController, :export
     post "/users/update-password", UserSessionController, :update_password
   end
 

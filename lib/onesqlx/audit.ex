@@ -181,6 +181,34 @@ defmodule Onesqlx.Audit do
     |> Repo.all()
   end
 
+  @spec list_all_events(Scope.t(), keyword()) :: [AuditEvent.t()]
+  @doc """
+  Lists all audit events matching filters, without pagination. Used for CSV export.
+  """
+  def list_all_events(%Scope{} = scope, opts \\ []) do
+    AuditEvent
+    |> where(workspace_id: ^scope.workspace.id)
+    |> maybe_filter_event_type(opts[:event_type])
+    |> maybe_filter_resource_type(opts[:resource_type])
+    |> maybe_filter_since(opts[:since])
+    |> order_by(desc: :occurred_at)
+    |> preload(:user)
+    |> Repo.all()
+  end
+
+  @spec distinct_event_types(Scope.t()) :: [String.t()]
+  @doc """
+  Returns distinct event types recorded for the workspace.
+  """
+  def distinct_event_types(%Scope{} = scope) do
+    AuditEvent
+    |> where(workspace_id: ^scope.workspace.id)
+    |> distinct(true)
+    |> select([e], e.event_type)
+    |> order_by(:event_type)
+    |> Repo.all()
+  end
+
   defp maybe_filter_event_type(query, nil), do: query
   defp maybe_filter_event_type(query, type), do: where(query, [e], e.event_type == ^type)
 

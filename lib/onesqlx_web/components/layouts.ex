@@ -56,6 +56,7 @@ defmodule OnesqlxWeb.Layouts do
           <.nav_link href={~p"/data-sources"} icon="hero-circle-stack" label="Data Sources" />
           <.nav_link href={~p"/analytics"} icon="hero-chart-pie" label="Analytics" />
           <.nav_link href={~p"/lineage"} icon="hero-map" label="Lineage" />
+          <.nav_link href={~p"/audit"} icon="hero-clipboard-document-list" label="Audit Log" />
         </div>
         <div class="p-2 border-t border-base-300 space-y-1">
           <.nav_link href={~p"/workspace/settings"} icon="hero-cog-6-tooth" label="Workspace" />
