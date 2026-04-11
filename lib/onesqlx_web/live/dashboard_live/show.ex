@@ -64,16 +64,26 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div
+        id="card-grid"
+        phx-hook="SortableCards"
+        data-editing={to_string(@editing?)}
+        class="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
         <div
           :for={card <- @dashboard.cards}
           id={"card-#{card.id}"}
           class="card border border-base-300 p-4"
         >
           <div class="flex items-start justify-between mb-3">
-            <h3 class="font-semibold">
-              {card.title || (card.saved_query && card.saved_query.title) || "Untitled Card"}
-            </h3>
+            <div class="flex items-center gap-2">
+              <div :if={@editing?} class="drag-handle cursor-grab active:cursor-grabbing">
+                <.icon name="hero-bars-3" class="size-4 text-base-content/40" />
+              </div>
+              <h3 class="font-semibold">
+                {card.title || (card.saved_query && card.saved_query.title) || "Untitled Card"}
+              </h3>
+            </div>
             <div :if={@editing?} class="flex items-center gap-1 ml-2 flex-shrink-0">
               <button
                 phx-click="move_card_up"
@@ -547,6 +557,15 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         dashboard = Dashboards.get_dashboard_with_cards!(scope, socket.assigns.dashboard.id)
         {:noreply, assign(socket, dashboard: dashboard)}
     end
+  end
+
+  def handle_event("reorder_cards", %{"ids" => card_ids}, socket) do
+    scope = socket.assigns.current_scope
+    dashboard = socket.assigns.dashboard
+
+    Dashboards.reorder_cards(scope, dashboard, card_ids)
+    dashboard = Dashboards.get_dashboard_with_cards!(scope, dashboard.id)
+    {:noreply, assign(socket, dashboard: dashboard)}
   end
 
   @impl true

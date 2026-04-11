@@ -290,6 +290,23 @@ defmodule Onesqlx.Dashboards do
     end
   end
 
+  @doc """
+  Reorders cards by setting positions from a list of card IDs in the desired order.
+  """
+  def reorder_cards(%Scope{} = scope, %Dashboard{} = dashboard, card_ids)
+      when is_list(card_ids) do
+    verify_ownership!(scope, dashboard)
+
+    Repo.transaction(fn ->
+      card_ids
+      |> Enum.with_index()
+      |> Enum.each(fn {card_id, index} ->
+        from(c in DashboardCard, where: c.id == ^card_id and c.dashboard_id == ^dashboard.id)
+        |> Repo.update_all(set: [position: index])
+      end)
+    end)
+  end
+
   @spec change_card(DashboardCard.t(), map()) :: Ecto.Changeset.t()
   @doc """
   Returns a changeset for tracking card changes.
