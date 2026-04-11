@@ -39,7 +39,7 @@ defmodule OnesqlxWeb.SqlEditorLiveTest do
 
       html =
         lv
-        |> form("form", %{data_source_id: ds.id})
+        |> form("#ds-selector", %{data_source_id: ds.id})
         |> render_change()
 
       assert html =~ "SELECT * FROM important_table"
@@ -69,7 +69,7 @@ defmodule OnesqlxWeb.SqlEditorLiveTest do
       {:ok, lv, _html} = live(conn, ~p"/sql-editor")
 
       # Select data source and set SQL
-      lv |> form("form", %{data_source_id: ds.id}) |> render_change()
+      lv |> form("#ds-selector", %{data_source_id: ds.id}) |> render_change()
       render_click(lv, "update_sql", %{sql: "SELECT * FROM users"})
 
       # Open modal and save
@@ -115,7 +115,7 @@ defmodule OnesqlxWeb.SqlEditorLiveTest do
       ds = data_source_fixture(scope, %{name: "timeout-db"})
       {:ok, lv, _html} = live(conn, ~p"/sql-editor")
 
-      lv |> form("form", %{data_source_id: ds.id}) |> render_change()
+      lv |> form("#ds-selector", %{data_source_id: ds.id}) |> render_change()
       render_click(lv, "update_sql", %{sql: "SELECT 1"})
 
       # Simulate: user triggered execute, then timeout fires

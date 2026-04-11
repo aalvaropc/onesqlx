@@ -68,7 +68,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
         <%!-- Toolbar --%>
         <div class="flex items-center gap-4 mb-4">
-          <form phx-change="select_data_source" class="flex-1 max-w-xs">
+          <form id="ds-selector" phx-change="select_data_source" class="flex-1 max-w-xs">
             <select
               name="data_source_id"
               class="select select-bordered w-full"
@@ -134,6 +134,16 @@ defmodule OnesqlxWeb.SqlEditorLive do
             <button type="submit" class="btn btn-sm">
               <.icon name="hero-arrow-down-tray" class="size-4" /> CSV
             </button>
+          </form>
+
+          <form phx-change="set_row_limit" class="inline">
+            <select name="row_limit" class="select select-bordered select-sm w-28">
+              <option value="100" selected={@tab.row_limit == 100}>100 rows</option>
+              <option value="500" selected={@tab.row_limit == 500}>500 rows</option>
+              <option value="1000" selected={@tab.row_limit == 1000}>1,000 rows</option>
+              <option value="5000" selected={@tab.row_limit == 5000}>5,000 rows</option>
+              <option value="10000" selected={@tab.row_limit == 10000}>10,000 rows</option>
+            </select>
           </form>
 
           <span class="text-xs text-base-content/50">Ctrl+Enter to run</span>
@@ -610,6 +620,12 @@ defmodule OnesqlxWeb.SqlEditorLive do
     {:noreply, put_tab(socket, updated)}
   end
 
+  def handle_event("set_row_limit", %{"row_limit" => limit_str}, socket) do
+    tab = get_active_tab(socket)
+    updated = %{tab | row_limit: String.to_integer(limit_str)}
+    {:noreply, put_tab(socket, updated)}
+  end
+
   # -- History Reopen ----------------------------------------------------------
 
   def handle_event("reopen_query", %{"id" => run_id}, socket) do
@@ -832,7 +848,8 @@ defmodule OnesqlxWeb.SqlEditorLive do
       timeout_ref: nil,
       cancel_ref: nil,
       sort_column: nil,
-      sort_direction: :asc
+      sort_direction: :asc,
+      row_limit: 1000
     }
   end
 
@@ -927,7 +944,8 @@ defmodule OnesqlxWeb.SqlEditorLive do
       |> put_tab(updated)
       |> start_async({:execute_query, tab.id}, fn ->
         Querying.execute_query(scope, data_source, tab.execute_sql, tab.param_values,
-          cancel_ref: cancel_ref
+          cancel_ref: cancel_ref,
+          row_limit: tab.row_limit
         )
       end)
 
