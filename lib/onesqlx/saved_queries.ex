@@ -170,7 +170,7 @@ defmodule Onesqlx.SavedQueries do
     if resource.workspace_id != scope.workspace.id,
       do: raise(Ecto.NoResultsError, queryable: SavedQuery)
 
-    resource
+    Onesqlx.Authorization.authorize_manage!(scope, resource)
   end
 
   defp maybe_apply_limit(query, nil), do: query

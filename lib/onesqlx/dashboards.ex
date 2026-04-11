@@ -302,7 +302,7 @@ defmodule Onesqlx.Dashboards do
     if resource.workspace_id != scope.workspace.id,
       do: raise(Ecto.NoResultsError, queryable: Dashboard)
 
-    resource
+    Onesqlx.Authorization.authorize_manage!(scope, resource)
   end
 
   defp verify_card_ownership!(%Scope{} = scope, %DashboardCard{} = card) do

@@ -272,8 +272,12 @@ defmodule OnesqlxWeb.UserAuth do
 
   defp build_scope(user, workspace_id) do
     case Workspaces.get_workspace_for_scope(user, workspace_id) do
-      nil -> Scope.for_user(user)
-      workspace -> Scope.for_user(user, workspace)
+      nil ->
+        Scope.for_user(user)
+
+      workspace ->
+        role = Workspaces.get_member_role(workspace, user)
+        Scope.for_user(user, workspace, role)
     end
   end
 
