@@ -96,8 +96,8 @@ Open-source, SQL-first analytics platform built with Elixir and Phoenix. Connect
 
 | Technology | Purpose |
 |---|---|
-| Elixir 1.17 | Primary language |
-| Erlang/OTP 27 | Runtime platform |
+| Elixir 1.19 | Primary language |
+| Erlang/OTP 28 | Runtime platform |
 | Phoenix 1.8 | Web framework |
 | Phoenix LiveView 1.1 | Real-time, server-rendered UI |
 | Ecto | ORM and migrations (internal database) |
