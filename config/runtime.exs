@@ -46,13 +46,33 @@ if config_env() == :prod do
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
-  config :onesqlx, Onesqlx.Repo,
-    # ssl: true,
-    url: database_url,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    # For machines with several cores, consider starting multiple pools of `pool_size`
-    # pool_count: 4,
-    socket_options: maybe_ipv6
+  # TLS to the internal database, opt-in with DATABASE_SSL=true (uses the
+  # system CA store). Needed when the database is not on a private network.
+  database_ssl =
+    if System.get_env("DATABASE_SSL") in ~w(true 1),
+      do: [ssl: [cacerts: :public_key.cacerts_get()]],
+      else: []
+
+  config :onesqlx,
+         Onesqlx.Repo,
+         [
+           url: database_url,
+           pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+           # For machines with several cores, consider starting multiple pools of `pool_size`
+           # pool_count: 4,
+           socket_options: maybe_ipv6
+         ] ++ database_ssl
+
+  # Prometheus /metrics: requires `Authorization: Bearer $METRICS_TOKEN`;
+  # without METRICS_TOKEN the endpoint responds 404 (secure by default).
+  metrics_auth =
+    case System.get_env("METRICS_TOKEN") do
+      nil -> :disabled
+      "" -> :disabled
+      token -> {:token, token}
+    end
+
+  config :onesqlx, :metrics_auth, metrics_auth
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

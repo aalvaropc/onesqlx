@@ -42,6 +42,12 @@ defmodule OnesqlxWeb.Router do
 
     get "/health", HealthController, :liveness
     get "/ready", HealthController, :readiness
+  end
+
+  # Prometheus metrics: bearer-token protected in prod (404 without METRICS_TOKEN)
+  scope "/", OnesqlxWeb do
+    pipe_through [:api, OnesqlxWeb.Plugs.MetricsAuth]
+
     get "/metrics", MetricsController, :index
   end
 
