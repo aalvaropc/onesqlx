@@ -52,7 +52,7 @@ IO.puts("✓ Demo workspace: #{workspace.name} (#{workspace.slug})")
 # ── Demo Data Source (points to db_external container) ─────────────────
 
 external_host = System.get_env("EXTERNAL_DB_HOST", "localhost")
-external_port = String.to_integer(System.get_env("EXTERNAL_DB_PORT", "5433"))
+external_port = String.to_integer(System.get_env("EXTERNAL_DB_PORT", "5465"))
 
 data_source =
   case Repo.get_by(DataSource, workspace_id: workspace.id, name: "External Demo DB") do
