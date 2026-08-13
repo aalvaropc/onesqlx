@@ -35,14 +35,17 @@ RUN mix deps.compile
 COPY assets/package.json assets/package-lock.json assets/
 RUN cd assets && npm ci
 
-# Compile assets
 COPY priv priv
 COPY lib lib
 COPY assets assets
-RUN mix assets.deploy
 
-# Compile the release
+# Compile before building assets: LiveView colocated hooks are extracted
+# during compilation into _build/prod/phoenix-colocated, which esbuild
+# resolves via NODE_PATH
 RUN mix compile
+
+# Compile assets
+RUN mix assets.deploy
 
 # Build the release
 COPY rel rel
@@ -52,7 +55,7 @@ RUN mix release
 FROM ${RUNNER_IMAGE}
 
 RUN apt-get update -y && \
-    apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates \
+    apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates curl \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 # Set the locale
@@ -72,8 +75,10 @@ COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/onesqlx ./
 
 USER nobody
 
-# If using an environment that doesn't automatically reap zombie processes,
-# add an init process such as tini via `apt-get install tini` and set it as
-# the ENTRYPOINT.
+# Zombie-process reaping is handled by the container runtime init
+# (docker-compose.prod.yml sets `init: true`; use --init with plain docker run).
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl -fsS "http://localhost:${PORT:-4000}/health" || exit 1
 
 CMD ["/app/bin/server"]

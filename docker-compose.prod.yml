@@ -1,17 +1,52 @@
+# Production deployment. See docs/deploy.md for the full runbook.
+#
+# Required environment (e.g. in a .env file next to this compose file):
+#   SECRET_KEY_BASE    mix phx.gen.secret
+#   POSTGRES_PASSWORD  database password
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: onesqlx_app
+    init: true
+    restart: unless-stopped
     environment:
-      DATABASE_URL: ecto://postgres:postgres@db/onesqlx_prod
+      DATABASE_URL: ecto://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the environment or a .env file}@db/${POSTGRES_DB:-onesqlx_prod}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:?Set SECRET_KEY_BASE with mix phx.gen.secret}
       PHX_HOST: ${PHX_HOST:-localhost}
       PHX_SERVER: "true"
       PORT: "4000"
+      # Mailer — set SMTP_* or RESEND_API_KEY, plus MAIL_FROM (docs/deploy.md).
+      # Without one of them, magic links and schedule emails are NOT delivered.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_TLS: ${SMTP_TLS:-true}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-OneSQLx}
+      # Prometheus /metrics bearer token (unset = endpoint disabled)
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
     ports:
       - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # One-shot: runs pending Ecto migrations, then the app starts.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: onesqlx_migrate
+    command: ["/app/bin/migrate"]
+    environment:
+      DATABASE_URL: ecto://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the environment or a .env file}@db/${POSTGRES_DB:-onesqlx_prod}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?Set SECRET_KEY_BASE with mix phx.gen.secret}
     depends_on:
       db:
         condition: service_healthy
@@ -19,17 +54,33 @@ services:
   db:
     image: postgres:17
     container_name: onesqlx_prod_db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: onesqlx_prod
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the environment or a .env file}
+      POSTGRES_DB: ${POSTGRES_DB:-onesqlx_prod}
     volumes:
       - onesqlx_prod_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # TLS terminates at a reverse proxy (HTTPS redirect + HSTS live there,
+  # not in the app — see docs/deploy.md). Example with Caddy: uncomment,
+  # set PHX_HOST to your domain, and remove the app "ports" mapping above
+  # so only the proxy is exposed.
+  #
+  # proxy:
+  #   image: caddy:2
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   command: caddy reverse-proxy --from ${PHX_HOST} --to app:4000
+  #   depends_on:
+  #     - app
 
 volumes:
   onesqlx_prod_pg_data:
