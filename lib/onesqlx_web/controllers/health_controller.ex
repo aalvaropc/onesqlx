@@ -35,9 +35,11 @@ defmodule OnesqlxWeb.HealthController do
     if oban_testing?() do
       :ok
     else
-      case Process.whereis(Oban) do
+      # Oban registers its supervisor via Oban.Registry, not as a local
+      # name — Process.whereis(Oban) is always nil in a running release
+      case Oban.Registry.whereis(Oban) do
         pid when is_pid(pid) -> :ok
-        nil -> :error
+        _ -> :error
       end
     end
   end
