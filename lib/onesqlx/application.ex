@@ -7,6 +7,8 @@ defmodule Onesqlx.Application do
 
   @impl true
   def start(_type, _args) do
+    warn_if_mailer_unconfigured()
+
     children = [
       OnesqlxWeb.Telemetry,
       Onesqlx.Repo,
@@ -32,5 +34,20 @@ defmodule Onesqlx.Application do
   def config_change(changed, _new, removed) do
     OnesqlxWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  # :mailer_configured is only set (by config/runtime.exs) in prod, so
+  # dev and test never warn.
+  defp warn_if_mailer_unconfigured do
+    if Application.get_env(:onesqlx, :mailer_configured, true) == false do
+      require Logger
+
+      Logger.warning(
+        "No production mailer configured — outgoing email (magic links, " <>
+          "schedule notifications) will NOT be delivered. " <>
+          "Set SMTP_HOST/SMTP_USERNAME/SMTP_PASSWORD or RESEND_API_KEY, " <>
+          "and MAIL_FROM for the sender address."
+      )
+    end
   end
 end

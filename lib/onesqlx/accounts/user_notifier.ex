@@ -13,7 +13,7 @@ defmodule Onesqlx.Accounts.UserNotifier do
     email =
       new()
       |> to(recipient)
-      |> from({"Onesqlx", "contact@example.com"})
+      |> from(Onesqlx.MailerConfig.sender())
       |> subject(subject)
       |> text_body(body)
 

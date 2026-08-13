@@ -36,6 +36,13 @@ if System.get_env("GITHUB_CLIENT_ID") do
     client_secret: System.get_env("GITHUB_CLIENT_SECRET")
 end
 
+# Sender for all outgoing email (magic links, schedule notifications)
+if System.get_env("MAIL_FROM") do
+  config :onesqlx,
+         :mail_from,
+         {System.get_env("MAIL_FROM_NAME", "OneSQLx"), System.get_env("MAIL_FROM")}
+end
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
@@ -113,21 +120,18 @@ if config_env() == :prod do
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
 
-  # ## Configuring the mailer
+  # ## Mailer
   #
-  # In production you need to configure the mailer to use a different adapter.
-  # Here is an example configuration for Mailgun:
-  #
-  #     config :onesqlx, Onesqlx.Mailer,
-  #       adapter: Swoosh.Adapters.Mailgun,
-  #       api_key: System.get_env("MAILGUN_API_KEY"),
-  #       domain: System.get_env("MAILGUN_DOMAIN")
-  #
-  # Most non-SMTP adapters require an API client. Swoosh supports Req, Hackney,
-  # and Finch out-of-the-box. This configuration is typically done at
-  # compile-time in your config/prod.exs:
-  #
-  #     config :swoosh, :api_client, Swoosh.ApiClient.Req
-  #
-  # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
+  # Adapter chosen from env vars: SMTP_HOST → SMTP, RESEND_API_KEY → Resend.
+  # With neither set the mailer stays on the Local adapter and outgoing
+  # email (magic links, schedule notifications) is NOT delivered — the
+  # application logs a warning at startup (see Onesqlx.Application).
+  case Onesqlx.MailerConfig.resolve(System.get_env()) do
+    {adapter, opts} ->
+      config :onesqlx, Onesqlx.Mailer, [adapter: adapter] ++ opts
+      config :onesqlx, :mailer_configured, true
+
+    :local ->
+      config :onesqlx, :mailer_configured, false
+  end
 end
