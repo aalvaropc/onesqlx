@@ -45,7 +45,7 @@ defmodule Onesqlx.Scheduling.Notifier do
     email_msg =
       new()
       |> to(email)
-      |> from({"OneSQLx", "noreply@onesqlx.dev"})
+      |> from(Onesqlx.MailerConfig.sender())
       |> subject(subject)
       |> text_body(text)
       |> html_body(html)
