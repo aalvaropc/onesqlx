@@ -1,9 +1,10 @@
 defmodule OnesqlxWeb.DashboardLive.CardHelpers do
   @moduledoc """
-  Shared card rendering and async execution helpers for public and embed dashboard views.
+  Shared card rendering and async execution helpers for the dashboard
+  views (show, public, and embed).
   """
 
-  use Phoenix.Component
+  use OnesqlxWeb, :html
 
   require Phoenix.LiveView
 
@@ -12,6 +13,7 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
 
   attr :card, :map, required: true
   attr :result, :any, required: true
+  attr :exportable?, :boolean, default: false, doc: "show a CSV export button on table cards"
 
   def card_content(%{card: %{type: "markdown"}} = assigns) do
     content = get_in(assigns.card.config, ["content"]) || ""
@@ -116,25 +118,25 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
       <p :if={length(@rows) < @total} class="text-xs text-base-content/50 mt-1">
         Showing {length(@rows)} of {@total} rows
       </p>
+      <form
+        :if={@exportable? && @card.saved_query && @card.saved_query.data_source_id}
+        action={~p"/exports/csv"}
+        method="post"
+        class="mt-2"
+      >
+        <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
+        <input type="hidden" name="data_source_id" value={@card.saved_query.data_source_id} />
+        <input type="hidden" name="sql" value={@card.saved_query.sql} />
+        <input type="hidden" name="label" value={@card.title || @card.saved_query.title || "export"} />
+        <button type="submit" class="btn btn-xs">
+          <.icon name="hero-arrow-down-tray" class="size-3" /> CSV
+        </button>
+      </form>
     </div>
     """
   end
 
-  def format_cell(nil), do: "NULL"
-  def format_cell(true), do: "true"
-  def format_cell(false), do: "false"
-  def format_cell(%Decimal{} = value), do: Decimal.to_string(value)
-  def format_cell(%Date{} = value), do: Date.to_string(value)
-  def format_cell(%DateTime{} = value), do: DateTime.to_string(value)
-  def format_cell(%NaiveDateTime{} = value), do: NaiveDateTime.to_string(value)
-  def format_cell(%Time{} = value), do: Time.to_string(value)
-
-  def format_cell(value) when is_binary(value) do
-    if String.length(value) > 500, do: String.slice(value, 0, 500) <> "...", else: value
-  end
-
-  def format_cell(value) when is_number(value), do: to_string(value)
-  def format_cell(value), do: inspect(value)
+  defdelegate format_cell(value), to: OnesqlxWeb.CellFormatter
 
   @doc """
   Returns the Tailwind col-span class for a card based on its config span value.
