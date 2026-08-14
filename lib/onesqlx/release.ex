@@ -13,6 +13,19 @@ defmodule Onesqlx.Release do
     end
   end
 
+  def rotate_encryption do
+    load_app()
+
+    for repo <- repos() do
+      {:ok, result, _} =
+        Ecto.Migrator.with_repo(repo, fn _repo ->
+          Onesqlx.DataSources.rotate_credential_encryption()
+        end)
+
+      IO.puts("rotation result: #{inspect(result)}")
+    end
+  end
+
   def rollback(repo, version) do
     load_app()
     {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :down, to: version))

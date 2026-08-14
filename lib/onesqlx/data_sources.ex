@@ -102,6 +102,52 @@ defmodule Onesqlx.DataSources do
     Encryption.decrypt(data_source.encrypted_password)
   end
 
+  @spec rotate_credential_encryption() :: %{
+          rotated: non_neg_integer(),
+          skipped: non_neg_integer(),
+          failed: non_neg_integer()
+        }
+  @doc """
+  Re-encrypts every stored data source credential with the current
+  (dedicated, v2) encryption key. Crosses all workspaces — this is an
+  operator task, run via `mix onesqlx.rotate_encryption` or
+  `Onesqlx.Release.rotate_encryption/0`.
+
+  Credentials already on the current key are skipped; credentials that
+  fail to decrypt (e.g. SECRET_KEY_BASE already rotated away) are
+  counted as failed and left untouched.
+  """
+  def rotate_credential_encryption do
+    unless Application.get_env(:onesqlx, :encryption_key) do
+      raise "ENCRYPTION_KEY must be configured before rotating credentials"
+    end
+
+    DataSource
+    |> Repo.all()
+    |> Enum.reduce(%{rotated: 0, skipped: 0, failed: 0}, &rotate_one/2)
+  end
+
+  defp rotate_one(%DataSource{encrypted_password: nil}, acc),
+    do: %{acc | skipped: acc.skipped + 1}
+
+  defp rotate_one(%DataSource{} = ds, acc) do
+    if Encryption.current_version?(ds.encrypted_password) do
+      %{acc | skipped: acc.skipped + 1}
+    else
+      case Encryption.decrypt(ds.encrypted_password) do
+        :error ->
+          %{acc | failed: acc.failed + 1}
+
+        plaintext ->
+          ds
+          |> Ecto.Changeset.change(encrypted_password: Encryption.encrypt(plaintext))
+          |> Repo.update!()
+
+          %{acc | rotated: acc.rotated + 1}
+      end
+    end
+  end
+
   @spec test_connection(DataSource.t()) :: {:ok, map()} | {:error, String.t()}
   @doc """
   Tests connection to an existing data source.

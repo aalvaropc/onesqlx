@@ -40,8 +40,9 @@ The `migrate` one-shot service applies pending Ecto migrations on every
 
 | Variable | Purpose |
 |---|---|
-| `SECRET_KEY_BASE` | Signs/encrypts cookies and secrets. Generate with `mix phx.gen.secret`. **Also derives the data-source credential encryption key — changing it invalidates saved data source passwords.** |
+| `SECRET_KEY_BASE` | Signs/encrypts cookies and secrets. Generate with `mix phx.gen.secret`. Without `ENCRYPTION_KEY` it also derives the data-source credential key — in that case changing it invalidates saved data source passwords. |
 | `POSTGRES_PASSWORD` | Database password (compose builds `DATABASE_URL` from it). On other platforms set `DATABASE_URL` directly. |
+| `ENCRYPTION_KEY` | Recommended: dedicated key for data source credentials (base64, 32 bytes — `openssl rand -base64 32`). Decouples credentials from `SECRET_KEY_BASE` rotation. After setting it, migrate existing rows once: `bin/onesqlx eval Onesqlx.Release.rotate_encryption` (or `mix onesqlx.rotate_encryption` locally). |
 
 ### Mailer (strongly recommended)
 
