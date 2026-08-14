@@ -1,17 +1,20 @@
 defmodule OnesqlxWeb.DashboardLive.Show do
   @moduledoc """
   LiveView for viewing and editing a dashboard, with async per-card query execution.
+
+  Markup lives in `OnesqlxWeb.DashboardLive.ShowComponents`; the card
+  body is shared with the public/embed views via
+  `OnesqlxWeb.DashboardLive.CardHelpers.card_content/1`.
   """
 
   use OnesqlxWeb, :live_view
 
+  import OnesqlxWeb.DashboardLive.ShowComponents
+
   @query_timeout_ms 60_000
   @timeout_message "Query timed out after 60 seconds. The database may still be processing the query."
 
-  import OnesqlxWeb.DashboardLive.CardHelpers, only: [card_span_class: 1]
-
   alias Onesqlx.Dashboards
-  alias Onesqlx.Dashboards.CardRenderer
   alias Onesqlx.Dashboards.DashboardCard
   alias Onesqlx.Querying.Executor
   alias Onesqlx.Querying.Params
@@ -22,141 +25,15 @@ defmodule OnesqlxWeb.DashboardLive.Show do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.breadcrumb items={[{"Dashboards", ~p"/dashboards"}, {@dashboard.title, nil}]} />
-      <div class="flex flex-wrap items-center gap-2 md:gap-4 mb-6">
-        <h1 class="text-2xl font-bold flex-1">{@dashboard.title}</h1>
-
-        <div :if={@dashboard_param_names != []} class="flex items-center gap-2">
-          <div :for={param <- @dashboard_param_names} class="flex items-center gap-1">
-            <label class="text-xs font-mono text-base-content/60">:{param}</label>
-            <input
-              type={Onesqlx.Querying.Params.infer_input_type(param)}
-              phx-blur="set_dashboard_param"
-              phx-value-name={param}
-              name={"params[#{param}]"}
-              value={Map.get(@dashboard_params, param, "")}
-              step={if Onesqlx.Querying.Params.infer_input_type(param) == "number", do: "any"}
-              class="input input-bordered input-xs w-24"
-            />
-          </div>
-          <button phx-click="apply_dashboard_params" class="btn btn-xs btn-primary">
-            Apply
-          </button>
-        </div>
-
-        <button phx-click="refresh" class="btn btn-sm">
-          <.icon name="hero-arrow-path" class="size-4" /> Refresh
-        </button>
-        <select
-          phx-change="set_auto_refresh"
-          name="interval"
-          class="select select-bordered select-sm w-28"
-        >
-          <option value="0" selected={@auto_refresh_interval == 0}>Auto: Off</option>
-          <option value="30000" selected={@auto_refresh_interval == 30_000}>30s</option>
-          <option value="60000" selected={@auto_refresh_interval == 60_000}>1m</option>
-          <option value="300000" selected={@auto_refresh_interval == 300_000}>5m</option>
-          <option value="900000" selected={@auto_refresh_interval == 900_000}>15m</option>
-        </select>
-        <button phx-click="duplicate_dashboard" class="btn btn-sm">
-          <.icon name="hero-document-duplicate" class="size-4" /> Duplicate
-        </button>
-        <button id="fullscreen-btn" phx-hook="Fullscreen" class="btn btn-sm">
-          Fullscreen
-        </button>
-        <button phx-click="toggle_share" class="btn btn-sm">
-          <.icon name="hero-share" class="size-4" /> Share
-        </button>
-        <button phx-click="toggle_edit" class={["btn btn-sm", @editing? && "btn-active"]}>
-          {if @editing?, do: "Done", else: "Edit"}
-        </button>
-      </div>
-
-      <div :if={@active_filters != %{}} class="flex items-center gap-2 mb-3">
-        <span class="text-xs text-base-content/60">Filters:</span>
-        <span
-          :for={{field, value} <- @active_filters}
-          class="badge badge-sm badge-primary gap-1"
-        >
-          {field} = {value}
-        </span>
-        <button phx-click="clear_filters" class="btn btn-xs btn-ghost">
-          <.icon name="hero-x-mark" class="size-3" /> Clear
-        </button>
-      </div>
-
-      <div
-        id="card-grid"
-        phx-hook="SortableCards"
-        data-editing={to_string(@editing?)}
-        class="grid grid-cols-1 md:grid-cols-4 gap-4"
-      >
-        <div
-          :for={card <- @dashboard.cards}
-          id={"card-#{card.id}"}
-          class={["card border border-base-300 p-4", card_span_class(card)]}
-        >
-          <div class="flex items-start justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <div :if={@editing?} class="drag-handle cursor-grab active:cursor-grabbing">
-                <.icon name="hero-bars-3" class="size-4 text-base-content/40" />
-              </div>
-              <h3 class="font-semibold">
-                {card.title || (card.saved_query && card.saved_query.title) || "Untitled Card"}
-              </h3>
-            </div>
-            <div :if={@editing?} class="flex items-center gap-1 ml-2 flex-shrink-0">
-              <button
-                phx-click="move_card_up"
-                phx-value-id={card.id}
-                class="btn btn-xs btn-ghost"
-                aria-label="Move card up"
-              >
-                <.icon name="hero-arrow-up" class="size-3" />
-              </button>
-              <button
-                phx-click="move_card_down"
-                phx-value-id={card.id}
-                class="btn btn-xs btn-ghost"
-                aria-label="Move card down"
-              >
-                <.icon name="hero-arrow-down" class="size-3" />
-              </button>
-              <.link
-                :if={card.saved_query_id}
-                navigate={~p"/sql-editor?saved_query_id=#{card.saved_query_id}"}
-                class="btn btn-xs btn-ghost"
-                aria-label="Open in editor"
-              >
-                <.icon name="hero-arrow-top-right-on-square" class="size-3" />
-              </.link>
-              <div class="flex items-center border border-base-300 rounded text-xs">
-                <button
-                  :for={span <- 1..4}
-                  phx-click="set_card_span"
-                  phx-value-id={card.id}
-                  phx-value-span={span}
-                  class={[
-                    "px-1.5 py-0.5",
-                    (card.config["span"] || 2) == span && "bg-primary text-primary-content rounded"
-                  ]}
-                >
-                  {span}
-                </button>
-              </div>
-              <button
-                phx-click="remove_card"
-                phx-value-id={card.id}
-                data-confirm="Remove this card?"
-                class="btn btn-xs btn-ghost text-error"
-                aria-label="Remove card"
-              >
-                <.icon name="hero-x-mark" class="size-3" />
-              </button>
-            </div>
-          </div>
-          <.card_content card={card} result={Map.get(@card_results, card.id, :loading)} />
-        </div>
-      </div>
+      <.toolbar
+        dashboard={@dashboard}
+        dashboard_param_names={@dashboard_param_names}
+        dashboard_params={@dashboard_params}
+        auto_refresh_interval={@auto_refresh_interval}
+        editing?={@editing?}
+      />
+      <.filters_bar active_filters={@active_filters} />
+      <.card_grid dashboard={@dashboard} card_results={@card_results} editing?={@editing?} />
 
       <div :if={@dashboard.cards == []} class="text-center py-12">
         <.icon name="hero-squares-plus" class="size-12 text-base-content/20 mx-auto mb-4" />
@@ -172,257 +49,13 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         </button>
       </div>
 
-      <div
-        :if={@show_add_card_modal?}
-        class="fixed inset-0 z-50 flex items-center justify-center"
-        role="dialog"
-        aria-modal="true"
-      >
-        <div class="fixed inset-0 bg-black/50" phx-click="close_add_card_modal"></div>
-        <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
-          <h3 class="text-lg font-semibold mb-4">Add Card</h3>
-          <.form
-            for={@add_card_form}
-            id="add-card-form"
-            phx-submit="add_card"
-            phx-change="validate_card"
-          >
-            <div class="form-control mb-4">
-              <label class="label"><span class="label-text">Saved Query</span></label>
-              <select name="card[saved_query_id]" class="select select-bordered w-full">
-                <option value="">None</option>
-                <option :for={q <- @saved_queries} value={q.id}>
-                  {q.title}
-                </option>
-              </select>
-            </div>
-            <div class="form-control mb-4">
-              <label class="label"><span class="label-text">Type</span></label>
-              <select name="card[type]" class="select select-bordered w-full">
-                <option value="table">Table</option>
-                <option value="kpi">KPI</option>
-                <option value="bar">Bar Chart</option>
-                <option value="line">Line Chart</option>
-                <option value="pie">Pie Chart</option>
-                <option value="doughnut">Doughnut Chart</option>
-                <option value="area">Area Chart</option>
-                <option value="scatter">Scatter Plot</option>
-                <option value="markdown">Text / Markdown</option>
-              </select>
-            </div>
-            <.input field={@add_card_form[:title]} type="text" label="Title (optional)" />
-            <div class="flex gap-2 mt-2">
-              <div class="form-control flex-1">
-                <label class="label"><span class="label-text text-xs">Prefix (e.g. $)</span></label>
-                <input
-                  type="text"
-                  name="card[config][prefix]"
-                  placeholder="$"
-                  class="input input-bordered input-sm w-full"
-                />
-              </div>
-              <div class="form-control flex-1">
-                <label class="label"><span class="label-text text-xs">Suffix (e.g. %)</span></label>
-                <input
-                  type="text"
-                  name="card[config][suffix]"
-                  placeholder="%"
-                  class="input input-bordered input-sm w-full"
-                />
-              </div>
-            </div>
-            <div class="form-control mt-2">
-              <label class="label">
-                <span class="label-text text-xs">Content (for Markdown cards)</span>
-              </label>
-              <textarea
-                name="card[config][content]"
-                placeholder="## Section Title&#10;&#10;Some explanatory text..."
-                rows="3"
-                class="textarea textarea-bordered textarea-sm w-full"
-              ></textarea>
-            </div>
-            <div class="form-control mt-2">
-              <label class="label">
-                <span class="label-text text-xs">Filter Field (cross-filtering param name)</span>
-              </label>
-              <input
-                type="text"
-                name="card[config][filter_field]"
-                placeholder="e.g. category"
-                class="input input-bordered input-sm w-full"
-              />
-            </div>
-            <div class="flex justify-end gap-2 mt-4">
-              <button type="button" phx-click="close_add_card_modal" class="btn btn-sm">
-                Cancel
-              </button>
-              <.button variant="primary" phx-disable-with="Adding...">Add</.button>
-            </div>
-          </.form>
-        </div>
-      </div>
-
-      <div
-        :if={@show_share_modal?}
-        role="dialog"
-        aria-modal="true"
-        class="fixed inset-0 z-50 flex items-center justify-center"
-      >
-        <div class="fixed inset-0 bg-black/50" phx-click="toggle_share"></div>
-        <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
-          <h3 class="text-lg font-semibold mb-4">Share Dashboard</h3>
-          <div :if={@dashboard.public_token}>
-            <p class="text-sm text-base-content/60 mb-2">
-              Public link (anyone with this link can view):
-            </p>
-            <div class="bg-base-200 rounded p-3 font-mono text-sm break-all select-all mb-3">
-              {url(~p"/share/#{@dashboard.public_token}")}
-            </div>
-            <p class="text-sm text-base-content/60 mb-2">
-              Embed in your site or app:
-            </p>
-            <div class="bg-base-200 rounded p-3 font-mono text-xs break-all select-all mb-4">
-              {"<iframe src=\"#{url(~p"/embed/#{@dashboard.public_token}")}\" width=\"100%\" height=\"600\" frameborder=\"0\"></iframe>"}
-            </div>
-            <button phx-click="revoke_share" class="btn btn-sm btn-error">Revoke Link</button>
-          </div>
-          <div :if={!@dashboard.public_token}>
-            <p class="text-sm text-base-content/60 mb-4">
-              Generate a public link to share this dashboard without requiring login.
-            </p>
-            <button phx-click="generate_share" class="btn btn-sm btn-primary">Generate Link</button>
-          </div>
-          <div class="flex justify-end mt-4">
-            <button phx-click="toggle_share" class="btn btn-sm">Close</button>
-          </div>
-        </div>
-      </div>
+      <.add_card_modal
+        show?={@show_add_card_modal?}
+        form={@add_card_form}
+        saved_queries={@saved_queries}
+      />
+      <.share_modal show?={@show_share_modal?} dashboard={@dashboard} />
     </Layouts.app>
-    """
-  end
-
-  attr :card, :map, required: true
-  attr :result, :any, required: true
-
-  defp card_content(%{card: %{type: "markdown"}} = assigns) do
-    content = get_in(assigns.card.config, ["content"]) || ""
-    assigns = assign(assigns, :content, content)
-
-    ~H"""
-    <div class="prose prose-sm max-w-none">
-      <p
-        :for={line <- String.split(@content, "\n")}
-        class={[
-          String.starts_with?(line, "## ") && "text-lg font-bold mt-3",
-          String.starts_with?(line, "# ") && "text-xl font-bold mt-4",
-          String.starts_with?(line, "### ") && "text-base font-semibold mt-2",
-          !String.starts_with?(line, "#") && "text-sm"
-        ]}
-      >
-        {strip_heading_markers(line)}
-      </p>
-    </div>
-    """
-  end
-
-  defp card_content(%{result: :loading} = assigns) do
-    ~H"""
-    <div class="flex items-center justify-center py-8">
-      <span class="loading loading-spinner loading-md"></span>
-    </div>
-    """
-  end
-
-  defp card_content(%{result: {:error, _msg}} = assigns) do
-    ~H"""
-    <div class="alert alert-error text-sm">{elem(@result, 1)}</div>
-    """
-  end
-
-  defp card_content(%{card: %{type: "kpi"} = card, result: {:ok, result}} = assigns) do
-    kpi = CardRenderer.kpi_value_for(result)
-    config = card.config || %{}
-
-    formatted =
-      case kpi do
-        {value, label} -> {CardRenderer.format_kpi_value(value, config), label}
-        nil -> nil
-      end
-
-    assigns = assign(assigns, :kpi, formatted)
-
-    ~H"""
-    <div :if={@kpi} class="text-center py-4">
-      <p class="text-4xl font-bold">{elem(@kpi, 0)}</p>
-      <p class="text-sm text-base-content/60 mt-1">{elem(@kpi, 1)}</p>
-    </div>
-    <div :if={!@kpi} class="text-center py-4 text-base-content/50 text-sm">No data</div>
-    """
-  end
-
-  defp card_content(%{card: %{type: type} = card, result: {:ok, result}} = assigns)
-       when type in ["bar", "line", "pie", "doughnut", "area", "scatter"] do
-    chart_data = CardRenderer.chart_data_for(result)
-    filter_field = get_in(card.config, ["filter_field"])
-
-    assigns =
-      assign(assigns,
-        chart_data: Jason.encode!(chart_data),
-        chart_type: type,
-        filter_field: filter_field
-      )
-
-    ~H"""
-    <div
-      id={"chart-#{@card.id}"}
-      phx-hook="ChartCard"
-      data-chart-type={@chart_type}
-      data-chart-data={@chart_data}
-      data-filter-field={@filter_field}
-      class="h-48"
-    >
-      <canvas></canvas>
-    </div>
-    """
-  end
-
-  defp card_content(%{result: {:ok, result}} = assigns) do
-    rows = Enum.take(result.rows, 20)
-    assigns = assign(assigns, columns: result.columns, rows: rows, total: result.row_count)
-
-    ~H"""
-    <div class="overflow-x-auto">
-      <table class="table table-xs">
-        <thead>
-          <tr>
-            <th :for={col <- @columns}>{col}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr :for={row <- @rows}>
-            <td :for={cell <- row} class="font-mono text-xs">{format_cell(cell)}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p :if={length(@rows) < @total} class="text-xs text-base-content/50 mt-1">
-        Showing {length(@rows)} of {@total} rows
-      </p>
-      <form
-        :if={@card.saved_query && @card.saved_query.data_source_id}
-        action={~p"/exports/csv"}
-        method="post"
-        class="mt-2"
-      >
-        <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
-        <input type="hidden" name="data_source_id" value={@card.saved_query.data_source_id} />
-        <input type="hidden" name="sql" value={@card.saved_query.sql} />
-        <input type="hidden" name="label" value={@card.title || @card.saved_query.title || "export"} />
-        <button type="submit" class="btn btn-xs">
-          <.icon name="hero-arrow-down-tray" class="size-3" /> CSV
-        </button>
-      </form>
-    </div>
     """
   end
 
@@ -893,25 +526,5 @@ defmodule OnesqlxWeb.DashboardLive.Show do
 
   defp cancel_all_card_timeouts(card_timeouts) do
     Enum.each(card_timeouts, fn {_id, ref} -> Process.cancel_timer(ref) end)
-  end
-
-  defp format_cell(nil), do: "NULL"
-  defp format_cell(true), do: "true"
-  defp format_cell(false), do: "false"
-  defp format_cell(%Decimal{} = value), do: Decimal.to_string(value)
-  defp format_cell(%Date{} = value), do: Date.to_string(value)
-  defp format_cell(%DateTime{} = value), do: DateTime.to_string(value)
-  defp format_cell(%NaiveDateTime{} = value), do: NaiveDateTime.to_string(value)
-  defp format_cell(%Time{} = value), do: Time.to_string(value)
-
-  defp format_cell(value) when is_binary(value) do
-    if String.length(value) > 500, do: String.slice(value, 0, 500) <> "...", else: value
-  end
-
-  defp format_cell(value) when is_number(value), do: to_string(value)
-  defp format_cell(value), do: inspect(value)
-
-  defp strip_heading_markers(line) do
-    String.replace(line, ~r/^\x23{1,3}\s*/, "")
   end
 end
