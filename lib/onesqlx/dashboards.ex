@@ -14,6 +14,32 @@ defmodule Onesqlx.Dashboards do
   alias Onesqlx.Dashboards.DashboardCard
   alias Onesqlx.Repo
 
+  @pubsub Onesqlx.PubSub
+
+  @doc """
+  Subscribes the caller to live updates for a dashboard. Mutations to
+  the dashboard or its cards broadcast `{:dashboard_updated, id}` to
+  every subscriber except the process that made the change.
+  """
+  def subscribe(dashboard_id) do
+    Phoenix.PubSub.subscribe(@pubsub, topic(dashboard_id))
+  end
+
+  defp topic(dashboard_id), do: "dashboard:#{dashboard_id}"
+
+  defp maybe_broadcast({:ok, _} = result, dashboard_id) do
+    Phoenix.PubSub.broadcast_from(
+      @pubsub,
+      self(),
+      topic(dashboard_id),
+      {:dashboard_updated, dashboard_id}
+    )
+
+    result
+  end
+
+  defp maybe_broadcast(result, _dashboard_id), do: result
+
   @spec list_dashboards(Scope.t(), keyword()) :: [Dashboard.t()]
   @doc """
   Lists all dashboards for the workspace, ordered by updated_at desc.
@@ -97,6 +123,7 @@ defmodule Onesqlx.Dashboards do
     dashboard
     |> Dashboard.changeset(attrs)
     |> Repo.update()
+    |> maybe_broadcast(dashboard.id)
   end
 
   @spec delete_dashboard(Scope.t(), Dashboard.t()) ::
@@ -169,6 +196,7 @@ defmodule Onesqlx.Dashboards do
     dashboard
     |> Dashboard.variables_changeset(variables)
     |> Repo.update()
+    |> maybe_broadcast(dashboard.id)
   end
 
   @doc """
@@ -253,6 +281,7 @@ defmodule Onesqlx.Dashboards do
         {:error, changeset} -> Repo.rollback(changeset)
       end
     end)
+    |> maybe_broadcast(dashboard.id)
   end
 
   @spec remove_card(Scope.t(), DashboardCard.t()) ::
@@ -262,7 +291,10 @@ defmodule Onesqlx.Dashboards do
   """
   def remove_card(%Scope{} = scope, %DashboardCard{} = card) do
     verify_card_ownership!(scope, card)
-    Repo.delete(card)
+
+    card
+    |> Repo.delete()
+    |> maybe_broadcast(card.dashboard_id)
   end
 
   @spec update_card(Scope.t(), DashboardCard.t(), map()) ::
@@ -276,6 +308,7 @@ defmodule Onesqlx.Dashboards do
     card
     |> DashboardCard.changeset(attrs)
     |> Repo.update()
+    |> maybe_broadcast(card.dashboard_id)
   end
 
   @spec move_card_up(Scope.t(), DashboardCard.t()) :: {:ok, DashboardCard.t()}
@@ -311,6 +344,7 @@ defmodule Onesqlx.Dashboards do
 
           Repo.get!(DashboardCard, card.id)
         end)
+        |> maybe_broadcast(card.dashboard_id)
     end
   end
 
@@ -347,6 +381,7 @@ defmodule Onesqlx.Dashboards do
 
           Repo.get!(DashboardCard, card.id)
         end)
+        |> maybe_broadcast(card.dashboard_id)
     end
   end
 
@@ -365,6 +400,7 @@ defmodule Onesqlx.Dashboards do
         |> Repo.update_all(set: [position: index])
       end)
     end)
+    |> maybe_broadcast(dashboard.id)
   end
 
   @spec change_card(DashboardCard.t(), map()) :: Ecto.Changeset.t()

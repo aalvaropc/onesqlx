@@ -59,6 +59,8 @@ defmodule OnesqlxWeb.DashboardLive.Public do
     dashboard = Dashboards.get_public_dashboard!(token)
     query_params = public_query_params(dashboard, params)
 
+    if connected?(socket), do: Dashboards.subscribe(dashboard.id)
+
     card_results =
       Map.new(dashboard.cards, fn card ->
         {card.id, initial_card_result(card)}
@@ -70,6 +72,24 @@ defmodule OnesqlxWeb.DashboardLive.Public do
       |> start_card_async_tasks(dashboard.cards, query_params)
 
     {:ok, socket, layout: false}
+  end
+
+  @impl true
+  def handle_info({:dashboard_updated, _id}, socket) do
+    dashboard = Dashboards.get_public_dashboard!(socket.assigns.dashboard.public_token)
+    query_params = public_query_params(dashboard, socket.assigns.applied_params)
+
+    card_results =
+      Map.new(dashboard.cards, fn card ->
+        {card.id, initial_card_result(card)}
+      end)
+
+    socket =
+      socket
+      |> assign(dashboard: dashboard, card_results: card_results, applied_params: query_params)
+      |> start_card_async_tasks(dashboard.cards, query_params)
+
+    {:noreply, socket}
   end
 
   @impl true

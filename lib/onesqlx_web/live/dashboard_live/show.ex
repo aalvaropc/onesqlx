@@ -65,6 +65,8 @@ defmodule OnesqlxWeb.DashboardLive.Show do
     scope = socket.assigns.current_scope
     dashboard = Dashboards.get_dashboard_with_cards!(scope, id)
 
+    if connected?(socket), do: Dashboards.subscribe(dashboard.id)
+
     card_results =
       Map.new(dashboard.cards, fn card ->
         {card.id, initial_card_result(card)}
@@ -464,7 +466,34 @@ defmodule OnesqlxWeb.DashboardLive.Show do
     end
   end
 
+  # Another user (or an API client) changed this dashboard — reload it
+  # and re-run the cards. The mutating process is excluded from the
+  # broadcast, so this never double-runs for the editor.
   @impl true
+  def handle_info({:dashboard_updated, _id}, socket) do
+    scope = socket.assigns.current_scope
+    dashboard = Dashboards.get_dashboard_with_cards!(scope, socket.assigns.dashboard.id)
+
+    cancel_all_card_timeouts(socket.assigns.card_timeouts)
+
+    card_results =
+      Map.new(dashboard.cards, fn card ->
+        {card.id, initial_card_result(card)}
+      end)
+
+    socket =
+      socket
+      |> assign(
+        dashboard: dashboard,
+        dashboard_param_names: dashboard_param_names(dashboard),
+        card_results: card_results,
+        card_timeouts: %{}
+      )
+      |> start_card_async_tasks(dashboard.cards)
+
+    {:noreply, socket}
+  end
+
   def handle_info({:card_timeout, card_id}, socket) do
     if Map.get(socket.assigns.card_results, card_id) == :loading do
       socket =
