@@ -53,7 +53,7 @@ defmodule Onesqlx.Querying.Executor do
         {sql, []}
       end
 
-    case SqlGuard.validate(prepared_sql) do
+    case validate_guard(data_source, prepared_sql) do
       {:error, message} ->
         {:error, :blocked, message}
 
@@ -110,7 +110,7 @@ defmodule Onesqlx.Querying.Executor do
         {sql, []}
       end
 
-    case SqlGuard.validate(prepared_sql) do
+    case validate_guard(data_source, prepared_sql) do
       {:error, message} ->
         {:error, :blocked, message}
 
@@ -121,6 +121,12 @@ defmodule Onesqlx.Querying.Executor do
         end)
     end
   end
+
+  # Data sources explicitly marked writable (read_only: false) skip the
+  # lexical write guard; the session-level read-only flag is skipped too
+  # (see Connection.Postgrex.with_connection/2).
+  defp validate_guard(%DataSource{read_only: false}, _sql), do: :ok
+  defp validate_guard(_data_source, sql), do: SqlGuard.validate(sql)
 
   defp run_explain(conn, sql, values) do
     explain_sql = "EXPLAIN (ANALYZE, COSTS, BUFFERS, FORMAT TEXT) #{sql}"

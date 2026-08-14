@@ -30,7 +30,30 @@ defmodule Onesqlx.Querying.ExecutorTest do
         password: config[:password]
       })
 
-    %{data_source: data_source}
+    %{scope: scope, data_source: data_source, db_config: config}
+  end
+
+  describe "read_only flag (session level)" do
+    test "read-only sources run with default_transaction_read_only on", %{data_source: ds} do
+      assert {:ok, result} = Executor.execute(ds, "SHOW default_transaction_read_only")
+      assert result.rows == [["on"]]
+    end
+
+    test "writable sources keep the session writable", %{scope: scope, db_config: config} do
+      ds =
+        data_source_fixture(scope, %{
+          name: "writable-int-db",
+          read_only: false,
+          host: config[:hostname],
+          port: config[:port] || 5432,
+          database_name: config[:database],
+          username: config[:username],
+          password: config[:password]
+        })
+
+      assert {:ok, result} = Executor.execute(ds, "SHOW default_transaction_read_only")
+      assert result.rows == [["off"]]
+    end
   end
 
   describe "execute/2" do

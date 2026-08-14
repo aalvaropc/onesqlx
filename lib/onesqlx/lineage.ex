@@ -63,6 +63,7 @@ defmodule Onesqlx.Lineage do
     queries =
       SavedQuery
       |> where(workspace_id: ^scope.workspace.id)
+      |> select([q], %{id: q.id, title: q.title, sql: q.sql})
       |> Repo.all()
       |> Enum.filter(fn q ->
         extract_tables(q.sql)

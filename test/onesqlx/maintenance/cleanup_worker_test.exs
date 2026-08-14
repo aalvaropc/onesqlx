@@ -22,6 +22,30 @@ defmodule Onesqlx.Maintenance.CleanupWorkerTest do
     %{scope: scope, data_source: data_source}
   end
 
+  describe "configurable retention" do
+    test "honors a shortened query-run retention from config", %{scope: scope, data_source: ds} do
+      original = Application.fetch_env!(:onesqlx, :retention)
+
+      on_exit(fn -> Application.put_env(:onesqlx, :retention, original) end)
+      Application.put_env(:onesqlx, :retention, Keyword.put(original, :query_runs_days, 5))
+
+      week_old_run = query_run_fixture(scope, ds)
+      recent_run = query_run_fixture(scope, ds)
+
+      old_date = DateTime.add(DateTime.utc_now(:second), -6 * 86_400, :second)
+
+      Repo.update_all(
+        from(r in QueryRun, where: r.id == ^week_old_run.id),
+        set: [inserted_at: old_date]
+      )
+
+      assert :ok = perform_job(CleanupWorker, %{})
+
+      assert Repo.get(QueryRun, recent_run.id)
+      refute Repo.get(QueryRun, week_old_run.id)
+    end
+  end
+
   describe "perform/1" do
     test "deletes old query runs, preserves recent ones", %{scope: scope, data_source: ds} do
       old_run = query_run_fixture(scope, ds)
