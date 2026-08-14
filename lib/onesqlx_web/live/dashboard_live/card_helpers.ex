@@ -8,8 +8,10 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
 
   require Phoenix.LiveView
 
+  alias Onesqlx.Dashboards
   alias Onesqlx.Dashboards.CardRenderer
   alias Onesqlx.Querying.Executor
+  alias Onesqlx.Querying.Params
 
   attr :card, :map, required: true
   attr :result, :any, required: true
@@ -160,6 +162,40 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
   def initial_card_result(%{type: "markdown"}), do: :not_applicable
   def initial_card_result(%{saved_query: %{data_source: %{}} = _sq}), do: :loading
   def initial_card_result(_card), do: {:error, "No query assigned"}
+
+  @doc """
+  Query parameters for a public/embed dashboard view: the dashboard's
+  variable defaults, overridden by URL query-string values.
+
+  Only allowlisted names are accepted from the URL — the dashboard's
+  defined variables plus the `:name` parameters its cards' SQL actually
+  declares. Values are substituted as real PostgreSQL placeholders
+  downstream, never interpolated.
+  """
+  def public_query_params(dashboard, url_params) when is_map(url_params) do
+    allowed = allowed_param_names(dashboard)
+
+    provided =
+      for {name, value} <- url_params,
+          is_binary(value),
+          MapSet.member?(allowed, name),
+          into: %{},
+          do: {name, value}
+
+    Map.merge(Dashboards.variable_defaults(dashboard), provided)
+  end
+
+  defp allowed_param_names(dashboard) do
+    defined = Enum.map(dashboard.variables || [], & &1["name"])
+
+    declared =
+      Enum.flat_map(dashboard.cards, fn
+        %{saved_query: %{sql: sql}} when is_binary(sql) -> Params.extract(sql)
+        _ -> []
+      end)
+
+    MapSet.new(defined ++ declared)
+  end
 
   @default_cache_ttl 300_000
 

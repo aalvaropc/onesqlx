@@ -25,14 +25,16 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
 
       <div :if={@dashboard_param_names != []} class="flex items-center gap-2">
         <div :for={param <- @dashboard_param_names} class="flex items-center gap-1">
-          <label class="text-xs font-mono text-base-content/60">:{param}</label>
+          <label class="text-xs font-mono text-base-content/60">
+            {param_label(@dashboard.variables, param)}
+          </label>
           <input
-            type={Params.infer_input_type(param)}
+            type={param_input_type(@dashboard.variables, param)}
             phx-blur="set_dashboard_param"
             phx-value-name={param}
             name={"params[#{param}]"}
             value={Map.get(@dashboard_params, param, "")}
-            step={if Params.infer_input_type(param) == "number", do: "any"}
+            step={if param_input_type(@dashboard.variables, param) == "number", do: "any"}
             class="input input-bordered input-xs w-24"
           />
         </div>
@@ -41,6 +43,9 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
         </button>
       </div>
 
+      <button :if={@editing?} phx-click="open_variables_modal" class="btn btn-sm">
+        <.icon name="hero-variable" class="size-4" /> Variables
+      </button>
       <button phx-click="refresh" class="btn btn-sm">
         <.icon name="hero-arrow-path" class="size-4" /> Refresh
       </button>
@@ -269,6 +274,100 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
       </div>
     </div>
     """
+  end
+
+  attr :show?, :boolean, required: true
+  attr :variables, :list, required: true
+
+  def variables_modal(assigns) do
+    ~H"""
+    <div
+      :if={@show?}
+      role="dialog"
+      aria-modal="true"
+      class="fixed inset-0 z-50 flex items-center justify-center"
+    >
+      <div class="fixed inset-0 bg-black/50" phx-click="close_variables_modal"></div>
+      <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-lg shadow-xl">
+        <h3 class="text-lg font-semibold mb-1">Dashboard Variables</h3>
+        <p class="text-xs text-base-content/60 mb-4">
+          Variables map to <span class="font-mono">:name</span>
+          parameters in the cards' queries. They appear in the filter bar
+          — also on public and embedded views via <span class="font-mono">?name=value</span>
+          in the URL.
+        </p>
+
+        <div :if={@variables != []} class="space-y-2 mb-4">
+          <div
+            :for={var <- @variables}
+            class="flex items-center gap-2 p-2 border border-base-300 rounded"
+          >
+            <span class="font-mono text-sm flex-1">:{var["name"]}</span>
+            <span class="badge badge-sm">{var["type"]}</span>
+            <span :if={var["default"] not in [nil, ""]} class="text-xs text-base-content/60">
+              default: {var["default"]}
+            </span>
+            <button
+              phx-click="remove_variable"
+              phx-value-name={var["name"]}
+              class="btn btn-ghost btn-xs text-error"
+              aria-label={"Remove variable #{var["name"]}"}
+            >
+              <.icon name="hero-trash" class="size-3" />
+            </button>
+          </div>
+        </div>
+        <p :if={@variables == []} class="text-sm text-base-content/50 mb-4">
+          No variables defined yet.
+        </p>
+
+        <form phx-submit="add_variable" class="border-t border-base-300 pt-4">
+          <div class="flex gap-2">
+            <input
+              type="text"
+              name="variable[name]"
+              placeholder="name"
+              required
+              pattern="[a-zA-Z_][a-zA-Z0-9_]*"
+              class="input input-bordered input-sm flex-1 font-mono"
+            />
+            <select name="variable[type]" class="select select-bordered select-sm w-28">
+              <option value="text">Text</option>
+              <option value="number">Number</option>
+              <option value="date">Date</option>
+            </select>
+            <input
+              type="text"
+              name="variable[default]"
+              placeholder="default (optional)"
+              class="input input-bordered input-sm flex-1"
+            />
+            <button type="submit" class="btn btn-sm btn-primary">Add</button>
+          </div>
+        </form>
+
+        <div class="flex justify-end mt-4">
+          <button phx-click="close_variables_modal" class="btn btn-sm">Close</button>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp param_input_type(variables, param) do
+    case Enum.find(variables || [], &(&1["name"] == param)) do
+      %{"type" => "number"} -> "number"
+      %{"type" => "date"} -> "date"
+      %{"type" => _} -> "text"
+      nil -> Params.infer_input_type(param)
+    end
+  end
+
+  defp param_label(variables, param) do
+    case Enum.find(variables || [], &(&1["name"] == param)) do
+      %{"label" => label} when label not in [nil, ""] -> label
+      _ -> ":#{param}"
+    end
   end
 
   attr :show?, :boolean, required: true

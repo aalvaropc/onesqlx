@@ -14,6 +14,32 @@ defmodule Onesqlx.Dashboards do
   alias Onesqlx.Dashboards.DashboardCard
   alias Onesqlx.Repo
 
+  @pubsub Onesqlx.PubSub
+
+  @doc """
+  Subscribes the caller to live updates for a dashboard. Mutations to
+  the dashboard or its cards broadcast `{:dashboard_updated, id}` to
+  every subscriber except the process that made the change.
+  """
+  def subscribe(dashboard_id) do
+    Phoenix.PubSub.subscribe(@pubsub, topic(dashboard_id))
+  end
+
+  defp topic(dashboard_id), do: "dashboard:#{dashboard_id}"
+
+  defp maybe_broadcast({:ok, _} = result, dashboard_id) do
+    Phoenix.PubSub.broadcast_from(
+      @pubsub,
+      self(),
+      topic(dashboard_id),
+      {:dashboard_updated, dashboard_id}
+    )
+
+    result
+  end
+
+  defp maybe_broadcast(result, _dashboard_id), do: result
+
   @spec list_dashboards(Scope.t(), keyword()) :: [Dashboard.t()]
   @doc """
   Lists all dashboards for the workspace, ordered by updated_at desc.
@@ -97,6 +123,7 @@ defmodule Onesqlx.Dashboards do
     dashboard
     |> Dashboard.changeset(attrs)
     |> Repo.update()
+    |> maybe_broadcast(dashboard.id)
   end
 
   @spec delete_dashboard(Scope.t(), Dashboard.t()) ::
@@ -154,11 +181,40 @@ defmodule Onesqlx.Dashboards do
     end)
   end
 
+  @spec update_variables(Scope.t(), Dashboard.t(), [map()]) ::
+          {:ok, Dashboard.t()} | {:error, Ecto.Changeset.t()}
+  @doc """
+  Replaces the dashboard-level variable definitions.
+
+  Variables map to the `:name` named parameters of the cards' saved
+  queries and provide a type, label, and default value for the
+  dashboard's filter bar (including public/embed views).
+  """
+  def update_variables(%Scope{} = scope, %Dashboard{} = dashboard, variables) do
+    verify_ownership!(scope, dashboard)
+
+    dashboard
+    |> Dashboard.variables_changeset(variables)
+    |> Repo.update()
+    |> maybe_broadcast(dashboard.id)
+  end
+
+  @doc """
+  The default parameter values from a dashboard's variable definitions:
+  `%{"name" => default}` for every variable with a non-empty default.
+  """
+  def variable_defaults(%Dashboard{variables: variables}) do
+    for %{"name" => name, "default" => default} <- variables || [],
+        default not in [nil, ""],
+        into: %{},
+        do: {name, default}
+  end
+
+  @spec generate_public_token(Scope.t(), Dashboard.t()) ::
+          {:ok, Dashboard.t()} | {:error, Ecto.Changeset.t()}
   @doc """
   Generates a public sharing token for a dashboard.
   """
-  @spec generate_public_token(Scope.t(), Dashboard.t()) ::
-          {:ok, Dashboard.t()} | {:error, Ecto.Changeset.t()}
   def generate_public_token(%Scope{} = scope, %Dashboard{} = dashboard) do
     verify_ownership!(scope, dashboard)
 
@@ -225,6 +281,7 @@ defmodule Onesqlx.Dashboards do
         {:error, changeset} -> Repo.rollback(changeset)
       end
     end)
+    |> maybe_broadcast(dashboard.id)
   end
 
   @spec remove_card(Scope.t(), DashboardCard.t()) ::
@@ -234,7 +291,10 @@ defmodule Onesqlx.Dashboards do
   """
   def remove_card(%Scope{} = scope, %DashboardCard{} = card) do
     verify_card_ownership!(scope, card)
-    Repo.delete(card)
+
+    card
+    |> Repo.delete()
+    |> maybe_broadcast(card.dashboard_id)
   end
 
   @spec update_card(Scope.t(), DashboardCard.t(), map()) ::
@@ -248,6 +308,7 @@ defmodule Onesqlx.Dashboards do
     card
     |> DashboardCard.changeset(attrs)
     |> Repo.update()
+    |> maybe_broadcast(card.dashboard_id)
   end
 
   @spec move_card_up(Scope.t(), DashboardCard.t()) :: {:ok, DashboardCard.t()}
@@ -283,6 +344,7 @@ defmodule Onesqlx.Dashboards do
 
           Repo.get!(DashboardCard, card.id)
         end)
+        |> maybe_broadcast(card.dashboard_id)
     end
   end
 
@@ -319,6 +381,7 @@ defmodule Onesqlx.Dashboards do
 
           Repo.get!(DashboardCard, card.id)
         end)
+        |> maybe_broadcast(card.dashboard_id)
     end
   end
 
@@ -337,6 +400,7 @@ defmodule Onesqlx.Dashboards do
         |> Repo.update_all(set: [position: index])
       end)
     end)
+    |> maybe_broadcast(dashboard.id)
   end
 
   @spec change_card(DashboardCard.t(), map()) :: Ecto.Changeset.t()

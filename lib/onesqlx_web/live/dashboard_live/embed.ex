@@ -12,8 +12,6 @@ defmodule OnesqlxWeb.DashboardLive.Embed do
 
   alias Onesqlx.Dashboards
 
-  @reserved_params ~w(token)
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -43,7 +41,9 @@ defmodule OnesqlxWeb.DashboardLive.Embed do
   @impl true
   def mount(%{"token" => token} = params, _session, socket) do
     dashboard = Dashboards.get_public_dashboard!(token)
-    url_params = Map.drop(params, @reserved_params)
+    url_params = public_query_params(dashboard, params)
+
+    if connected?(socket), do: Dashboards.subscribe(dashboard.id)
 
     card_results =
       Map.new(dashboard.cards, fn card ->
@@ -52,10 +52,28 @@ defmodule OnesqlxWeb.DashboardLive.Embed do
 
     socket =
       socket
-      |> assign(dashboard: dashboard, card_results: card_results)
+      |> assign(dashboard: dashboard, card_results: card_results, query_params: url_params)
       |> start_card_async_tasks(dashboard.cards, url_params)
 
     {:ok, socket, layout: false}
+  end
+
+  @impl true
+  def handle_info({:dashboard_updated, _id}, socket) do
+    dashboard = Dashboards.get_public_dashboard!(socket.assigns.dashboard.public_token)
+    query_params = public_query_params(dashboard, socket.assigns.query_params)
+
+    card_results =
+      Map.new(dashboard.cards, fn card ->
+        {card.id, initial_card_result(card)}
+      end)
+
+    socket =
+      socket
+      |> assign(dashboard: dashboard, card_results: card_results, query_params: query_params)
+      |> start_card_async_tasks(dashboard.cards, query_params)
+
+    {:noreply, socket}
   end
 
   @impl true

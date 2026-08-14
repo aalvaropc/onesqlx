@@ -20,6 +20,16 @@ defmodule OnesqlxWeb.DashboardLive.Public do
         </p>
       </div>
 
+      <div :if={@applied_params != %{}} class="flex items-center gap-2 mb-3">
+        <span class="text-xs text-base-content/60">Filters:</span>
+        <span
+          :for={{name, value} <- @applied_params}
+          class="badge badge-sm badge-primary gap-1"
+        >
+          {name} = {value}
+        </span>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div
           :for={card <- @dashboard.cards}
@@ -45,8 +55,11 @@ defmodule OnesqlxWeb.DashboardLive.Public do
   end
 
   @impl true
-  def mount(%{"token" => token}, _session, socket) do
+  def mount(%{"token" => token} = params, _session, socket) do
     dashboard = Dashboards.get_public_dashboard!(token)
+    query_params = public_query_params(dashboard, params)
+
+    if connected?(socket), do: Dashboards.subscribe(dashboard.id)
 
     card_results =
       Map.new(dashboard.cards, fn card ->
@@ -55,10 +68,28 @@ defmodule OnesqlxWeb.DashboardLive.Public do
 
     socket =
       socket
-      |> assign(dashboard: dashboard, card_results: card_results)
-      |> start_card_async_tasks(dashboard.cards)
+      |> assign(dashboard: dashboard, card_results: card_results, applied_params: query_params)
+      |> start_card_async_tasks(dashboard.cards, query_params)
 
     {:ok, socket, layout: false}
+  end
+
+  @impl true
+  def handle_info({:dashboard_updated, _id}, socket) do
+    dashboard = Dashboards.get_public_dashboard!(socket.assigns.dashboard.public_token)
+    query_params = public_query_params(dashboard, socket.assigns.applied_params)
+
+    card_results =
+      Map.new(dashboard.cards, fn card ->
+        {card.id, initial_card_result(card)}
+      end)
+
+    socket =
+      socket
+      |> assign(dashboard: dashboard, card_results: card_results, applied_params: query_params)
+      |> start_card_async_tasks(dashboard.cards, query_params)
+
+    {:noreply, socket}
   end
 
   @impl true
