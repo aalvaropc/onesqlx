@@ -44,6 +44,22 @@ defmodule Onesqlx.Scheduling.AlertEvaluatorTest do
       refute AlertEvaluator.should_alert?(sq, %{status: "success", row_count: 10})
     end
 
+    test "row_count_lt alerts when below threshold" do
+      sq = %{alert_condition: "row_count_lt", alert_threshold: Decimal.new("10")}
+      assert AlertEvaluator.should_alert?(sq, %{status: "success", row_count: 3})
+    end
+
+    test "row_count_lt does not alert at or above threshold" do
+      sq = %{alert_condition: "row_count_lt", alert_threshold: Decimal.new("10")}
+      refute AlertEvaluator.should_alert?(sq, %{status: "success", row_count: 10})
+      refute AlertEvaluator.should_alert?(sq, %{status: "success", row_count: 25})
+    end
+
+    test "row_count_lt treats missing row_count as zero" do
+      sq = %{alert_condition: "row_count_lt", alert_threshold: Decimal.new("1")}
+      assert AlertEvaluator.should_alert?(sq, %{status: "success"})
+    end
+
     test "value_gt alerts when first cell exceeds threshold" do
       sq = %{alert_condition: "value_gt", alert_threshold: Decimal.new("50")}
       attrs = %{status: "success", result_rows: %{"rows" => [[100, "data"]]}}

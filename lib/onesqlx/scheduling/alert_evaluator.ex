@@ -27,6 +27,10 @@ defmodule Onesqlx.Scheduling.AlertEvaluator do
     (run_attrs[:row_count] || 0) == 0
   end
 
+  def should_alert?(%{alert_condition: "row_count_lt", alert_threshold: threshold}, run_attrs) do
+    (run_attrs[:row_count] || 0) < to_number(threshold)
+  end
+
   def should_alert?(%{alert_condition: "value_gt", alert_threshold: threshold}, run_attrs) do
     case first_cell_value(run_attrs) do
       nil -> false

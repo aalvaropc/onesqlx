@@ -50,7 +50,7 @@ defmodule Onesqlx.Scheduling.ScheduledQuery do
     :user_id
   ]
 
-  @valid_alert_conditions ~w(always row_count_gt row_count_eq_zero value_gt value_lt)
+  @valid_alert_conditions ~w(always row_count_gt row_count_eq_zero row_count_lt value_gt value_lt)
 
   def changeset(scheduled_query, attrs) do
     scheduled_query

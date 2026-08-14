@@ -24,25 +24,16 @@ defmodule Onesqlx.Scheduling.ExecuteWorker do
 
     case execute_query(sq) do
       {:ok, run_attrs} ->
-        attrs = Map.put(run_attrs, :started_at, started_at)
-        Scheduling.record_run(sq, attrs)
-        maybe_notify(sq, attrs)
-        :ok
+        finalize_run(sq, run_attrs, started_at)
 
       {:transient, run_attrs} when last_attempt? ->
-        attrs = Map.put(run_attrs, :started_at, started_at)
-        Scheduling.record_run(sq, attrs)
-        maybe_notify(sq, attrs)
-        :ok
+        finalize_run(sq, run_attrs, started_at)
 
       {:transient, run_attrs} ->
         {:error, run_attrs.error_message}
 
       {:permanent, run_attrs} ->
-        attrs = Map.put(run_attrs, :started_at, started_at)
-        Scheduling.record_run(sq, attrs)
-        maybe_notify(sq, attrs)
-        :ok
+        finalize_run(sq, run_attrs, started_at)
     end
   end
 
@@ -103,10 +94,26 @@ defmodule Onesqlx.Scheduling.ExecuteWorker do
     end
   end
 
-  defp maybe_notify(sq, attrs) do
-    if AlertEvaluator.should_alert?(sq, attrs) do
+  # Records the run (with whether an alert notification went out) and
+  # dispatches the notifications when the alert condition holds.
+  defp finalize_run(sq, run_attrs, started_at) do
+    alert? = AlertEvaluator.should_alert?(sq, run_attrs)
+    channel? = present?(sq.notify_email) or present?(Map.get(sq, :webhook_url))
+
+    attrs =
+      run_attrs
+      |> Map.put(:started_at, started_at)
+      |> Map.put(:notified, alert? and channel?)
+
+    Scheduling.record_run(sq, attrs)
+
+    if alert? do
       Notifier.deliver_run_result(sq, attrs)
       Notifier.deliver_webhook(sq, attrs)
     end
+
+    :ok
   end
+
+  defp present?(value), do: value not in [nil, ""]
 end
