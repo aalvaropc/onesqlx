@@ -55,6 +55,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         saved_queries={@saved_queries}
       />
       <.share_modal show?={@show_share_modal?} dashboard={@dashboard} />
+      <.variables_modal show?={@show_variables_modal?} variables={@dashboard.variables} />
     </Layouts.app>
     """
   end
@@ -69,8 +70,6 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         {card.id, initial_card_result(card)}
       end)
 
-    all_param_names = extract_dashboard_params(dashboard.cards)
-
     socket =
       socket
       |> assign(
@@ -84,8 +83,9 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         auto_refresh_interval: 0,
         auto_refresh_ref: nil,
         show_share_modal?: false,
-        dashboard_param_names: all_param_names,
-        dashboard_params: %{},
+        show_variables_modal?: false,
+        dashboard_param_names: dashboard_param_names(dashboard),
+        dashboard_params: Dashboards.variable_defaults(dashboard),
         active_filters: %{},
         skip_cache?: false
       )
@@ -128,6 +128,43 @@ defmodule OnesqlxWeb.DashboardLive.Show do
 
   def handle_event("toggle_edit", _params, socket) do
     {:noreply, assign(socket, editing?: !socket.assigns.editing?)}
+  end
+
+  def handle_event("open_variables_modal", _params, socket) do
+    {:noreply, assign(socket, show_variables_modal?: true)}
+  end
+
+  def handle_event("close_variables_modal", _params, socket) do
+    {:noreply, assign(socket, show_variables_modal?: false)}
+  end
+
+  def handle_event("add_variable", %{"variable" => attrs}, socket) do
+    scope = socket.assigns.current_scope
+    dashboard = socket.assigns.dashboard
+    variables = dashboard.variables ++ [attrs]
+
+    case Dashboards.update_variables(scope, dashboard, variables) do
+      {:ok, updated} ->
+        {:noreply, after_variables_change(socket, updated)}
+
+      {:error, changeset} ->
+        message = variables_error(changeset)
+        {:noreply, put_flash(socket, :error, message)}
+    end
+  end
+
+  def handle_event("remove_variable", %{"name" => name}, socket) do
+    scope = socket.assigns.current_scope
+    dashboard = socket.assigns.dashboard
+    variables = Enum.reject(dashboard.variables, &(&1["name"] == name))
+
+    case Dashboards.update_variables(scope, dashboard, variables) do
+      {:ok, updated} ->
+        {:noreply, after_variables_change(socket, updated)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not remove variable.")}
+    end
   end
 
   def handle_event("refresh", _params, socket) do
@@ -481,6 +518,34 @@ defmodule OnesqlxWeb.DashboardLive.Show do
       _ -> []
     end)
     |> Enum.uniq()
+  end
+
+  # Filter bar shows defined variables first, then any :params detected
+  # in card SQL that no variable covers yet.
+  defp dashboard_param_names(dashboard) do
+    defined = Enum.map(dashboard.variables || [], & &1["name"])
+    Enum.uniq(defined ++ extract_dashboard_params(dashboard.cards))
+  end
+
+  defp after_variables_change(socket, updated_dashboard) do
+    defaults = Dashboards.variable_defaults(updated_dashboard)
+
+    # New defaults fill in only where the user hasn't set a value
+    params = Map.merge(defaults, socket.assigns.dashboard_params)
+
+    socket
+    |> assign(
+      dashboard: updated_dashboard,
+      dashboard_param_names: dashboard_param_names(updated_dashboard),
+      dashboard_params: params
+    )
+  end
+
+  defp variables_error(changeset) do
+    case changeset.errors[:variables] do
+      {message, _} -> message
+      _ -> "Could not save variable."
+    end
   end
 
   defp initial_card_result(%{type: "markdown"}), do: :not_applicable

@@ -12,8 +12,6 @@ defmodule OnesqlxWeb.DashboardLive.Embed do
 
   alias Onesqlx.Dashboards
 
-  @reserved_params ~w(token)
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -43,7 +41,7 @@ defmodule OnesqlxWeb.DashboardLive.Embed do
   @impl true
   def mount(%{"token" => token} = params, _session, socket) do
     dashboard = Dashboards.get_public_dashboard!(token)
-    url_params = Map.drop(params, @reserved_params)
+    url_params = public_query_params(dashboard, params)
 
     card_results =
       Map.new(dashboard.cards, fn card ->
