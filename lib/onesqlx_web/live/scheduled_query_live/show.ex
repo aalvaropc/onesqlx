@@ -98,6 +98,9 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
             <span :if={run.row_count} class="text-sm text-base-content/50">
               {run.row_count} rows
             </span>
+            <span :if={run.notified} class="badge badge-sm badge-warning gap-1" title="Alert sent">
+              <.icon name="hero-bell-alert" class="size-3" /> alerted
+            </span>
             <span :if={run.error_message} class="text-sm text-error truncate flex-1">
               {run.error_message}
             </span>
@@ -221,6 +224,12 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
                   selected={@edit_form[:alert_condition].value == "row_count_eq_zero"}
                 >
                   Row count is zero
+                </option>
+                <option
+                  value="row_count_lt"
+                  selected={@edit_form[:alert_condition].value == "row_count_lt"}
+                >
+                  Row count less than
                 </option>
                 <option value="value_gt" selected={@edit_form[:alert_condition].value == "value_gt"}>
                   First value greater than
