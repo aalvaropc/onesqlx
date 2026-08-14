@@ -27,7 +27,11 @@ defmodule Onesqlx.DataSources.Connection.Postgrex do
       pool_size: 1,
       connect_timeout: @connect_timeout,
       after_connect: fn conn ->
-        Postgrex.query!(conn, "SET default_transaction_read_only = on", [])
+        # Skipped only when the data source is explicitly marked writable;
+        # Executor's SQL guard is conditional on the same flag.
+        if data_source.read_only do
+          Postgrex.query!(conn, "SET default_transaction_read_only = on", [])
+        end
       end
     ]
 

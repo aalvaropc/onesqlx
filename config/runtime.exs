@@ -70,6 +70,19 @@ if config_env() == :prod do
            socket_options: maybe_ipv6
          ] ++ database_ssl
 
+  # Data retention overrides for the daily cleanup worker
+  retention_env = fn var, default ->
+    case System.get_env(var) do
+      nil -> default
+      value -> String.to_integer(value)
+    end
+  end
+
+  config :onesqlx, :retention,
+    query_runs_days: retention_env.("RETENTION_QUERY_RUNS_DAYS", 90),
+    audit_events_days: retention_env.("RETENTION_AUDIT_EVENTS_DAYS", 180),
+    scheduled_runs_days: retention_env.("RETENTION_SCHEDULED_RUNS_DAYS", 30)
+
   # Prometheus /metrics: requires `Authorization: Bearer $METRICS_TOKEN`;
   # without METRICS_TOKEN the endpoint responds 404 (secure by default).
   metrics_auth =

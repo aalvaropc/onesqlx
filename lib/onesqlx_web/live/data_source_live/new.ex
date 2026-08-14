@@ -24,6 +24,12 @@ defmodule OnesqlxWeb.DataSourceLive.New do
           <.input field={@form[:username]} type="text" label="Username" required />
           <.input field={@form[:password]} type="password" label="Password" required />
           <.input field={@form[:ssl_enabled]} type="checkbox" label="Enable SSL" />
+          <.input field={@form[:read_only]} type="checkbox" label="Read-only (recommended)" />
+          <p class="text-xs text-warning -mt-1 mb-2">
+            Unchecking this allows INSERT/UPDATE/DELETE and DDL to run against
+            this database from OneSQLx. Only disable it for databases you are
+            comfortable modifying from here.
+          </p>
 
           <div class="flex items-center gap-4 mt-6">
             <.button

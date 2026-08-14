@@ -43,6 +43,13 @@ config :onesqlx,
   generators: [timestamp_type: :utc_datetime, binary_id: true],
   connection_module: Onesqlx.DataSources.Connection.Postgrex
 
+# Data retention for the daily cleanup worker (overridable per env,
+# and via RETENTION_* env vars in production — see config/runtime.exs)
+config :onesqlx, :retention,
+  query_runs_days: 90,
+  audit_events_days: 180,
+  scheduled_runs_days: 30
+
 # Configure the endpoint
 config :onesqlx, OnesqlxWeb.Endpoint,
   url: [host: "localhost"],
