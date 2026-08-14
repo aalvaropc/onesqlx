@@ -36,6 +36,19 @@ if System.get_env("GITHUB_CLIENT_ID") do
     client_secret: System.get_env("GITHUB_CLIENT_SECRET")
 end
 
+# Dedicated key for data source credential encryption (base64, 32 bytes).
+# With it configured, rotating SECRET_KEY_BASE no longer invalidates
+# stored credentials. Generate with: openssl rand -base64 32
+if encoded_key = System.get_env("ENCRYPTION_KEY") do
+  key =
+    case Base.decode64(encoded_key) do
+      {:ok, <<_::binary-size(32)>> = key} -> key
+      _ -> raise "ENCRYPTION_KEY must be exactly 32 bytes, base64-encoded"
+    end
+
+  config :onesqlx, :encryption_key, key
+end
+
 # Sender for all outgoing email (magic links, schedule notifications)
 if System.get_env("MAIL_FROM") do
   config :onesqlx,
