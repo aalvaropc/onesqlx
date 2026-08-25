@@ -39,9 +39,14 @@ defmodule OnesqlxWeb.DataSourceLive.Index do
           </span>
         </:col>
         <:col :let={{_id, ds}} label="">
-          <.link navigate={~p"/data-sources/#{ds.id}/catalog"} class="link link-primary text-sm">
-            Explore
-          </.link>
+          <div class="flex items-center gap-3">
+            <.link navigate={~p"/data-sources/#{ds.id}/catalog"} class="link link-primary text-sm">
+              Explore
+            </.link>
+            <.link navigate={~p"/data-sources/#{ds.id}/edit"} class="link text-sm">
+              Edit
+            </.link>
+          </div>
         </:col>
       </.table>
 

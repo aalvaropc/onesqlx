@@ -150,6 +150,7 @@ defmodule OnesqlxWeb.Router do
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
       live "/data-sources", DataSourceLive.Index, :index
       live "/data-sources/new", DataSourceLive.New, :new
+      live "/data-sources/:id/edit", DataSourceLive.Edit, :edit
       live "/data-sources/:data_source_id/catalog", CatalogLive.Explorer, :index
       live "/sql-editor", SqlEditorLive, :index
       live "/saved-queries", SavedQueryLive.Index, :index

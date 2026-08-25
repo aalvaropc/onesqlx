@@ -14,7 +14,10 @@ defmodule Onesqlx.Querying.Executor do
   alias Onesqlx.Querying.SqlGuard
 
   @default_row_limit 1_000
-  @statement_timeout "30000"
+  @default_statement_timeout_ms 30_000
+  # The client-side timeout exceeds the server statement_timeout so the
+  # server cancels first and we surface :query_canceled as {:error, :timeout, _}
+  @client_timeout_margin_ms 5_000
 
   @type result :: %{
           columns: [String.t()],
@@ -40,7 +43,11 @@ defmodule Onesqlx.Querying.Executor do
   @spec execute(DataSource.t(), String.t(), keyword()) ::
           {:ok, result()} | {:error, atom(), String.t()}
   def execute(%DataSource{} = data_source, sql, opts \\ []) do
-    row_limit = Keyword.get(opts, :row_limit, @default_row_limit)
+    row_limit =
+      opts
+      |> Keyword.get(:row_limit, @default_row_limit)
+      |> cap_row_limit(data_source.max_row_limit)
+
     params = Keyword.get(opts, :params, %{})
     cancel_ref = Keyword.get(opts, :cancel_ref)
     cache_ttl = Keyword.get(opts, :cache_ttl)
@@ -115,9 +122,11 @@ defmodule Onesqlx.Querying.Executor do
         {:error, :blocked, message}
 
       :ok ->
+        timeout_ms = statement_timeout_ms(data_source)
+
         Connection.impl().with_connection(data_source, fn conn ->
-          Postgrex.query!(conn, "SET statement_timeout = '#{@statement_timeout}'", [])
-          run_explain(conn, prepared_sql, values)
+          set_statement_timeout(conn, timeout_ms)
+          run_explain(conn, prepared_sql, values, timeout_ms + @client_timeout_margin_ms)
         end)
     end
   end
@@ -128,10 +137,10 @@ defmodule Onesqlx.Querying.Executor do
   defp validate_guard(%DataSource{read_only: false}, _sql), do: :ok
   defp validate_guard(_data_source, sql), do: SqlGuard.validate(sql)
 
-  defp run_explain(conn, sql, values) do
+  defp run_explain(conn, sql, values, client_timeout_ms) do
     explain_sql = "EXPLAIN (ANALYZE, COSTS, BUFFERS, FORMAT TEXT) #{sql}"
 
-    case Postgrex.query(conn, explain_sql, values, timeout: 35_000) do
+    case Postgrex.query(conn, explain_sql, values, timeout: client_timeout_ms) do
       {:ok, %Postgrex.Result{rows: rows}} ->
         plan_text = Enum.map_join(rows, "\n", &List.first/1)
         {:ok, plan_text}
@@ -193,17 +202,30 @@ defmodule Onesqlx.Querying.Executor do
   defp maybe_store_in_cache(_error, _ds_id, _sql, _params, _ttl), do: :ok
 
   defp do_execute(data_source, sql, values, row_limit, cancel_ref) do
+    timeout_ms = statement_timeout_ms(data_source)
+
     Connection.impl().with_connection(data_source, fn conn ->
-      Postgrex.query!(conn, "SET statement_timeout = '#{@statement_timeout}'", [])
+      set_statement_timeout(conn, timeout_ms)
       register_cancel(conn, cancel_ref)
 
       try do
-        run_query(conn, sql, values, row_limit)
+        run_query(conn, sql, values, row_limit, timeout_ms + @client_timeout_margin_ms)
       after
         unregister_cancel(cancel_ref)
       end
     end)
   end
+
+  defp statement_timeout_ms(%DataSource{statement_timeout_ms: ms}) when is_integer(ms), do: ms
+  defp statement_timeout_ms(_data_source), do: @default_statement_timeout_ms
+
+  # The value is an integer from a validated schema field, never raw input
+  defp set_statement_timeout(conn, timeout_ms) do
+    Postgrex.query!(conn, "SET statement_timeout = '#{timeout_ms}'", [])
+  end
+
+  defp cap_row_limit(requested, nil), do: requested
+  defp cap_row_limit(requested, max) when is_integer(max), do: min(requested, max)
 
   defp register_cancel(_conn, nil), do: :ok
 
@@ -220,10 +242,10 @@ defmodule Onesqlx.Querying.Executor do
   defp unregister_cancel(nil), do: :ok
   defp unregister_cancel(cancel_ref), do: CancelRegistry.unregister(cancel_ref)
 
-  defp run_query(conn, sql, values, row_limit) do
+  defp run_query(conn, sql, values, row_limit, client_timeout_ms) do
     start = System.monotonic_time(:millisecond)
 
-    case Postgrex.query(conn, sql, values, timeout: 35_000) do
+    case Postgrex.query(conn, sql, values, timeout: client_timeout_ms) do
       {:ok, %Postgrex.Result{columns: columns, rows: rows, num_rows: num_rows}} ->
         duration_ms = System.monotonic_time(:millisecond) - start
         truncated_rows = Enum.take(rows, row_limit)
