@@ -8,9 +8,10 @@ defmodule OnesqlxWeb.ExportController do
   alias Onesqlx.DataSources
   alias Onesqlx.Export.Csv
   alias Onesqlx.Querying.Executor
+  alias Onesqlx.Querying.Params
 
-  def csv(conn, %{"data_source_id" => ds_id, "sql" => sql, "label" => label}) do
-    with_result(conn, ds_id, sql, fn result ->
+  def csv(conn, %{"data_source_id" => ds_id, "sql" => sql, "label" => label} = params) do
+    with_result(conn, ds_id, sql, query_params(params), fn result ->
       filename = Csv.filename(label)
 
       conn =
@@ -24,8 +25,8 @@ defmodule OnesqlxWeb.ExportController do
     end)
   end
 
-  def json(conn, %{"data_source_id" => ds_id, "sql" => sql, "label" => label}) do
-    with_result(conn, ds_id, sql, fn result ->
+  def json(conn, %{"data_source_id" => ds_id, "sql" => sql, "label" => label} = params) do
+    with_result(conn, ds_id, sql, query_params(params), fn result ->
       filename = export_filename(label, "json")
 
       data =
@@ -40,8 +41,8 @@ defmodule OnesqlxWeb.ExportController do
     end)
   end
 
-  def xlsx(conn, %{"data_source_id" => ds_id, "sql" => sql, "label" => label}) do
-    with_result(conn, ds_id, sql, fn result ->
+  def xlsx(conn, %{"data_source_id" => ds_id, "sql" => sql, "label" => label} = params) do
+    with_result(conn, ds_id, sql, query_params(params), fn result ->
       filename = export_filename(label, "xlsx")
       header = Enum.map(result.columns, &to_string/1)
       rows = Enum.map(result.rows, fn row -> Enum.map(row, &xlsx_cell/1) end)
@@ -59,11 +60,28 @@ defmodule OnesqlxWeb.ExportController do
     end)
   end
 
-  defp with_result(conn, ds_id, sql, success_fn) do
+  defp with_result(conn, ds_id, sql, params, success_fn) do
     scope = conn.assigns.current_scope
     data_source = DataSources.get_data_source!(scope, ds_id)
 
-    case Executor.execute(data_source, sql, row_limit: 10_000) do
+    # Params.substitute/2 raises on missing values, so check up front and
+    # fail with a flash instead of a 500.
+    case Params.extract(sql) -- Map.keys(params) do
+      [] ->
+        execute_and_respond(conn, data_source, sql, params, success_fn)
+
+      missing ->
+        conn
+        |> put_flash(
+          :error,
+          "Export failed: missing parameter values: #{Enum.join(missing, ", ")}"
+        )
+        |> redirect(to: ~p"/sql-editor")
+    end
+  end
+
+  defp execute_and_respond(conn, data_source, sql, params, success_fn) do
+    case Executor.execute(data_source, sql, row_limit: 10_000, params: params) do
       {:ok, result} ->
         success_fn.(result)
 
@@ -73,6 +91,12 @@ defmodule OnesqlxWeb.ExportController do
         |> redirect(to: ~p"/sql-editor")
     end
   end
+
+  defp query_params(%{"params" => params}) when is_map(params) do
+    for {name, value} <- params, is_binary(name), is_binary(value), into: %{}, do: {name, value}
+  end
+
+  defp query_params(_), do: %{}
 
   defp stream_rows(conn, rows) do
     Enum.reduce_while(rows, conn, fn row, conn ->

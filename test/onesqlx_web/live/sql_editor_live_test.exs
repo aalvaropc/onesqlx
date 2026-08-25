@@ -1,6 +1,7 @@
 defmodule OnesqlxWeb.SqlEditorLiveTest do
   use OnesqlxWeb.ConnCase, async: true
 
+  import Mox
   import Phoenix.LiveViewTest
   import Onesqlx.DataSourcesFixtures
   import Onesqlx.QueryingFixtures
@@ -155,6 +156,57 @@ defmodule OnesqlxWeb.SqlEditorLiveTest do
       assert {:error, redirect} = live(conn, ~p"/sql-editor")
       assert {:redirect, %{to: path}} = redirect
       assert path =~ ~p"/users/log-in"
+    end
+  end
+
+  describe "export form" do
+    setup :verify_on_exit!
+    setup :register_and_log_in_user
+
+    test "exports the executed SQL and its parameter values", %{conn: conn, scope: scope} do
+      ds = data_source_fixture(scope)
+
+      stub(Onesqlx.DataSources.MockConnection, :with_connection, fn _ds, _fun ->
+        {:ok, %{columns: ["n"], rows: [[42]], row_count: 1, duration_ms: 1}}
+      end)
+
+      {:ok, lv, _html} = live(conn, ~p"/sql-editor")
+
+      render_change(lv, "select_data_source", %{"data_source_id" => ds.id})
+      render_click(lv, "update_sql", %{"sql" => "SELECT :n AS n"})
+
+      # First execute detects :n and opens the params form without running
+      html = render_click(lv, "execute", %{})
+      assert html =~ "Query Parameters"
+
+      render_click(lv, "update_param", %{"name" => "n", "value" => "42"})
+      render_click(lv, "execute_with_params", %{})
+      html = render_async(lv)
+
+      # The export form carries the SQL that produced the result and its params
+      assert html =~ ~s(name="sql" value="SELECT :n AS n")
+      assert html =~ ~s(name="params[n]" value="42")
+    end
+
+    test "exports the executed SQL even after the buffer changes", %{conn: conn, scope: scope} do
+      ds = data_source_fixture(scope)
+
+      stub(Onesqlx.DataSources.MockConnection, :with_connection, fn _ds, _fun ->
+        {:ok, %{columns: ["a"], rows: [[1]], row_count: 1, duration_ms: 1}}
+      end)
+
+      {:ok, lv, _html} = live(conn, ~p"/sql-editor")
+
+      render_change(lv, "select_data_source", %{"data_source_id" => ds.id})
+      render_click(lv, "update_sql", %{"sql" => "SELECT 1 AS a"})
+      render_click(lv, "execute", %{})
+      render_async(lv)
+
+      # User keeps typing after running: the export must not follow the buffer
+      html = render_click(lv, "update_sql", %{"sql" => "DELETE FROM everything"})
+
+      assert html =~ ~s(name="sql" value="SELECT 1 AS a")
+      refute html =~ ~s(name="sql" value="DELETE FROM everything")
     end
   end
 end

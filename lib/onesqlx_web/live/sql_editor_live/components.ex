@@ -144,8 +144,15 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
                 value={Plug.CSRFProtection.get_csrf_token()}
               />
               <input type="hidden" name="data_source_id" value={@tab.data_source_id} />
-              <input type="hidden" name="sql" value={@tab.sql} />
+              <%!-- The SQL that produced @tab.result, not the live buffer --%>
+              <input type="hidden" name="sql" value={@tab.execute_sql} />
               <input type="hidden" name="label" value="sql_editor" />
+              <input
+                :for={{name, value} <- @tab.param_values}
+                type="hidden"
+                name={"params[#{name}]"}
+                value={value}
+              />
               <button type="submit" class="w-full text-left text-sm">{label}</button>
             </form>
           </li>

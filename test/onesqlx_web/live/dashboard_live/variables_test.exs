@@ -1,9 +1,12 @@
 defmodule OnesqlxWeb.DashboardLive.VariablesTest do
   use OnesqlxWeb.ConnCase, async: true
 
+  import Mox
   import Phoenix.LiveViewTest
   import Onesqlx.AccountsFixtures
   import Onesqlx.DashboardsFixtures
+  import Onesqlx.DataSourcesFixtures
+  import Onesqlx.SavedQueriesFixtures
 
   alias Onesqlx.Dashboards
 
@@ -111,6 +114,43 @@ defmodule OnesqlxWeb.DashboardLive.VariablesTest do
       {:ok, _lv, html} = live(conn, ~p"/share/#{dashboard.public_token}")
 
       assert html =~ "region = emea"
+    end
+  end
+
+  describe "card CSV export" do
+    setup :register_and_log_in_user
+    setup :verify_on_exit!
+
+    test "the export form carries the dashboard's parameter values", %{
+      conn: conn,
+      scope: scope
+    } do
+      data_source = data_source_fixture(scope)
+
+      saved_query =
+        saved_query_fixture(scope, data_source, %{
+          title: "By region",
+          sql: "SELECT count(*) FROM orders WHERE region = :region"
+        })
+
+      dashboard = dashboard_fixture(scope)
+
+      {:ok, dashboard} =
+        Onesqlx.Dashboards.update_variables(scope, dashboard, [
+          %{"name" => "region", "default" => "emea"}
+        ])
+
+      card_fixture(scope, dashboard, saved_query, %{type: "table"})
+
+      stub(Onesqlx.DataSources.MockConnection, :with_connection, fn _ds, _fun ->
+        {:ok, %{columns: ["count"], rows: [[7]], row_count: 1, duration_ms: 1}}
+      end)
+
+      {:ok, lv, _html} = live(conn, ~p"/dashboards/#{dashboard.id}")
+      html = render_async(lv)
+
+      # The card ran with region=emea, so its export must too
+      assert html =~ ~s(name="params[region]" value="emea")
     end
   end
 end
