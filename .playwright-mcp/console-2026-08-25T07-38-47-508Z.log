@@ -1,8 +1,0 @@
-[      69ms] [INFO] %c📡 [info] GET /sql-editor
- color: inherit; @ http://localhost:4000/phoenix/live_reload/frame:1828
-[      92ms] [INFO] %c📡 [info] Sent 200 in 25ms
- color: inherit; @ http://localhost:4000/phoenix/live_reload/frame:1828
-[     210ms] [LOG] phx-GM78USaqVVhMewcH mount:  -  {0: Object, p: Object, s: 35, e: Array(2)} @ http://localhost:4000/assets/js/app.js:2179
-[    9357ms] [LOG] phx-GM78USaqVVhMewcH update:  -  {0: Object, p: Object} @ http://localhost:4000/assets/js/app.js:2179
-[    9378ms] [LOG] phx-GM78USaqVVhMewcH update:  -  {0: Object, p: Object} @ http://localhost:4000/assets/js/app.js:2179
-[    9382ms] [ERROR] The stream container with id "" is missing the phx-update="stream" attribute. Ensure it is set for streams to work properly. @ http://localhost:4000/assets/js/app.js:1563
