@@ -93,9 +93,12 @@ defmodule OnesqlxWeb.SearchLive do
         <.link
           :for={item <- @items}
           navigate={@link_fn.(item)}
-          class="flex items-center gap-2 p-2 rounded hover:bg-base-200 transition-colors"
+          class="flex flex-col gap-0.5 p-2 rounded hover:bg-base-200 transition-colors"
         >
           <span class="text-sm">{@label_fn.(item)}</span>
+          <span :if={item[:snippet]} class="font-mono text-xs text-base-content/50 truncate">
+            {item[:snippet]}
+          </span>
         </.link>
       </div>
     </div>
