@@ -190,6 +190,25 @@ OneSQLx is a **modular monolith** with two clearly separated database worlds:
 **OAuth:**
 - `GET /auth/:provider`, `GET /auth/:provider/callback` — Google / GitHub
 
+## Quick Start
+
+The fastest way to try OneSQLx is the published image together with its Compose
+stack, which starts PostgreSQL, applies migrations, and brings up the app:
+
+```bash
+curl -O https://raw.githubusercontent.com/aalvaropc/onesqlx/main/docker-compose.prod.yml
+
+SECRET_KEY_BASE=$(openssl rand -base64 48) \
+POSTGRES_PASSWORD=$(openssl rand -hex 24) \
+  docker compose -f docker-compose.prod.yml up -d
+```
+
+Then open [localhost:4000](http://localhost:4000). Images are published to
+[`ghcr.io/aalvaropc/onesqlx`](https://github.com/aalvaropc/onesqlx/pkgs/container/onesqlx)
+on every release, tagged `latest`, `MAJOR.MINOR`, and the exact version; pin one
+with `ONESQLX_VERSION`. See [docs/deploy.md](docs/deploy.md) for the full
+runbook — mailer, TLS, Prometheus, backups, and upgrades.
+
 ## Local Development
 
 ### Prerequisites
@@ -202,7 +221,7 @@ OneSQLx is a **modular monolith** with two clearly separated database worlds:
 asdf install   # or: mise install
 ```
 
-### Quick Start
+### From source
 
 ```bash
 git clone https://github.com/aalvaropc/onesqlx.git

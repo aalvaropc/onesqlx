@@ -7,8 +7,9 @@ Kubernetes) — only the orchestration changes.
 ## Quick start
 
 ```bash
-git clone https://github.com/aalvaropc/onesqlx.git
-cd onesqlx
+# 0. Get the Compose file (the image is pulled, so no clone is needed)
+mkdir onesqlx && cd onesqlx
+curl -O https://raw.githubusercontent.com/aalvaropc/onesqlx/main/docker-compose.prod.yml
 
 # 1. Create the environment file
 cat > .env <<EOF
@@ -24,15 +25,18 @@ EOF
 # (with a local Elixir install, `mix phx.gen.secret` is the simpler way
 # to generate SECRET_KEY_BASE)
 
-# 2. Build and start (runs migrations automatically before the app)
-docker compose -f docker-compose.prod.yml up -d --build
+# 2. Start (pulls the published image and runs migrations before the app)
+docker compose -f docker-compose.prod.yml up -d
 
 # 3. Verify
 curl -fsS http://localhost:4000/health
 ```
 
-The `migrate` one-shot service applies pending Ecto migrations on every
-`up`, so upgrades are: `git pull && docker compose -f docker-compose.prod.yml up -d --build`.
+The `migrate` one-shot service applies pending Ecto migrations on every `up`.
+
+The Compose file pulls `ghcr.io/aalvaropc/onesqlx:latest` by default. Pin a
+release with `ONESQLX_VERSION=0.1.0` in `.env`, or build from source instead by
+swapping the commented `build:` block in for `image:`.
 
 ## Environment variables
 
@@ -112,8 +116,11 @@ Restore with `gunzip -c dump.sql.gz | docker exec -i onesqlx_prod_db psql -U pos
 ## Upgrading
 
 ```bash
-git pull
-docker compose -f docker-compose.prod.yml up -d --build   # migrations run first
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d   # migrations run first
 ```
+
+Check the [release notes](https://github.com/aalvaropc/onesqlx/releases) before
+upgrading; each release links the CHANGELOG section for that version.
 
 Rollback of a migration (rarely needed): `docker exec onesqlx_app /app/bin/onesqlx eval 'Onesqlx.Release.rollback(Onesqlx.Repo, <version>)'`.
