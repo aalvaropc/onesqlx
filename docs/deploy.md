@@ -38,6 +38,23 @@ The Compose file pulls `ghcr.io/aalvaropc/onesqlx:latest` by default. Pin a
 release with `ONESQLX_VERSION=0.1.0` in `.env`, or build from source instead by
 swapping the commented `build:` block in for `image:`.
 
+## Sample data (optional)
+
+After registering the first user, install a demo dataset to verify the whole
+path — connection, catalog, queries, dashboards — without wiring up a real
+database:
+
+```bash
+docker compose -f docker-compose.prod.yml exec app \
+  /app/bin/onesqlx eval 'Onesqlx.Release.install_sample()'
+```
+
+It creates an `onesqlx_sample` schema in OneSQLx's own database and a dedicated
+PostgreSQL role with `SELECT` on that schema only — it cannot read application
+tables. Requires a database user with `CREATEROLE`; on managed PostgreSQL that
+may not be available, in which case the command reports it and changes nothing.
+Remove it by deleting the data source and dropping the schema and role.
+
 ## Environment variables
 
 ### Required

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Sample data** — `mix onesqlx.sample` (or `bin/onesqlx eval 'Onesqlx.Release.install_sample()'`
+  in a release) installs a small e-commerce dataset in an `onesqlx_sample`
+  schema, plus a data source, five saved queries, and a dashboard built on it,
+  so a fresh instance has something to explore before connecting a database.
+  The dataset is read through a dedicated PostgreSQL role granted `SELECT` only
+  on that schema. `mix run priv/repo/seeds.exs` installs it automatically in
+  development.
+
 ## [0.1.0] - 2026-08-17
 
 First public release.

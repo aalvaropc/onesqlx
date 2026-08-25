@@ -203,7 +203,16 @@ POSTGRES_PASSWORD=$(openssl rand -hex 24) \
   docker compose -f docker-compose.prod.yml up -d
 ```
 
-Then open [localhost:4000](http://localhost:4000). Images are published to
+Then open [localhost:4000](http://localhost:4000), register the first user, and
+install the sample dataset so there is something to look at right away:
+
+```bash
+docker compose -f docker-compose.prod.yml exec app \
+  /app/bin/onesqlx eval 'Onesqlx.Release.install_sample()'
+```
+
+That creates a small e-commerce dataset, a data source pointing at it, five
+saved queries, and a dashboard. Images are published to
 [`ghcr.io/aalvaropc/onesqlx`](https://github.com/aalvaropc/onesqlx/pkgs/container/onesqlx)
 on every release, tagged `latest`, `MAJOR.MINOR`, and the exact version; pin one
 with `ONESQLX_VERSION`. See [docs/deploy.md](docs/deploy.md) for the full
