@@ -5,11 +5,34 @@ defmodule Onesqlx.Release do
   """
   @app :onesqlx
 
+  alias Onesqlx.Accounts.Scope
+  alias Onesqlx.Accounts.User
+  alias Onesqlx.Sample
+  alias Onesqlx.Workspaces
+
   def migrate do
     load_app()
 
     for repo <- repos() do
       {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
+    end
+  end
+
+  def install_sample do
+    load_app()
+
+    for repo <- repos() do
+      {:ok, result, _} = Ecto.Migrator.with_repo(repo, &install_sample_for_first_user/1)
+      IO.puts("sample install: #{inspect(result)}")
+    end
+  end
+
+  defp install_sample_for_first_user(repo) do
+    with %User{} = user <- List.first(repo.all(User)),
+         %{} = workspace <- Workspaces.get_workspace_for_scope(user) do
+      Sample.install(Scope.for_user(user, workspace))
+    else
+      _ -> {:error, :no_user_or_workspace}
     end
   end
 
