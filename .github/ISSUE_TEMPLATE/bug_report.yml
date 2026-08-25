@@ -1,0 +1,54 @@
+name: Bug report
+description: Something in OneSQLx does not work as expected
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: >
+        If a specific query or dashboard triggers it, include the SQL (redact
+        anything sensitive). A minimal reproduction is the fastest path to a fix.
+      placeholder: |
+        1. Connect a data source to ...
+        2. Run `SELECT ...`
+        3. See error
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: OneSQLx version or commit
+      placeholder: v0.1.0, or the commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How are you running it?
+      options:
+        - Docker Compose (docker-compose.prod.yml)
+        - Docker image
+        - From source (mix phx.server)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: postgres
+    attributes:
+      label: PostgreSQL version
+      description: Of the *external* database you connected, if the bug involves querying.
+      placeholder: "17.2"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant application logs or the error shown in the UI.
+      render: shell
