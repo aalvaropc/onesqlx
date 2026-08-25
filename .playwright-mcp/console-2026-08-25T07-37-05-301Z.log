@@ -1,0 +1,10 @@
+[-28007857ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://metabase-dev.shinkansen.tech/api/setting/version-info:0
+[-28003291ms] [WARNING] resolveFontSizeToPx: fontSize "12.5px" is not in em. Column width measurement may be inaccurate. @ https://metabase-dev.shinkansen.tech/app/dist/app-main.e9f9fbe625fb141a.js:427
+[-27980288ms] [WARNING] resolveFontSizeToPx: fontSize "12.5px" is not in em. Column width measurement may be inaccurate. @ https://metabase-dev.shinkansen.tech/app/dist/app-main.e9f9fbe625fb141a.js:427
+[-27952030ms] [WARNING] resolveFontSizeToPx: fontSize "12.5px" is not in em. Column width measurement may be inaccurate. @ https://metabase-dev.shinkansen.tech/app/dist/app-main.e9f9fbe625fb141a.js:427
+[-27922182ms] [WARNING] resolveFontSizeToPx: fontSize "12.5px" is not in em. Column width measurement may be inaccurate. @ https://metabase-dev.shinkansen.tech/app/dist/app-main.e9f9fbe625fb141a.js:427
+[-27877762ms] [WARNING] resolveFontSizeToPx: fontSize "12.5px" is not in em. Column width measurement may be inaccurate. @ https://metabase-dev.shinkansen.tech/app/dist/app-main.e9f9fbe625fb141a.js:427
+[-27826350ms] [WARNING] resolveFontSizeToPx: fontSize "12.5px" is not in em. Column width measurement may be inaccurate. @ https://metabase-dev.shinkansen.tech/app/dist/app-main.e9f9fbe625fb141a.js:427
+[-27810009ms] [WARNING] resolveFontSizeToPx: fontSize "12.5px" is not in em. Column width measurement may be inaccurate. @ https://metabase-dev.shinkansen.tech/app/dist/app-main.e9f9fbe625fb141a.js:427
+[-27776814ms] [WARNING] resolveFontSizeToPx: fontSize "12.5px" is not in em. Column width measurement may be inaccurate. @ https://metabase-dev.shinkansen.tech/app/dist/app-main.e9f9fbe625fb141a.js:427
+[-27034301ms] [WARNING] resolveFontSizeToPx: fontSize "12.5px" is not in em. Column width measurement may be inaccurate. @ https://metabase-dev.shinkansen.tech/app/dist/app-main.e9f9fbe625fb141a.js:427

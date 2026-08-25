@@ -1,0 +1,63 @@
+- generic [active] [ref=e1]:
+  - list [ref=e2]:
+    - listitem [ref=e3]:
+      - link "Register" [ref=e4] [cursor=pointer]:
+        - /url: /users/register
+    - listitem [ref=e5]:
+      - link "Log in" [ref=e6] [cursor=pointer]:
+        - /url: /users/log-in
+  - generic [ref=e8]:
+    - banner [ref=e9]:
+      - link "OneSQLx" [ref=e11] [cursor=pointer]:
+        - /url: /
+      - list [ref=e15]:
+        - listitem [ref=e16]:
+          - link "GitHub" [ref=e17] [cursor=pointer]:
+            - /url: https://github.com/aalvaropc/onesqlx
+        - listitem [ref=e18]:
+          - generic [ref=e19]:
+            - button "System theme" [ref=e21] [cursor=pointer]
+            - button "Light theme" [ref=e23] [cursor=pointer]
+            - button "Dark theme" [ref=e25] [cursor=pointer]
+    - main [ref=e27]:
+      - generic [ref=e29]:
+        - generic [ref=e32]:
+          - heading [level=1] [ref=e33]:
+            - paragraph [ref=e34]: Log in
+          - paragraph [ref=e35]:
+            - text: Don't have an account?
+            - link "Sign up" [ref=e36] [cursor=pointer]:
+              - /url: /users/register
+            - text: for an account now.
+        - generic [ref=e39]:
+          - paragraph [ref=e40]: You are running the local mail adapter.
+          - paragraph [ref=e41]:
+            - text: To see sent emails, visit
+            - link "the mailbox page" [ref=e42] [cursor=pointer]:
+              - /url: /dev/mailbox
+            - text: .
+        - generic [ref=e43]:
+          - generic [ref=e45]:
+            - generic [ref=e46]: Email
+            - textbox "Email" [ref=e47]
+          - button "Log in with email" [ref=e48] [cursor=pointer]:
+            - text: Log in with email
+            - generic [ref=e49]: →
+        - generic [ref=e50]: or
+        - generic [ref=e51]:
+          - generic [ref=e53]:
+            - generic [ref=e54]: Email
+            - textbox "Email" [ref=e55]
+          - generic [ref=e57]:
+            - generic [ref=e58]: Password
+            - textbox "Password" [ref=e59]
+          - button "Log in and stay logged in" [ref=e60] [cursor=pointer]:
+            - text: Log in and stay logged in
+            - generic [ref=e61]: →
+          - button "Log in only this time" [ref=e62] [cursor=pointer]
+        - generic [ref=e63]: or continue with
+        - generic [ref=e64]:
+          - link "Login with Google" [ref=e65] [cursor=pointer]:
+            - /url: /auth/google
+          - link "Login with GitHub" [ref=e66] [cursor=pointer]:
+            - /url: /auth/github

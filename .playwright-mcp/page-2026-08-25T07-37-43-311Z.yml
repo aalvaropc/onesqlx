@@ -1,0 +1,71 @@
+- generic [active] [ref=f4e1]:
+  - list [ref=f4e2]:
+    - listitem [ref=f4e3]: demo@onesqlx.local
+    - listitem [ref=f4e4]:
+      - link "Settings" [ref=f4e5] [cursor=pointer]:
+        - /url: /users/settings
+    - listitem [ref=f4e6]:
+      - link "Log out" [ref=f4e7] [cursor=pointer]:
+        - /url: /users/log-out
+  - generic [ref=f4e9]:
+    - navigation [ref=f4e10]:
+      - generic [ref=f4e11]:
+        - link "OneSQLx" [ref=f4e13] [cursor=pointer]:
+          - /url: /
+        - paragraph [ref=f4e16]: Demo Workspace
+      - link "Search..." [ref=f4e18] [cursor=pointer]:
+        - /url: /search
+      - generic [ref=f4e21]:
+        - link "SQL Editor" [ref=f4e22] [cursor=pointer]:
+          - /url: /sql-editor
+        - link "Saved Queries" [ref=f4e25] [cursor=pointer]:
+          - /url: /saved-queries
+        - link "Dashboards" [ref=f4e28] [cursor=pointer]:
+          - /url: /dashboards
+        - link "Schedules" [ref=f4e31] [cursor=pointer]:
+          - /url: /schedules
+        - link "Data Sources" [ref=f4e34] [cursor=pointer]:
+          - /url: /data-sources
+        - link "Analytics" [ref=f4e37] [cursor=pointer]:
+          - /url: /analytics
+        - link "Lineage" [ref=f4e40] [cursor=pointer]:
+          - /url: /lineage
+        - link "Audit Log" [ref=f4e43] [cursor=pointer]:
+          - /url: /audit
+      - generic [ref=f4e46]:
+        - link "Workspace" [ref=f4e47] [cursor=pointer]:
+          - /url: /workspace/settings
+        - link "API Tokens" [ref=f4e50] [cursor=pointer]:
+          - /url: /settings/api-tokens
+        - link "Account" [ref=f4e53] [cursor=pointer]:
+          - /url: /users/settings
+        - link "Sign Out" [ref=f4e57] [cursor=pointer]:
+          - /url: /users/log-out
+    - main [ref=f4e59]:
+      - generic [ref=f4e60]:
+        - navigation [ref=f4e61]:
+          - list [ref=f4e62]:
+            - listitem [ref=f4e63]:
+              - link "Dashboards" [ref=f4e64] [cursor=pointer]:
+                - /url: /dashboards
+            - listitem [ref=f4e66]:
+              - generic [ref=f4e67]: Sample — E-commerce overview
+        - generic [ref=f4e68]:
+          - heading "Sample — E-commerce overview" [level=1] [ref=f4e69]
+          - button "Refresh" [ref=f4e70] [cursor=pointer]
+          - combobox [ref=f4e72]:
+            - 'option "Auto: Off" [selected]'
+            - option "30s"
+            - option "1m"
+            - option "5m"
+            - option "15m"
+          - button "Duplicate" [ref=f4e73] [cursor=pointer]
+          - button "Fullscreen" [ref=f4e75] [cursor=pointer]
+          - button "Share" [ref=f4e76] [cursor=pointer]
+          - button "Edit" [ref=f4e78] [cursor=pointer]
+        - generic [ref=f4e79]:
+          - heading "Total revenue" [level=3] [ref=f4e83]
+          - heading "Orders by status" [level=3] [ref=f4e88]
+          - heading "Revenue by month" [level=3] [ref=f4e93]
+          - heading "Top products by revenue" [level=3] [ref=f4e98]
+          - heading "Recent orders" [level=3] [ref=f4e103]
