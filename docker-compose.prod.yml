@@ -5,9 +5,12 @@
 #   POSTGRES_PASSWORD  database password
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Published image. To build from source instead (development, or an
+    # unreleased commit), comment out `image:` and uncomment `build:`.
+    image: ghcr.io/aalvaropc/onesqlx:${ONESQLX_VERSION:-latest}
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     container_name: onesqlx_app
     init: true
     restart: unless-stopped
@@ -39,9 +42,10 @@ services:
 
   # One-shot: runs pending Ecto migrations, then the app starts.
   migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/aalvaropc/onesqlx:${ONESQLX_VERSION:-latest}
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     container_name: onesqlx_migrate
     command: ["/app/bin/migrate"]
     environment:
