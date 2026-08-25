@@ -263,6 +263,13 @@ Tests use Ecto SQL Sandbox for isolation. Integration tests are tagged `@modulet
 - **Req** as HTTP client (never HTTPoison, Tesla, or :httpc)
 - **`mix precommit`** before every commit (compile warnings-as-errors, format, credo strict, test)
 
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the
+development setup, project conventions, and how to open a pull request. Please
+report security vulnerabilities privately, as described in
+[SECURITY.md](SECURITY.md).
+
 ## License
 
-This project is open source.
+Licensed under the [Apache License 2.0](LICENSE).
