@@ -346,10 +346,17 @@ defmodule OnesqlxWeb.SqlEditorLive do
     {:noreply, put_tab(socket, updated)}
   end
 
+  @row_limit_options ~w(100 500 1000 5000 10000)
+
   def handle_event("set_row_limit", %{"row_limit" => limit_str}, socket) do
-    tab = get_active_tab(socket)
-    updated = %{tab | row_limit: String.to_integer(limit_str)}
-    {:noreply, put_tab(socket, updated)}
+    # Allowlist the select's options rather than trusting client input
+    if limit_str in @row_limit_options do
+      tab = get_active_tab(socket)
+      updated = %{tab | row_limit: String.to_integer(limit_str)}
+      {:noreply, put_tab(socket, updated)}
+    else
+      {:noreply, socket}
+    end
   end
 
   # -- History Reopen ----------------------------------------------------------

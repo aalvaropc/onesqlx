@@ -86,6 +86,43 @@ defmodule Onesqlx.DataSources do
     |> Repo.update()
   end
 
+  @spec update_data_source(Scope.t(), DataSource.t(), map()) ::
+          {:ok, DataSource.t()} | {:error, Ecto.Changeset.t()}
+  @doc """
+  Updates a data source's connection settings and limits.
+
+  Only owners/admins may edit (connection credentials live here). An
+  empty password keeps the stored one; a new value re-encrypts.
+  """
+  def update_data_source(%Scope{} = scope, %DataSource{} = data_source, attrs) do
+    verify_ownership!(scope, data_source)
+
+    result =
+      data_source
+      |> DataSource.changeset(attrs)
+      |> Repo.update()
+
+    case result do
+      {:ok, ds} ->
+        Audit.safe_record_event(scope, "data_source.updated", %{
+          resource_type: "data_source",
+          resource_id: ds.id
+        })
+
+      _ ->
+        :ok
+    end
+
+    result
+  end
+
+  defp verify_ownership!(%Scope{} = scope, %DataSource{} = data_source) do
+    if data_source.workspace_id != scope.workspace.id,
+      do: raise(Ecto.NoResultsError, queryable: DataSource)
+
+    Onesqlx.Authorization.authorize_manage!(scope, data_source)
+  end
+
   @spec change_data_source(DataSource.t(), map()) :: Ecto.Changeset.t()
   @doc """
   Returns a changeset for tracking data source changes.

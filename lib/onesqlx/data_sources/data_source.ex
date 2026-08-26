@@ -17,6 +17,8 @@ defmodule Onesqlx.DataSources.DataSource do
     field :encrypted_password, :binary
     field :ssl_enabled, :boolean, default: false
     field :read_only, :boolean, default: true
+    field :statement_timeout_ms, :integer, default: 30_000
+    field :max_row_limit, :integer
     field :status, :string, default: "pending"
 
     belongs_to :workspace, Onesqlx.Workspaces.Workspace
@@ -36,6 +38,8 @@ defmodule Onesqlx.DataSources.DataSource do
     :password,
     :ssl_enabled,
     :read_only,
+    :statement_timeout_ms,
+    :max_row_limit,
     :adapter,
     :status
   ]
@@ -47,6 +51,14 @@ defmodule Onesqlx.DataSources.DataSource do
     |> maybe_require_password()
     |> validate_length(:name, min: 2, max: 100)
     |> validate_number(:port, greater_than_or_equal_to: 1, less_than_or_equal_to: 65_535)
+    |> validate_number(:statement_timeout_ms,
+      greater_than_or_equal_to: 1_000,
+      less_than_or_equal_to: 600_000
+    )
+    |> validate_number(:max_row_limit,
+      greater_than_or_equal_to: 1,
+      less_than_or_equal_to: 100_000
+    )
     |> validate_inclusion(:adapter, @valid_adapters)
     |> validate_inclusion(:status, @valid_statuses)
     |> unique_constraint([:workspace_id, :name], error_key: :name)
