@@ -17,6 +17,10 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
   attr :result, :any, required: true
   attr :exportable?, :boolean, default: false, doc: "show a CSV export button on table cards"
 
+  attr :export_params, :map,
+    default: %{},
+    doc: "query params the card ran with, forwarded to the CSV export"
+
   def card_content(%{card: %{type: "markdown"}} = assigns) do
     content = get_in(assigns.card.config, ["content"]) || ""
     assigns = assign(assigns, :content, content)
@@ -130,6 +134,12 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
         <input type="hidden" name="data_source_id" value={@card.saved_query.data_source_id} />
         <input type="hidden" name="sql" value={@card.saved_query.sql} />
         <input type="hidden" name="label" value={@card.title || @card.saved_query.title || "export"} />
+        <input
+          :for={{name, value} <- @export_params}
+          type="hidden"
+          name={"params[#{name}]"}
+          value={value}
+        />
         <button type="submit" class="btn btn-xs">
           <.icon name="hero-arrow-down-tray" class="size-3" /> CSV
         </button>

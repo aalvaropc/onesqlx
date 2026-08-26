@@ -98,6 +98,7 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
   attr :dashboard, :map, required: true
   attr :card_results, :map, required: true
   attr :editing?, :boolean, required: true
+  attr :dashboard_params, :map, default: %{}
 
   def card_grid(assigns) do
     ~H"""
@@ -171,7 +172,12 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
             </button>
           </div>
         </div>
-        <.card_content card={card} result={Map.get(@card_results, card.id, :loading)} exportable? />
+        <.card_content
+          card={card}
+          result={Map.get(@card_results, card.id, :loading)}
+          exportable?
+          export_params={card_export_params(card, @dashboard_params)}
+        />
       </div>
     </div>
     """
@@ -352,6 +358,13 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
       </div>
     </div>
     """
+  end
+
+  # The same merge the card execution uses (show.ex maybe_start_card_async),
+  # so the export downloads exactly what the card shows.
+  defp card_export_params(card, dashboard_params) do
+    card_params = get_in(card.config, ["params"]) || %{}
+    Map.merge(card_params, dashboard_params || %{})
   end
 
   defp param_input_type(variables, param) do

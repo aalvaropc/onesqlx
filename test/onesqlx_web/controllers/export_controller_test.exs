@@ -71,4 +71,82 @@ defmodule OnesqlxWeb.ExportControllerTest do
       assert redirected_to(conn) =~ "/users/log-in"
     end
   end
+
+  describe "parameterized exports" do
+    test "passes params through to the executor", %{conn: conn, scope: scope} do
+      data_source = data_source_fixture(scope)
+
+      stub(MockConnection, :with_connection, fn _ds, _fun ->
+        {:ok, %{columns: ["n"], rows: [[42]], row_count: 1, duration_ms: 1}}
+      end)
+
+      conn =
+        post(conn, ~p"/exports/csv", %{
+          "data_source_id" => data_source.id,
+          "sql" => "SELECT :n AS n",
+          "label" => "params",
+          "params" => %{"n" => "42"}
+        })
+
+      assert response_content_type(conn, :csv) =~ "text/csv"
+      assert conn.resp_body =~ "42"
+    end
+
+    test "missing parameter values flash instead of crashing", %{conn: conn, scope: scope} do
+      data_source = data_source_fixture(scope)
+
+      conn =
+        post(conn, ~p"/exports/csv", %{
+          "data_source_id" => data_source.id,
+          "sql" => "SELECT :n AS n, :other AS o",
+          "label" => "params"
+        })
+
+      assert redirected_to(conn) == ~p"/sql-editor"
+
+      assert Phoenix.Flash.get(conn.assigns.flash, :error) =~
+               "missing parameter values: n, other"
+    end
+  end
+
+  describe "POST /exports/json" do
+    test "exports rows as a JSON array of objects", %{conn: conn, scope: scope} do
+      data_source = data_source_fixture(scope)
+
+      stub(MockConnection, :with_connection, fn _ds, _fun ->
+        {:ok, %{columns: ["id", "name"], rows: [[1, "alice"]], row_count: 1, duration_ms: 1}}
+      end)
+
+      conn =
+        post(conn, ~p"/exports/json", %{
+          "data_source_id" => data_source.id,
+          "sql" => "SELECT 1",
+          "label" => "people"
+        })
+
+      assert response_content_type(conn, :json) =~ "application/json"
+      assert Jason.decode!(conn.resp_body) == [%{"id" => 1, "name" => "alice"}]
+    end
+  end
+
+  describe "POST /exports/xlsx" do
+    test "exports a spreadsheet", %{conn: conn, scope: scope} do
+      data_source = data_source_fixture(scope)
+
+      stub(MockConnection, :with_connection, fn _ds, _fun ->
+        {:ok, %{columns: ["id"], rows: [[1]], row_count: 1, duration_ms: 1}}
+      end)
+
+      conn =
+        post(conn, ~p"/exports/xlsx", %{
+          "data_source_id" => data_source.id,
+          "sql" => "SELECT 1",
+          "label" => "sheet"
+        })
+
+      assert response_content_type(conn, :xlsx) =~ "spreadsheetml"
+      # XLSX files are zip archives
+      assert <<0x50, 0x4B, _::binary>> = conn.resp_body
+    end
+  end
 end

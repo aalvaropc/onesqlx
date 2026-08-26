@@ -33,7 +33,12 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         editing?={@editing?}
       />
       <.filters_bar active_filters={@active_filters} />
-      <.card_grid dashboard={@dashboard} card_results={@card_results} editing?={@editing?} />
+      <.card_grid
+        dashboard={@dashboard}
+        card_results={@card_results}
+        editing?={@editing?}
+        dashboard_params={@dashboard_params}
+      />
 
       <div :if={@dashboard.cards == []} class="text-center py-12">
         <.icon name="hero-squares-plus" class="size-12 text-base-content/20 mx-auto mb-4" />
