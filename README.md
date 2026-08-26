@@ -9,6 +9,32 @@ Open-source, SQL-first analytics platform built with Elixir and Phoenix. Connect
 - **Automation-ready**: uses Oban for reliable background tasks, scheduled queries, and maintenance.
 - **API-first**: versioned REST API with scoped tokens, OpenAPI spec, and Swagger UI.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dark.png">
+  <img alt="A OneSQLx dashboard built from the bundled sample dataset: revenue KPI, order status pie, monthly revenue line chart, top products bar chart, and a recent orders table" src="docs/screenshots/dashboard-light.png">
+</picture>
+
+<table>
+  <tr>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/sql-editor-dark.png">
+        <img alt="The SQL editor with catalog-driven autocomplete, multi-tab execution, and query history" src="docs/screenshots/sql-editor-light.png">
+      </picture>
+      <p align="center"><em>SQL editor — autocomplete, tabs, history, exports</em></p>
+    </td>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/catalog-dark.png">
+        <img alt="The catalog explorer showing schemas, tables, and column types introspected from a connected PostgreSQL database" src="docs/screenshots/catalog-light.png">
+      </picture>
+      <p align="center"><em>Catalog explorer — schemas, tables, and columns</em></p>
+    </td>
+  </tr>
+</table>
+
+*Screenshots show the bundled sample dataset (`mix onesqlx.sample`) — every install renders these exact numbers.*
+
 ## Features
 
 ### Data Sources

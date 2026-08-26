@@ -58,3 +58,4 @@ Thumbs.db
 # Claude Code internal files.
 .claude/
 CLAUDE.md
+.playwright-mcp/
