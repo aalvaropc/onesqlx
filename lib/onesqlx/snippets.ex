@@ -17,6 +17,8 @@ defmodule Onesqlx.Snippets do
   end
 
   def create_snippet(%Scope{} = scope, attrs) do
+    Onesqlx.Authorization.authorize_create!(scope, SqlSnippet)
+
     %SqlSnippet{workspace_id: scope.workspace.id, user_id: scope.user.id}
     |> SqlSnippet.changeset(attrs)
     |> Repo.insert()

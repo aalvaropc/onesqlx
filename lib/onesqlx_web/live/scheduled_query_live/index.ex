@@ -17,7 +17,13 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
         Scheduled Queries
         <:subtitle>Automate recurring query execution.</:subtitle>
         <:actions>
-          <.button variant="primary" phx-click="open_new_modal">New Schedule</.button>
+          <.button
+            :if={@current_scope.role != "viewer"}
+            variant="primary"
+            phx-click="open_new_modal"
+          >
+            New Schedule
+          </.button>
         </:actions>
       </.header>
 
@@ -65,6 +71,7 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
                 View
               </.link>
               <button
+                :if={@current_scope.role != "viewer"}
                 phx-click="delete"
                 phx-value-id={sq.id}
                 aria-label="Delete schedule"

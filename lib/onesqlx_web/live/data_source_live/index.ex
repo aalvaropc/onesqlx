@@ -13,7 +13,7 @@ defmodule OnesqlxWeb.DataSourceLive.Index do
           Manage your external PostgreSQL database connections.
         </:subtitle>
         <:actions>
-          <.link navigate={~p"/data-sources/new"}>
+          <.link :if={@current_scope.role != "viewer"} navigate={~p"/data-sources/new"}>
             <.button variant="primary">New Data Source</.button>
           </.link>
         </:actions>
@@ -43,7 +43,11 @@ defmodule OnesqlxWeb.DataSourceLive.Index do
             <.link navigate={~p"/data-sources/#{ds.id}/catalog"} class="link link-primary text-sm">
               Explore
             </.link>
-            <.link navigate={~p"/data-sources/#{ds.id}/edit"} class="link text-sm">
+            <.link
+              :if={@current_scope.role != "viewer"}
+              navigate={~p"/data-sources/#{ds.id}/edit"}
+              class="link text-sm"
+            >
               Edit
             </.link>
           </div>

@@ -108,6 +108,7 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
                 Open in Editor
               </.link>
               <button
+                :if={@current_scope.role != "viewer"}
                 phx-click="delete"
                 phx-value-id={query.id}
                 data-confirm="Are you sure you want to delete this saved query?"
