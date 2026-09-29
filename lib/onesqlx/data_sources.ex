@@ -56,6 +56,8 @@ defmodule Onesqlx.DataSources do
   Creates a data source for the workspace in the given scope.
   """
   def create_data_source(%Scope{} = scope, attrs) do
+    Onesqlx.Authorization.authorize_create!(scope, DataSource)
+
     result =
       %DataSource{workspace_id: scope.workspace.id}
       |> DataSource.changeset(attrs)

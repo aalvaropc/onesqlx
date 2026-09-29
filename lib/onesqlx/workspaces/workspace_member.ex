@@ -5,7 +5,7 @@ defmodule Onesqlx.Workspaces.WorkspaceMember do
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
-  @valid_roles ~w(owner admin member)
+  @valid_roles ~w(owner admin member viewer)
 
   schema "workspace_members" do
     field :role, :string

@@ -93,6 +93,8 @@ defmodule Onesqlx.Dashboards do
   Creates a dashboard for the workspace in the given scope.
   """
   def create_dashboard(%Scope{} = scope, attrs) do
+    Onesqlx.Authorization.authorize_create!(scope, Dashboard)
+
     result =
       %Dashboard{workspace_id: scope.workspace.id, user_id: scope.user.id}
       |> Dashboard.changeset(attrs)

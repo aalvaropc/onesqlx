@@ -41,7 +41,8 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
                 "badge badge-sm ml-2",
                 member.role == "owner" && "badge-primary",
                 member.role == "admin" && "badge-secondary",
-                member.role == "member" && "badge-ghost"
+                member.role == "member" && "badge-ghost",
+                member.role == "viewer" && "badge-outline"
               ]}>
                 {member.role}
               </span>

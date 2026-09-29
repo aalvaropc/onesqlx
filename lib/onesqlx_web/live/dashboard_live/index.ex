@@ -16,7 +16,13 @@ defmodule OnesqlxWeb.DashboardLive.Index do
         Dashboards
         <:subtitle>Visualize your data with charts and tables.</:subtitle>
         <:actions>
-          <.button variant="primary" phx-click="open_new_modal">New Dashboard</.button>
+          <.button
+            :if={@current_scope.role != "viewer"}
+            variant="primary"
+            phx-click="open_new_modal"
+          >
+            New Dashboard
+          </.button>
         </:actions>
       </.header>
 
@@ -42,6 +48,7 @@ defmodule OnesqlxWeb.DashboardLive.Index do
                 View
               </.link>
               <button
+                :if={@current_scope.role != "viewer"}
                 phx-click="delete"
                 phx-value-id={dashboard.id}
                 data-confirm="Are you sure you want to delete this dashboard?"

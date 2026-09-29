@@ -73,6 +73,8 @@ defmodule Onesqlx.SavedQueries do
   Creates a saved query for the workspace in the given scope.
   """
   def create_saved_query(%Scope{} = scope, attrs) do
+    Onesqlx.Authorization.authorize_create!(scope, SavedQuery)
+
     result =
       %SavedQuery{workspace_id: scope.workspace.id}
       |> SavedQuery.changeset(attrs)

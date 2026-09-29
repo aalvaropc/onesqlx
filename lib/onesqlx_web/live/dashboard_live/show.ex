@@ -31,6 +31,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         dashboard_params={@dashboard_params}
         auto_refresh_interval={@auto_refresh_interval}
         editing?={@editing?}
+        viewer?={@current_scope.role == "viewer"}
       />
       <.filters_bar active_filters={@active_filters} />
       <.card_grid

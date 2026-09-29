@@ -57,6 +57,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
 
   attr :tab, :map, required: true
   attr :data_sources, :list, required: true
+  attr :viewer?, :boolean, default: false
 
   def toolbar(assigns) do
     ~H"""
@@ -104,6 +105,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
       </button>
 
       <button
+        :if={!@viewer?}
         phx-click="open_save_modal"
         disabled={@tab.data_source_id == nil || @tab.sql == ""}
         class={[
@@ -347,6 +349,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
   attr :side_panel_tab, :atom, required: true
   attr :history, :any, required: true, doc: "the :history LiveView stream"
   attr :snippets, :list, required: true
+  attr :viewer?, :boolean, default: false
 
   def side_panel(assigns) do
     ~H"""
@@ -398,7 +401,11 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
       </div>
 
       <div :if={@side_panel_tab == :snippets} class="flex-1 overflow-y-auto space-y-2">
-        <button phx-click="open_snippet_modal" class="btn btn-xs btn-primary w-full mb-2">
+        <button
+          :if={!@viewer?}
+          phx-click="open_snippet_modal"
+          class="btn btn-xs btn-primary w-full mb-2"
+        >
           <.icon name="hero-plus" class="size-3" /> New Snippet
         </button>
         <div
@@ -417,6 +424,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
                 <.icon name="hero-arrow-down-on-square" class="size-3" />
               </button>
               <button
+                :if={!@viewer?}
                 phx-click="delete_snippet"
                 phx-value-id={snippet.id}
                 data-confirm="Delete this snippet?"

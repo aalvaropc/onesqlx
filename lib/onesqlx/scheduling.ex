@@ -83,6 +83,8 @@ defmodule Onesqlx.Scheduling do
   Sets workspace_id and user_id from scope. Computes initial next_run_at.
   """
   def create_scheduled_query(%Scope{} = scope, attrs) do
+    Onesqlx.Authorization.authorize_create!(scope, ScheduledQuery)
+
     %ScheduledQuery{workspace_id: scope.workspace.id, user_id: scope.user.id}
     |> ScheduledQuery.changeset(attrs)
     |> maybe_set_next_run_at()

@@ -17,6 +17,7 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
   attr :dashboard_params, :map, required: true
   attr :auto_refresh_interval, :integer, required: true
   attr :editing?, :boolean, required: true
+  attr :viewer?, :boolean, default: false
 
   def toolbar(assigns) do
     ~H"""
@@ -60,16 +61,20 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
         <option value="300000" selected={@auto_refresh_interval == 300_000}>5m</option>
         <option value="900000" selected={@auto_refresh_interval == 900_000}>15m</option>
       </select>
-      <button phx-click="duplicate_dashboard" class="btn btn-sm">
+      <button :if={!@viewer?} phx-click="duplicate_dashboard" class="btn btn-sm">
         <.icon name="hero-document-duplicate" class="size-4" /> Duplicate
       </button>
       <button id="fullscreen-btn" phx-hook="Fullscreen" class="btn btn-sm">
         Fullscreen
       </button>
-      <button phx-click="toggle_share" class="btn btn-sm">
+      <button :if={!@viewer?} phx-click="toggle_share" class="btn btn-sm">
         <.icon name="hero-share" class="size-4" /> Share
       </button>
-      <button phx-click="toggle_edit" class={["btn btn-sm", @editing? && "btn-active"]}>
+      <button
+        :if={!@viewer?}
+        phx-click="toggle_edit"
+        class={["btn btn-sm", @editing? && "btn-active"]}
+      >
         {if @editing?, do: "Done", else: "Edit"}
       </button>
     </div>

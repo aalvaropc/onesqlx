@@ -39,7 +39,11 @@ defmodule OnesqlxWeb.SqlEditorLive do
     <Layouts.app flash={@flash} current_scope={@current_scope} wide>
       <div class="flex flex-col h-[calc(100vh-10rem)]">
         <.tab_bar tabs={@tabs} tab_order={@tab_order} active_tab_id={@active_tab_id} />
-        <.toolbar tab={@tab} data_sources={@data_sources} />
+        <.toolbar
+          tab={@tab}
+          data_sources={@data_sources}
+          viewer?={@current_scope.role == "viewer"}
+        />
 
         <%!-- Editor + History side panel --%>
         <div class="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
@@ -63,6 +67,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
             side_panel_tab={@side_panel_tab}
             history={@streams.history}
             snippets={@snippets}
+            viewer?={@current_scope.role == "viewer"}
           />
         </div>
       </div>
