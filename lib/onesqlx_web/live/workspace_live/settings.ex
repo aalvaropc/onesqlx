@@ -5,6 +5,7 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
 
   use OnesqlxWeb, :live_view
 
+  alias Onesqlx.Accounts.UserNotifier
   alias Onesqlx.Workspaces
 
   @impl true
@@ -60,6 +61,61 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
         </div>
       </div>
 
+      <%!-- Invitations section --%>
+      <div :if={@role in ["owner", "admin"]} class="card border border-base-300 p-4 mt-6">
+        <h3 class="font-semibold mb-3">Invite Members</h3>
+        <.form for={@invite_form} id="invite-form" phx-submit="invite" class="flex items-end gap-3">
+          <div class="flex-1">
+            <.input
+              field={@invite_form[:email]}
+              type="email"
+              label="Email"
+              placeholder="teammate@example.com"
+            />
+          </div>
+          <div class="w-36">
+            <.input
+              field={@invite_form[:role]}
+              type="select"
+              label="Role"
+              options={[
+                {"Admin", "admin"},
+                {"Member", "member"},
+                {"Viewer", "viewer"}
+              ]}
+            />
+          </div>
+          <.button variant="primary" phx-disable-with="Sending...">Send Invite</.button>
+        </.form>
+
+        <div :if={@pending_invitations != []} class="mt-4">
+          <h4 class="text-sm font-medium text-base-content/70 mb-2">Pending Invitations</h4>
+          <div class="space-y-2">
+            <div
+              :for={invitation <- @pending_invitations}
+              class="flex items-center justify-between py-2 border-b border-base-200 last:border-0"
+            >
+              <div>
+                <span class="font-medium">{invitation.email}</span>
+                <span class="badge badge-sm badge-ghost ml-2">{invitation.role}</span>
+                <span class="text-xs text-base-content/50 ml-2">
+                  expires {Calendar.strftime(invitation.expires_at, "%b %d")}
+                </span>
+              </div>
+              <button
+                id={"revoke-invitation-#{invitation.id}"}
+                phx-click="revoke_invitation"
+                phx-value-id={invitation.id}
+                data-confirm="Revoke this invitation?"
+                class="btn btn-xs btn-ghost text-error"
+              >
+                Revoke
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <%!-- Danger zone --%>
       <div :if={@role == "owner"} class="card border border-error/30 p-4 mt-6">
         <h3 class="font-semibold text-error mb-3">Danger Zone</h3>
@@ -91,7 +147,9 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
         workspace: workspace,
         role: role,
         members: members,
-        name_form: to_form(changeset, as: "workspace")
+        name_form: to_form(changeset, as: "workspace"),
+        invite_form: empty_invite_form(),
+        pending_invitations: pending_invitations(workspace, role)
       )
 
     {:ok, socket}
@@ -132,6 +190,54 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
     end
   end
 
+  def handle_event("invite", %{"invitation" => %{"email" => email, "role" => role}}, socket) do
+    scope = socket.assigns.current_scope
+
+    case Workspaces.invite_member(scope, email, role) do
+      {:ok, invitation, raw_token} ->
+        url = url(~p"/invitations/#{raw_token}")
+
+        UserNotifier.deliver_workspace_invitation(
+          invitation.email,
+          scope.workspace,
+          scope.user,
+          url
+        )
+
+        {:noreply,
+         socket
+         |> assign(
+           invite_form: empty_invite_form(),
+           pending_invitations: Workspaces.list_pending_invitations(scope.workspace)
+         )
+         |> put_flash(:info, "Invitation sent to #{invitation.email}.")}
+
+      {:error, :already_member} ->
+        {:noreply, put_flash(socket, :error, "That user is already a member of this workspace.")}
+
+      {:error, :unauthorized} ->
+        {:noreply, put_flash(socket, :error, "You don't have permission to invite members.")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign(socket, invite_form: to_form(changeset, as: "invitation"))}
+    end
+  end
+
+  def handle_event("revoke_invitation", %{"id" => invitation_id}, socket) do
+    scope = socket.assigns.current_scope
+
+    case Workspaces.revoke_invitation(scope, invitation_id) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> assign(pending_invitations: Workspaces.list_pending_invitations(scope.workspace))
+         |> put_flash(:info, "Invitation revoked.")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not revoke that invitation.")}
+    end
+  end
+
   def handle_event("delete_workspace", _params, socket) do
     workspace = socket.assigns.workspace
 
@@ -146,4 +252,14 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
         {:noreply, put_flash(socket, :error, "Failed to delete workspace.")}
     end
   end
+
+  defp empty_invite_form do
+    to_form(%{"email" => "", "role" => "member"}, as: "invitation")
+  end
+
+  defp pending_invitations(workspace, role) when role in ["owner", "admin"] do
+    Workspaces.list_pending_invitations(workspace)
+  end
+
+  defp pending_invitations(_workspace, _role), do: []
 end

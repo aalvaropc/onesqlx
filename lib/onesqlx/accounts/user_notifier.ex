@@ -52,6 +52,32 @@ defmodule Onesqlx.Accounts.UserNotifier do
     end
   end
 
+  @doc """
+  Deliver a workspace invitation to an email address (the recipient may
+  not have an account yet).
+  """
+  def deliver_workspace_invitation(email, workspace, invited_by, url) do
+    deliver(email, "You've been invited to #{workspace.name} on OneSQLx", """
+
+    ==============================
+
+    Hi #{email},
+
+    #{invited_by.email} invited you to join the "#{workspace.name}" workspace on OneSQLx.
+
+    Accept the invitation by visiting the URL below:
+
+    #{url}
+
+    You'll need to sign in (or create an account) with this email address.
+    The invitation expires in 7 days.
+
+    If you weren't expecting this invitation, please ignore this email.
+
+    ==============================
+    """)
+  end
+
   defp deliver_magic_link_instructions(user, url) do
     deliver(user.email, "Log in instructions", """
 

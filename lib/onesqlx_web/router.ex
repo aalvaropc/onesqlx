@@ -164,6 +164,7 @@ defmodule OnesqlxWeb.Router do
       live "/workspace/settings", WorkspaceLive.Settings, :edit
     end
 
+    get "/invitations/:token", InvitationController, :accept
     post "/exports/csv", ExportController, :csv
     post "/exports/json", ExportController, :json
     post "/exports/xlsx", ExportController, :xlsx
