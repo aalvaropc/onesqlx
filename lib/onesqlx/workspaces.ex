@@ -10,7 +10,8 @@ defmodule Onesqlx.Workspaces do
   import Ecto.Query, warn: false
   alias Onesqlx.Repo
 
-  alias Onesqlx.Workspaces.{Workspace, WorkspaceMember}
+  alias Onesqlx.Accounts.User
+  alias Onesqlx.Workspaces.{Workspace, WorkspaceInvitation, WorkspaceMember}
 
   def create_workspace(attrs) do
     %Workspace{}
@@ -105,6 +106,128 @@ defmodule Onesqlx.Workspaces do
     WorkspaceMember
     |> where(workspace_id: ^workspace.id, role: "owner")
     |> Repo.aggregate(:count)
+  end
+
+  ## Invitations
+
+  @doc """
+  Invites `email` to the scope's workspace with `role`.
+
+  Only owners and admins can invite. Returns `{:ok, invitation, raw_token}`
+  on success — the raw token is only available here and must be emailed
+  immediately.
+  """
+  def invite_member(scope, email, role) do
+    cond do
+      scope.role not in ["owner", "admin"] ->
+        {:error, :unauthorized}
+
+      already_member?(scope.workspace, email) ->
+        {:error, :already_member}
+
+      true ->
+        {raw, changeset} =
+          WorkspaceInvitation.build(scope.workspace, scope.user, %{
+            "email" => email,
+            "role" => role
+          })
+
+        case Repo.insert(changeset) do
+          {:ok, invitation} -> {:ok, invitation, raw}
+          {:error, changeset} -> {:error, changeset}
+        end
+    end
+  end
+
+  defp already_member?(workspace, email) do
+    WorkspaceMember
+    |> join(:inner, [wm], u in User, on: u.id == wm.user_id)
+    |> where([wm, u], wm.workspace_id == ^workspace.id and u.email == ^email)
+    |> Repo.exists?()
+  end
+
+  def list_pending_invitations(workspace) do
+    now = DateTime.utc_now(:second)
+
+    WorkspaceInvitation
+    |> where([i], i.workspace_id == ^workspace.id)
+    |> where([i], is_nil(i.accepted_at) and i.expires_at > ^now)
+    |> order_by([i], desc: i.inserted_at)
+    |> Repo.all()
+  end
+
+  @doc """
+  Revokes a pending invitation. Only owners and admins of the scope's
+  workspace can revoke, and only invitations belonging to that workspace.
+  """
+  def revoke_invitation(scope, invitation_id) do
+    if scope.role in ["owner", "admin"] do
+      case Repo.get_by(WorkspaceInvitation,
+             id: invitation_id,
+             workspace_id: scope.workspace.id
+           ) do
+        nil -> {:error, :not_found}
+        invitation -> Repo.delete(invitation)
+      end
+    else
+      {:error, :unauthorized}
+    end
+  end
+
+  @doc """
+  Accepts an invitation by its raw token on behalf of `user`.
+
+  The token must hash to a pending, unexpired invitation whose email
+  matches the user's email (citext makes the comparison case-insensitive).
+  Adds the user as a member with the invited role and marks the invitation
+  accepted. If the user somehow already joined, the invitation is simply
+  marked accepted (idempotent).
+  """
+  def accept_invitation(user, raw_token) when is_binary(raw_token) do
+    token_hash = WorkspaceInvitation.hash_token(raw_token)
+    now = DateTime.utc_now(:second)
+
+    invitation =
+      WorkspaceInvitation
+      |> where([i], i.token_hash == ^token_hash)
+      |> where([i], is_nil(i.accepted_at) and i.expires_at > ^now)
+      |> preload(:workspace)
+      |> Repo.one()
+
+    cond do
+      is_nil(invitation) ->
+        {:error, :invalid}
+
+      not same_email?(invitation.email, user.email) ->
+        {:error, :wrong_account}
+
+      true ->
+        do_accept(invitation, user, now)
+    end
+  end
+
+  defp do_accept(invitation, user, now) do
+    Repo.transact(fn ->
+      with {:ok, _member} <- ensure_membership(invitation, user),
+           {:ok, _} <-
+             invitation
+             |> Ecto.Changeset.change(accepted_at: now)
+             |> Repo.update() do
+        {:ok, invitation.workspace}
+      end
+    end)
+  end
+
+  defp same_email?(invited, actual) do
+    String.downcase(invited) == String.downcase(actual)
+  end
+
+  defp ensure_membership(invitation, user) do
+    if member?(invitation.workspace, user) do
+      {:ok, :already_member}
+    else
+      add_member(invitation.workspace, user, invitation.role)
+    end
   end
 
   @doc """
