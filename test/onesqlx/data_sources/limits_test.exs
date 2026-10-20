@@ -6,7 +6,6 @@ defmodule Onesqlx.DataSources.LimitsTest do
 
   alias Onesqlx.Audit.AuditEvent
   alias Onesqlx.DataSources
-  alias Onesqlx.DataSources.DataSource
   alias Onesqlx.DataSources.MockConnection
   alias Onesqlx.Querying.Executor
 
