@@ -16,23 +16,32 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
         Saved Queries
         <:subtitle>Browse and manage your saved SQL queries.</:subtitle>
         <:actions>
-          <.link navigate={~p"/sql-editor"}>
-            <.button variant="primary">New Query</.button>
-          </.link>
+          <.button navigate={~p"/sql-editor"} variant="primary">
+            <.icon name="hero-plus" class="size-4" /> New Query
+          </.button>
         </:actions>
       </.header>
 
       <%!-- Filters --%>
-      <form phx-change="filter" class="flex items-center gap-4 mb-6">
+      <form
+        id="saved-query-filters"
+        phx-change="filter"
+        class="flex flex-wrap items-center gap-3 mb-6"
+      >
         <input
           type="text"
           name="search"
           value={@search}
-          placeholder="Search by title..."
+          placeholder="Find a saved query…"
+          aria-label="Search saved queries"
           phx-debounce="300"
-          class="input input-bordered input-sm w-64"
+          class="ui-input ui-input-sm w-full sm:w-64"
         />
-        <select name="data_source_id" class="select select-bordered select-sm">
+        <select
+          name="data_source_id"
+          aria-label="Filter by data source"
+          class="ui-select ui-select-sm w-full sm:w-48"
+        >
           <option value="">All data sources</option>
           <option
             :for={ds <- @data_sources}
@@ -48,7 +57,7 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
             name="favorites"
             value="true"
             checked={@filter_favorites}
-            class="checkbox checkbox-sm"
+            class="ui-checkbox ui-checkbox-sm"
           />
           <span class="text-sm">Favorites only</span>
         </label>
@@ -59,16 +68,16 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
         <div
           :for={{dom_id, query} <- @streams.saved_queries}
           id={dom_id}
-          class="card border border-base-300 p-4"
+          class="ui-panel object-row p-5"
         >
-          <div class="flex items-start justify-between">
-            <div class="flex-1 min-w-0">
+          <div class="flex flex-col sm:flex-row items-start justify-between gap-4">
+            <div class="flex-1 min-w-0 max-w-full">
               <div class="flex items-center gap-2">
                 <h3 class="font-semibold truncate">{query.title}</h3>
                 <button
                   phx-click="toggle_favorite"
                   phx-value-id={query.id}
-                  class="btn btn-ghost btn-xs"
+                  class="ui-button ui-button-ghost ui-button-xs"
                   aria-label={
                     if query.is_favorite, do: "Remove from favorites", else: "Add to favorites"
                   }
@@ -79,31 +88,33 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
                   />
                 </button>
               </div>
-              <p :if={query.description} class="text-sm text-base-content/60 truncate mt-1">
+              <p :if={query.description} class="text-sm text-muted truncate mt-1">
                 {query.description}
               </p>
-              <p class="text-xs font-mono text-base-content/40 truncate mt-1">
+              <p class="text-[11px] font-mono text-muted truncate mt-3 bg-base-200 rounded-md px-3 py-2">
                 {query.sql}
               </p>
               <div class="flex items-center gap-2 mt-2">
-                <span :if={query.data_source} class="badge badge-sm badge-outline">
+                <span :if={query.data_source} class="ui-badge ui-badge-sm ui-badge-outline">
                   {query.data_source.name}
                 </span>
-                <span :for={tag <- query.tags} class="badge badge-sm badge-ghost">{tag}</span>
+                <span :for={tag <- query.tags} class="ui-badge ui-badge-sm ui-badge-ghost">
+                  {tag}
+                </span>
               </div>
             </div>
             <div class="flex items-center gap-2 ml-4 flex-shrink-0">
               <button
                 phx-click="open_edit_modal"
                 phx-value-id={query.id}
-                class="btn btn-sm btn-ghost"
+                class="ui-button ui-button-sm ui-button-ghost"
                 aria-label="Edit query"
               >
                 <.icon name="hero-pencil-square" class="size-4" />
               </button>
               <.link
                 navigate={~p"/sql-editor?saved_query_id=#{query.id}"}
-                class="btn btn-sm btn-primary"
+                class="ui-button ui-button-sm"
               >
                 Open in Editor
               </.link>
@@ -112,7 +123,7 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
                 phx-click="delete"
                 phx-value-id={query.id}
                 data-confirm="Are you sure you want to delete this saved query?"
-                class="btn btn-sm btn-ghost text-error"
+                class="ui-button ui-button-sm ui-button-ghost text-error"
                 aria-label="Delete query"
               >
                 <.icon name="hero-trash" class="size-4" />
@@ -122,13 +133,13 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
         </div>
       </div>
 
-      <div :if={!@has_saved_queries?} class="text-center py-12">
+      <div :if={!@has_saved_queries?} class="empty-state">
         <.icon name="hero-bookmark" class="size-12 text-base-content/20 mx-auto mb-4" />
-        <p class="text-base-content/60 mb-2">No saved queries yet</p>
-        <p class="text-sm text-base-content/40 mb-4">
+        <p class="text-muted mb-2">No saved queries yet</p>
+        <p class="text-sm text-muted mb-4">
           Write a SQL query in the editor and save it for reuse.
         </p>
-        <.link navigate={~p"/sql-editor"} class="btn btn-primary btn-sm">
+        <.link navigate={~p"/sql-editor"} class="ui-button ui-button-primary ui-button-sm">
           Open SQL Editor
         </.link>
       </div>
@@ -151,18 +162,22 @@ defmodule OnesqlxWeb.SavedQueryLive.Index do
             <.input field={@edit_form[:title]} type="text" label="Title" required />
             <.input field={@edit_form[:description]} type="textarea" label="Description" />
             <.input field={@edit_form[:sql]} type="textarea" label="SQL" class="font-mono text-sm" />
-            <div class="form-control mb-4">
-              <label class="label"><span class="label-text">Tags (comma-separated)</span></label>
+            <div class="ui-field mb-4">
+              <label class="ui-label">
+                <span class="ui-label-text">Tags (comma-separated)</span>
+              </label>
               <input
                 type="text"
                 name="saved_query[tags_input]"
                 value={@edit_tags_input}
                 placeholder="analytics, daily, revenue"
-                class="input input-bordered w-full"
+                class="ui-input ui-input-bordered w-full"
               />
             </div>
             <div class="flex justify-end gap-2 mt-4">
-              <button type="button" phx-click="close_edit_modal" class="btn btn-sm">Cancel</button>
+              <button type="button" phx-click="close_edit_modal" class="ui-button ui-button-sm">
+                Cancel
+              </button>
               <.button variant="primary" phx-disable-with="Saving...">Save</.button>
             </div>
           </.form>

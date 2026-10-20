@@ -8,8 +8,8 @@ defmodule OnesqlxWeb.UserLive.Registration do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm">
-        <div class="text-center">
+      <div class="w-full">
+        <div class="text-left">
           <.header>
             Register for an account
             <:subtitle>
@@ -33,15 +33,15 @@ defmodule OnesqlxWeb.UserLive.Registration do
             phx-mounted={JS.focus()}
           />
 
-          <.button phx-disable-with="Creating account..." class="btn btn-primary w-full">
+          <.button phx-disable-with="Creating account..." class="ui-button ui-button-primary w-full">
             Create an account
           </.button>
         </.form>
 
-        <div class="divider">or sign up with</div>
-        <div class="space-y-2">
-          <a href="/auth/google" class="btn btn-outline w-full">Sign up with Google</a>
-          <a href="/auth/github" class="btn btn-outline w-full">Sign up with GitHub</a>
+        <div class="ui-divider">or sign up with</div>
+        <div class="grid grid-cols-2 gap-2">
+          <a href="/auth/google" class="ui-button ui-button-outline w-full">Google</a>
+          <a href="/auth/github" class="ui-button ui-button-outline w-full">GitHub</a>
         </div>
       </div>
     </Layouts.app>

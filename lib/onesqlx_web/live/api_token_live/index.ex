@@ -23,7 +23,7 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
         <div
           :for={{dom_id, token} <- @streams.tokens}
           id={dom_id}
-          class="card border border-base-300 p-4"
+          class="ui-panel border border-base-300 p-4"
         >
           <div class="flex items-center justify-between">
             <div>
@@ -31,12 +31,12 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
               <div class="flex items-center gap-2 mt-1">
                 <span
                   :for={scope <- token.scopes}
-                  class="badge badge-xs badge-outline"
+                  class="ui-badge ui-badge-xs ui-badge-outline"
                 >
                   {scope}
                 </span>
               </div>
-              <div class="flex items-center gap-4 mt-1 text-xs text-base-content/50">
+              <div class="flex items-center gap-4 mt-1 text-xs text-muted">
                 <span>Created {Calendar.strftime(token.inserted_at, "%Y-%m-%d")}</span>
                 <span :if={token.last_used_at}>
                   Last used {Calendar.strftime(token.last_used_at, "%Y-%m-%d %H:%M")}
@@ -48,7 +48,7 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
               phx-click="revoke"
               phx-value-id={token.id}
               data-confirm="Revoke this token? This cannot be undone."
-              class="btn btn-sm btn-ghost text-error"
+              class="ui-button ui-button-sm ui-button-ghost text-error"
             >
               Revoke
             </button>
@@ -56,8 +56,8 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
         </div>
       </div>
 
-      <div :if={!@has_tokens?} class="text-center py-12">
-        <p class="text-base-content/60">No API tokens yet. Create one to access the REST API.</p>
+      <div :if={!@has_tokens?} class="empty-state">
+        <p class="text-muted">No API tokens yet. Create one to access the REST API.</p>
       </div>
 
       <%!-- Create token modal --%>
@@ -71,18 +71,18 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
         <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
           <h3 class="text-lg font-semibold mb-4">Create API Token</h3>
           <form phx-submit="create_token">
-            <div class="form-control mb-4">
-              <label class="label"><span class="label-text">Token Name</span></label>
+            <div class="ui-field mb-4">
+              <label class="ui-label"><span class="ui-label-text">Token Name</span></label>
               <input
                 type="text"
                 name="name"
                 required
                 placeholder="e.g. CI Pipeline"
-                class="input input-bordered w-full"
+                class="ui-input ui-input-bordered w-full"
               />
             </div>
-            <div class="form-control mb-4">
-              <label class="label"><span class="label-text">Scopes</span></label>
+            <div class="ui-field mb-4">
+              <label class="ui-label"><span class="ui-label-text">Scopes</span></label>
               <div class="flex flex-col gap-2">
                 <label class="flex items-center gap-2 cursor-pointer">
                   <input
@@ -90,10 +90,10 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
                     name="scopes[]"
                     value="read"
                     checked
-                    class="checkbox checkbox-sm"
+                    class="ui-checkbox ui-checkbox-sm"
                   />
                   <span class="text-sm">read</span>
-                  <span class="text-xs text-base-content/50">— List and view resources</span>
+                  <span class="text-xs text-muted">— List and view resources</span>
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer">
                   <input
@@ -101,10 +101,10 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
                     name="scopes[]"
                     value="execute"
                     checked
-                    class="checkbox checkbox-sm"
+                    class="ui-checkbox ui-checkbox-sm"
                   />
                   <span class="text-sm">execute</span>
-                  <span class="text-xs text-base-content/50">— Run saved queries</span>
+                  <span class="text-xs text-muted">— Run saved queries</span>
                 </label>
                 <label class="flex items-center gap-2 cursor-pointer">
                   <input
@@ -112,15 +112,17 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
                     name="scopes[]"
                     value="manage"
                     checked
-                    class="checkbox checkbox-sm"
+                    class="ui-checkbox ui-checkbox-sm"
                   />
                   <span class="text-sm">manage</span>
-                  <span class="text-xs text-base-content/50">— Create, update, delete resources</span>
+                  <span class="text-xs text-muted">— Create, update, delete resources</span>
                 </label>
               </div>
             </div>
             <div class="flex justify-end gap-2">
-              <button type="button" phx-click="close_create_modal" class="btn btn-sm">Cancel</button>
+              <button type="button" phx-click="close_create_modal" class="ui-button ui-button-sm">
+                Cancel
+              </button>
               <.button variant="primary" phx-disable-with="Creating...">Create</.button>
             </div>
           </form>
@@ -137,14 +139,16 @@ defmodule OnesqlxWeb.ApiTokenLive.Index do
         <div class="fixed inset-0 bg-black/50"></div>
         <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-lg shadow-xl">
           <h3 class="text-lg font-semibold mb-2">Token Created</h3>
-          <p class="text-sm text-base-content/60 mb-4">
+          <p class="text-sm text-muted mb-4">
             Copy this token now. It will not be shown again.
           </p>
           <div class="bg-base-200 rounded p-3 font-mono text-sm break-all select-all">
             {@raw_token}
           </div>
           <div class="flex justify-end mt-4">
-            <button phx-click="dismiss_raw_token" class="btn btn-sm btn-primary">Done</button>
+            <button phx-click="dismiss_raw_token" class="ui-button ui-button-sm ui-button-primary">
+              Done
+            </button>
           </div>
         </div>
       </div>

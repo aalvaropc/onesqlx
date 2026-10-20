@@ -23,8 +23,8 @@ defmodule OnesqlxWeb.SqlEditorLiveTest do
     end
 
     test "run button disabled when no data source selected", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/sql-editor")
-      assert html =~ "btn-disabled"
+      {:ok, view, _html} = live(conn, ~p"/sql-editor")
+      assert has_element?(view, "#execute-query[disabled]")
     end
 
     test "displays empty state message", %{conn: conn} do

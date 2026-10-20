@@ -13,9 +13,13 @@ defmodule OnesqlxWeb.DataSourceLive.Index do
           Manage your external PostgreSQL database connections.
         </:subtitle>
         <:actions>
-          <.link :if={@current_scope.role != "viewer"} navigate={~p"/data-sources/new"}>
-            <.button variant="primary">New Data Source</.button>
-          </.link>
+          <.button
+            :if={@current_scope.role != "viewer"}
+            navigate={~p"/data-sources/new"}
+            variant="primary"
+          >
+            <.icon name="hero-plus" class="size-4" /> New Data Source
+          </.button>
         </:actions>
       </.header>
 
@@ -25,28 +29,37 @@ defmodule OnesqlxWeb.DataSourceLive.Index do
         rows={@streams.data_sources}
         row_id={fn {id, _ds} -> id end}
       >
-        <:col :let={{_id, ds}} label="Name">{ds.name}</:col>
-        <:col :let={{_id, ds}} label="Host">{ds.host}</:col>
+        <:col :let={{_id, ds}} label="Name">
+          <span class="flex items-center gap-3">
+            <span class="object-symbol"><.icon name="hero-circle-stack" class="size-4" /></span><span class="font-medium">{ds.name}</span>
+          </span>
+        </:col>
+        <:col :let={{_id, ds}} label="Host">
+          <span class="font-mono text-xs text-muted">{ds.host}</span>
+        </:col>
         <:col :let={{_id, ds}} label="Database">{ds.database_name}</:col>
         <:col :let={{_id, ds}} label="Status">
           <span class={[
-            "badge",
-            ds.status == "connected" && "badge-success",
-            ds.status == "error" && "badge-error",
-            ds.status == "pending" && "badge-warning"
+            "ui-badge",
+            ds.status == "connected" && "ui-badge-success",
+            ds.status == "error" && "ui-badge-error",
+            ds.status == "pending" && "ui-badge-warning"
           ]}>
             {ds.status}
           </span>
         </:col>
         <:col :let={{_id, ds}} label="">
           <div class="flex items-center gap-3">
-            <.link navigate={~p"/data-sources/#{ds.id}/catalog"} class="link link-primary text-sm">
+            <.link
+              navigate={~p"/data-sources/#{ds.id}/catalog"}
+              class="ui-link ui-link-primary text-sm"
+            >
               Explore
             </.link>
             <.link
               :if={@current_scope.role != "viewer"}
               navigate={~p"/data-sources/#{ds.id}/edit"}
-              class="link text-sm"
+              class="ui-link text-sm"
             >
               Edit
             </.link>
@@ -54,13 +67,13 @@ defmodule OnesqlxWeb.DataSourceLive.Index do
         </:col>
       </.table>
 
-      <div :if={!@has_data_sources?} class="text-center py-12">
+      <div :if={!@has_data_sources?} class="empty-state">
         <.icon name="hero-circle-stack" class="size-12 text-base-content/20 mx-auto mb-4" />
-        <p class="text-base-content/60 mb-2">No data sources yet</p>
-        <p class="text-sm text-base-content/40 mb-4">
+        <p class="text-muted mb-2">No data sources yet</p>
+        <p class="text-sm text-muted mb-4">
           Connect a PostgreSQL database to start exploring your data.
         </p>
-        <.link navigate={~p"/data-sources/new"} class="btn btn-primary btn-sm">
+        <.link navigate={~p"/data-sources/new"} class="ui-button ui-button-primary ui-button-sm">
           Add Data Source
         </.link>
       </div>

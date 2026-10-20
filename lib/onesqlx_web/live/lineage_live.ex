@@ -24,14 +24,14 @@ defmodule OnesqlxWeb.LineageLive do
         <button
           phx-click="set_mode"
           phx-value-mode="dashboard"
-          class={["btn btn-sm", @mode == :dashboard && "btn-primary"]}
+          class={["ui-button ui-button-sm", @mode == :dashboard && "ui-button-primary"]}
         >
           Dashboard → Tables
         </button>
         <button
           phx-click="set_mode"
           phx-value-mode="table"
-          class={["btn btn-sm", @mode == :table && "btn-primary"]}
+          class={["ui-button ui-button-sm", @mode == :table && "ui-button-primary"]}
         >
           Table → Dashboards
         </button>
@@ -39,7 +39,7 @@ defmodule OnesqlxWeb.LineageLive do
 
       <div :if={@mode == :dashboard}>
         <form phx-change="select_dashboard" class="max-w-sm mb-6">
-          <select name="dashboard_id" class="select select-bordered w-full">
+          <select name="dashboard_id" class="ui-select ui-select-bordered w-full">
             <option value="">Select a dashboard...</option>
             <option
               :for={d <- @dashboards}
@@ -54,7 +54,7 @@ defmodule OnesqlxWeb.LineageLive do
         <div :if={@lineage}>
           <h2 class="text-lg font-semibold mb-4">{@lineage.dashboard.title}</h2>
 
-          <div :if={@lineage.cards == []} class="text-base-content/50 text-sm">
+          <div :if={@lineage.cards == []} class="text-muted text-sm">
             No cards in this dashboard.
           </div>
 
@@ -64,7 +64,7 @@ defmodule OnesqlxWeb.LineageLive do
               class="border border-base-300 rounded-lg p-4"
             >
               <div class="flex items-center gap-2 mb-2">
-                <.icon name="hero-squares-2x2" class="size-4 text-base-content/50" />
+                <.icon name="hero-squares-2x2" class="size-4 text-muted" />
                 <span class="font-medium">{card.title}</span>
               </div>
 
@@ -78,7 +78,7 @@ defmodule OnesqlxWeb.LineageLive do
               <div :if={card.tables != []} class="ml-12 space-y-1">
                 <div
                   :for={table <- card.tables}
-                  class="flex items-center gap-2 text-sm text-base-content/70"
+                  class="flex items-center gap-2 text-sm text-muted"
                 >
                   <.icon name="hero-table-cells" class="size-3.5 text-secondary" />
                   <span class="font-mono text-xs">{table.schema}.{table.name}</span>
@@ -87,7 +87,7 @@ defmodule OnesqlxWeb.LineageLive do
 
               <div
                 :if={card.tables == [] && card.saved_query}
-                class="ml-12 text-xs text-base-content/40"
+                class="ml-12 text-xs text-muted"
               >
                 No table references found
               </div>
@@ -104,7 +104,7 @@ defmodule OnesqlxWeb.LineageLive do
               name="table_name"
               value={@search_table}
               placeholder="Table name (e.g. orders)"
-              class="input input-bordered flex-1"
+              class="ui-input ui-input-bordered flex-1"
             />
             <.button variant="primary">Search</.button>
           </div>
@@ -121,7 +121,7 @@ defmodule OnesqlxWeb.LineageLive do
                 <.icon name="hero-code-bracket" class="size-4 inline" />
                 Saved Queries ({length(@table_lineage.queries)})
               </h3>
-              <div :if={@table_lineage.queries == []} class="text-sm text-base-content/50">
+              <div :if={@table_lineage.queries == []} class="text-sm text-muted">
                 No queries reference this table.
               </div>
               <div class="space-y-1">
@@ -140,7 +140,7 @@ defmodule OnesqlxWeb.LineageLive do
                 <.icon name="hero-chart-bar-square" class="size-4 inline" />
                 Dashboards ({length(@table_lineage.dashboards)})
               </h3>
-              <div :if={@table_lineage.dashboards == []} class="text-sm text-base-content/50">
+              <div :if={@table_lineage.dashboards == []} class="text-sm text-muted">
                 No dashboards affected.
               </div>
               <div class="space-y-1">

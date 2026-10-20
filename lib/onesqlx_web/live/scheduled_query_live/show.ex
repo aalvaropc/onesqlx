@@ -15,56 +15,56 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
       <.breadcrumb items={[{"Schedules", ~p"/schedules"}, {@scheduled_query.name, nil}]} />
       <div class="flex items-center gap-4 mb-6">
         <h1 class="text-2xl font-bold flex-1">{@scheduled_query.name}</h1>
-        <button phx-click="open_edit_modal" class="btn btn-sm btn-ghost">
+        <button phx-click="open_edit_modal" class="ui-button ui-button-sm ui-button-ghost">
           <.icon name="hero-pencil-square" class="size-4" /> Edit
         </button>
-        <button phx-click="run_now" class="btn btn-sm btn-primary">
+        <button phx-click="run_now" class="ui-button ui-button-sm ui-button-primary">
           <.icon name="hero-play" class="size-4" /> Run Now
         </button>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div class="card border border-base-300 p-4">
+        <div class="ui-panel border border-base-300 p-4">
           <h3 class="font-semibold mb-3">Schedule Details</h3>
           <dl class="space-y-2 text-sm">
             <div class="flex justify-between">
-              <dt class="text-base-content/60">Saved Query</dt>
+              <dt class="text-muted">Saved Query</dt>
               <dd>{(@scheduled_query.saved_query && @scheduled_query.saved_query.title) || "—"}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-base-content/60">Type</dt>
-              <dd class="badge badge-sm badge-outline">{@scheduled_query.schedule_type}</dd>
+              <dt class="text-muted">Type</dt>
+              <dd class="ui-badge ui-badge-sm ui-badge-outline">{@scheduled_query.schedule_type}</dd>
             </div>
             <div :if={@scheduled_query.cron_expression} class="flex justify-between">
-              <dt class="text-base-content/60">Cron</dt>
+              <dt class="text-muted">Cron</dt>
               <dd class="font-mono">{@scheduled_query.cron_expression}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-base-content/60">Status</dt>
+              <dt class="text-muted">Status</dt>
               <dd>
                 <span class={[
-                  "badge badge-sm",
-                  @scheduled_query.enabled && "badge-success",
-                  !@scheduled_query.enabled && "badge-ghost"
+                  "ui-badge ui-badge-sm",
+                  @scheduled_query.enabled && "ui-badge-success",
+                  !@scheduled_query.enabled && "ui-badge-ghost"
                 ]}>
                   {if @scheduled_query.enabled, do: "Active", else: "Disabled"}
                 </span>
               </dd>
             </div>
             <div :if={@scheduled_query.notify_email} class="flex justify-between">
-              <dt class="text-base-content/60">Notify</dt>
+              <dt class="text-muted">Notify</dt>
               <dd>{@scheduled_query.notify_email}</dd>
             </div>
             <div :if={@scheduled_query.webhook_url} class="flex justify-between">
-              <dt class="text-base-content/60">Webhook</dt>
+              <dt class="text-muted">Webhook</dt>
               <dd class="truncate max-w-48">{@scheduled_query.webhook_url}</dd>
             </div>
             <div :if={@scheduled_query.last_run_at} class="flex justify-between">
-              <dt class="text-base-content/60">Last Run</dt>
+              <dt class="text-muted">Last Run</dt>
               <dd>{Calendar.strftime(@scheduled_query.last_run_at, "%Y-%m-%d %H:%M")}</dd>
             </div>
             <div :if={@scheduled_query.next_run_at} class="flex justify-between">
-              <dt class="text-base-content/60">Next Run</dt>
+              <dt class="text-muted">Next Run</dt>
               <dd>{Calendar.strftime(@scheduled_query.next_run_at, "%Y-%m-%d %H:%M")}</dd>
             </div>
           </dl>
@@ -77,28 +77,32 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
         <div
           :for={{dom_id, run} <- @streams.runs}
           id={dom_id}
-          class="card border border-base-300 p-3"
+          class="ui-panel border border-base-300 p-3"
         >
           <div class="flex items-center gap-3">
             <span class={[
-              "badge badge-sm",
-              run.status == "success" && "badge-success",
-              run.status == "error" && "badge-error",
-              run.status == "timeout" && "badge-warning",
-              run.status == "running" && "badge-info"
+              "ui-badge ui-badge-sm",
+              run.status == "success" && "ui-badge-success",
+              run.status == "error" && "ui-badge-error",
+              run.status == "timeout" && "ui-badge-warning",
+              run.status == "running" && "ui-badge-info"
             ]}>
               {run.status}
             </span>
-            <span class="text-sm text-base-content/60">
+            <span class="text-sm text-muted">
               {Calendar.strftime(run.started_at, "%Y-%m-%d %H:%M:%S")}
             </span>
-            <span :if={run.duration_ms} class="text-sm text-base-content/50">
+            <span :if={run.duration_ms} class="text-sm text-muted">
               {run.duration_ms}ms
             </span>
-            <span :if={run.row_count} class="text-sm text-base-content/50">
+            <span :if={run.row_count} class="text-sm text-muted">
               {run.row_count} rows
             </span>
-            <span :if={run.notified} class="badge badge-sm badge-warning gap-1" title="Alert sent">
+            <span
+              :if={run.notified}
+              class="ui-badge ui-badge-sm ui-badge-warning gap-1"
+              title="Alert sent"
+            >
               <.icon name="hero-bell-alert" class="size-3" /> alerted
             </span>
             <span :if={run.error_message} class="text-sm text-error truncate flex-1">
@@ -108,7 +112,7 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
               :if={run.status == "success" && run.result_columns != []}
               phx-click="view_run_results"
               phx-value-id={run.id}
-              class="btn btn-xs btn-ghost ml-auto"
+              class="ui-button ui-button-xs ui-button-ghost ml-auto"
             >
               <.icon name="hero-table-cells" class="size-3" /> Results
             </button>
@@ -117,7 +121,7 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
       </div>
 
       <div :if={!@has_runs?} class="text-center py-8">
-        <p class="text-base-content/60">No runs yet. Click "Run Now" to execute manually.</p>
+        <p class="text-muted">No runs yet. Click "Run Now" to execute manually.</p>
       </div>
 
       <div
@@ -132,15 +136,15 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
             <h3 class="text-lg font-semibold">
               Run Results — {Calendar.strftime(@viewing_run.started_at, "%Y-%m-%d %H:%M:%S")}
             </h3>
-            <button phx-click="close_results_modal" class="btn btn-sm btn-ghost">
+            <button phx-click="close_results_modal" class="ui-button ui-button-sm ui-button-ghost">
               <.icon name="hero-x-mark" class="size-4" />
             </button>
           </div>
-          <div class="text-xs text-base-content/50 mb-2">
+          <div class="text-xs text-muted mb-2">
             {@viewing_run.row_count} rows, {@viewing_run.duration_ms}ms
           </div>
           <div class="overflow-auto flex-1">
-            <table class="table table-xs table-pin-rows">
+            <table class="ui-table ui-table-xs ui-table-sticky">
               <thead>
                 <tr>
                   <th :for={col <- @viewing_run.result_columns} class="bg-base-200">{col}</th>
@@ -172,9 +176,9 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
             phx-change="validate_edit"
           >
             <.input field={@edit_form[:name]} type="text" label="Name" required />
-            <div class="form-control mb-4">
-              <label class="label"><span class="label-text">Schedule Type</span></label>
-              <select name="schedule[schedule_type]" class="select select-bordered w-full">
+            <div class="ui-field mb-4">
+              <label class="ui-label"><span class="ui-label-text">Schedule Type</span></label>
+              <select name="schedule[schedule_type]" class="ui-select ui-select-bordered w-full">
                 <option value="hourly" selected={@edit_form[:schedule_type].value == "hourly"}>
                   Hourly
                 </option>
@@ -207,9 +211,9 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
               label="Webhook URL (optional)"
               placeholder="https://hooks.slack.com/..."
             />
-            <div class="form-control mb-4">
-              <label class="label"><span class="label-text">Alert Condition</span></label>
-              <select name="schedule[alert_condition]" class="select select-bordered w-full">
+            <div class="ui-field mb-4">
+              <label class="ui-label"><span class="ui-label-text">Alert Condition</span></label>
+              <select name="schedule[alert_condition]" class="ui-select ui-select-bordered w-full">
                 <option value="" selected={is_nil(@edit_form[:alert_condition].value)}>
                   Always notify
                 </option>
@@ -246,7 +250,9 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Show do
               step="any"
             />
             <div class="flex justify-end gap-2 mt-4">
-              <button type="button" phx-click="close_edit_modal" class="btn btn-sm">Cancel</button>
+              <button type="button" phx-click="close_edit_modal" class="ui-button ui-button-sm">
+                Cancel
+              </button>
               <.button variant="primary" phx-disable-with="Saving...">Save</.button>
             </div>
           </.form>

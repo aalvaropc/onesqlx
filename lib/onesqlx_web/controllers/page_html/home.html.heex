@@ -1,147 +1,144 @@
-<Layouts.flash_group flash={@flash} />
-<div class="px-4 py-10 sm:px-6 sm:py-28 lg:px-8 xl:px-28 xl:py-32">
-  <div class="mx-auto max-w-xl lg:mx-0">
-    <div class="flex justify-between items-center">
-      <h1 class="flex items-center text-2xl font-semibold leading-6">
-        OneSQLx
-      </h1>
-      <Layouts.theme_toggle />
+<Layouts.app flash={@flash} current_scope={@current_scope} mode="marketing">
+  <section class="marketing-hero" aria-labelledby="home-title">
+    <div class="hero-copy">
+      <h1 id="home-title">Good questions.<br /><span>Great discoveries.</span></h1>
+      <p>
+        Your PostgreSQL data has a story. Find it with SQL, bring it to life in dashboards, and share the next insight with your team.
+      </p>
+      <div class="hero-actions">
+        <.link
+          navigate={if(@current_scope, do: ~p"/sql-editor", else: ~p"/users/register")}
+          class="ui-button"
+        >
+          {if(@current_scope, do: "Open your workspace", else: "Start exploring")}
+          <.icon name="hero-arrow-up-right" class="size-4" />
+        </.link>
+        <a href="#workflow" class="hero-secondary">
+          See how it works <.icon name="hero-arrow-down" class="size-3.5" />
+        </a>
+      </div>
+      <div class="hero-proof">
+        <span><.icon name="hero-code-bracket" class="size-3.5" /> SQL first</span>
+        <span><.icon name="hero-circle-stack" class="size-3.5" /> PostgreSQL native</span>
+        <span><.icon name="hero-lock-open" class="size-3.5" /> Open source</span>
+      </div>
     </div>
-
-    <p class="text-[2rem] mt-4 font-semibold leading-10 tracking-tighter text-balance">
-      SQL-first analytics platform.
-    </p>
-    <p class="mt-4 leading-7 text-base-content/70">
-      Conecta tus bases de datos PostgreSQL, explora schemas, ejecuta queries read-only,
-      guarda consultas, construye dashboards y automatiza tareas en background.
-      Open source, construido con Elixir y Phoenix.
-    </p>
-    <div class="flex">
-      <div class="w-full sm:w-auto">
-        <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-          <a
-            href={~p"/users/register"}
-            class="group relative rounded-box px-6 py-4 text-sm font-semibold leading-6 sm:py-6"
-          >
-            <span class="absolute inset-0 rounded-box bg-primary/10 transition group-hover:bg-primary/20 sm:group-hover:scale-105">
-            </span>
-            <span class="relative flex items-center gap-4 sm:flex-col">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="h-6 w-6">
-                <path
-                  d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <circle
-                  cx="9"
-                  cy="7"
-                  r="4"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <line
-                  x1="19"
-                  y1="8"
-                  x2="19"
-                  y2="14"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <line
-                  x1="22"
-                  y1="11"
-                  x2="16"
-                  y2="11"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-              Crear cuenta
-            </span>
-          </a>
-          <a
-            href={~p"/users/log-in"}
-            class="group relative rounded-box px-6 py-4 text-sm font-semibold leading-6 sm:py-6"
-          >
-            <span class="absolute inset-0 rounded-box bg-base-200 transition group-hover:bg-base-300 sm:group-hover:scale-105">
-            </span>
-            <span class="relative flex items-center gap-4 sm:flex-col">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="h-6 w-6">
-                <path
-                  d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <polyline
-                  points="10 17 15 12 10 7"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <line
-                  x1="15"
-                  y1="12"
-                  x2="3"
-                  y2="12"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-              Iniciar sesion
-            </span>
-          </a>
+    <div
+      class="product-demo"
+      aria-label="Illustrative example of a SQL query and its result chart"
+    >
+      <div class="demo-titlebar">
+        <strong><.icon name="hero-code-bracket" class="size-3.5" /> Monthly revenue.sql</strong>
+        <span>Example workspace</span>
+      </div>
+      <pre class="demo-code"><span class="line-number">1</span><span class="keyword">SELECT</span> date_trunc(<span class="literal">'month'</span>, ordered_at),
+<span class="line-number">2</span>       <span class="keyword">SUM</span>(total) <span class="keyword">AS</span> revenue
+<span class="line-number">3</span><span class="keyword">FROM</span> orders
+<span class="line-number">4</span><span class="keyword">GROUP BY</span> 1
+<span class="line-number">5</span><span class="keyword">ORDER BY</span> 1;</pre>
+      <div class="demo-results">
+        <div class="demo-results-heading">
+          <strong>Revenue by month</strong><span>Illustrative data · USD</span>
         </div>
-        <div class="mt-10 grid grid-cols-1 gap-y-4 text-sm leading-6 text-base-content/80 sm:grid-cols-2">
-          <div>
-            <a
-              href="https://github.com/aalvaropc/onesqlx"
-              class="group -mx-2 -my-0.5 inline-flex items-center gap-3 rounded-lg px-2 py-0.5 hover:bg-base-200 hover:text-base-content"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                class="h-4 w-4 fill-base-content/40 group-hover:fill-base-content"
-              >
-                <path
-                  fill="currentColor"
-                  fill-rule="evenodd"
-                  clip-rule="evenodd"
-                  d="M12 0C5.37 0 0 5.506 0 12.303c0 5.445 3.435 10.043 8.205 11.674.6.107.825-.262.825-.585 0-.292-.015-1.261-.015-2.291C6 21.67 5.22 20.346 4.98 19.654c-.135-.354-.72-1.446-1.23-1.738-.42-.23-1.02-.8-.015-.815.945-.015 1.62.892 1.845 1.261 1.08 1.86 2.805 1.338 3.495 1.015.105-.8.42-1.338.765-1.645-2.67-.308-5.46-1.37-5.46-6.075 0-1.338.465-2.446 1.23-3.307-.12-.308-.54-1.569.12-3.26 0 0 1.005-.323 3.3 1.26.96-.276 1.98-.415 3-.415s2.04.139 3 .416c2.295-1.6 3.3-1.261 3.3-1.261.66 1.691.24 2.952.12 3.26.765.861 1.23 1.953 1.23 3.307 0 4.721-2.805 5.767-5.475 6.075.435.384.81 1.122.81 2.276 0 1.645-.015 2.968-.015 3.383 0 .323.225.707.825.585a12.047 12.047 0 0 0 5.919-4.489A12.536 12.536 0 0 0 24 12.304C24 5.505 18.63 0 12 0Z"
-                />
-              </svg>
-              Repositorio en GitHub
-            </a>
+        <div
+          class="demo-chart"
+          role="img"
+          aria-label="Example revenue chart: January 24,000, February 32,000, March 29,000, April 41,000, May 38,000, June 52,000 dollars"
+        >
+          <div class="demo-chart-column">
+            <div class="demo-chart-bar h-[46%]"></div>
           </div>
-          <div>
-            <a
-              href="https://elixirforum.com"
-              class="group -mx-2 -my-0.5 inline-flex items-center gap-3 rounded-lg px-2 py-0.5 hover:bg-base-200 hover:text-base-content"
-            >
-              <svg
-                viewBox="0 0 16 16"
-                aria-hidden="true"
-                class="h-4 w-4 fill-base-content/40 group-hover:fill-base-content"
-              >
-                <path d="M8 13.833c3.866 0 7-2.873 7-6.416C15 3.873 11.866 1 8 1S1 3.873 1 7.417c0 1.081.292 2.1.808 2.995.606 1.05.806 2.399.086 3.375l-.208.283c-.285.386-.01.905.465.85.852-.098 2.048-.318 3.137-.81a3.717 3.717 0 0 1 1.91-.318c.263.027.53.041.802.041Z" />
-              </svg>
-              Comunidad Elixir
-            </a>
+          <div class="demo-chart-column">
+            <div class="demo-chart-bar h-[61%]"></div>
           </div>
+          <div class="demo-chart-column">
+            <div class="demo-chart-bar h-[55%]"></div>
+          </div>
+          <div class="demo-chart-column">
+            <div class="demo-chart-bar h-[79%]"></div>
+          </div>
+          <div class="demo-chart-column">
+            <div class="demo-chart-bar h-[73%]"></div>
+          </div>
+          <div class="demo-chart-column">
+            <div class="demo-chart-bar h-full"></div>
+          </div>
+        </div>
+        <div class="demo-chart-labels" aria-hidden="true">
+          <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+        </div>
+      </div>
+      <div class="demo-footer"><span>PostgreSQL → SQL → Insight</span><span>OneSQLx</span></div>
+    </div>
+  </section>
+
+  <section id="workflow" class="product-path" aria-label="Your analytical workflow">
+    <div class="product-path-item">
+      <.icon name="hero-circle-stack" class="size-5" />
+      <div>
+        <h2>Connect your world.</h2>
+        <p>Add a PostgreSQL source and explore its schemas, tables, and columns.</p>
+      </div>
+    </div>
+    <div class="product-path-item">
+      <.icon name="hero-code-bracket" class="size-5" />
+      <div>
+        <h2>Follow your curiosity.</h2>
+        <p>Write SQL with autocomplete, save queries, and pick up where you left off.</p>
+      </div>
+    </div>
+    <div class="product-path-item">
+      <.icon name="hero-chart-bar-square" class="size-5" />
+      <div>
+        <h2>Make it a shared insight.</h2>
+        <p>Build dashboards, schedule reports, and keep your team in the picture.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="marketing-details" aria-labelledby="details-title">
+    <div>
+      <h2 id="details-title">From a quick query to a clearer picture.</h2>
+      <p>
+        A SQL-first analytics platform that keeps the tools you need in one workspace, so you can spend more time understanding your data.
+      </p>
+      <a
+        href="https://github.com/aalvaropc/onesqlx"
+        class="ui-link inline-flex items-center gap-2 mt-6 text-xs"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Explore the project <.icon name="hero-arrow-up-right" class="size-3.5" />
+      </a>
+    </div>
+    <div>
+      <div class="feature-line">
+        <.icon name="hero-window" class="size-5" />
+        <div>
+          <h3>A workspace built around SQL</h3>
+          <p>
+            Multiple editor tabs, schema-aware autocomplete, query history, reusable snippets, and CSV, JSON, or Excel exports.
+          </p>
+        </div>
+      </div>
+      <div class="feature-line">
+        <.icon name="hero-users" class="size-5" />
+        <div>
+          <h3>Find it together. Share it clearly.</h3>
+          <p>
+            Shared workspaces with role-based access, saved queries, interactive dashboards, and read-only sharing links.
+          </p>
+        </div>
+      </div>
+      <div class="feature-line">
+        <.icon name="hero-clock" class="size-5" />
+        <div>
+          <h3>Let your next report come to you</h3>
+          <p>
+            Scheduled queries, conditional alerts, email and webhook notifications, and a scoped REST API for your own workflows.
+          </p>
         </div>
       </div>
     </div>
-  </div>
-</div>
+  </section>
+</Layouts.app>

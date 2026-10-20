@@ -59,3 +59,9 @@ Thumbs.db
 .claude/
 CLAUDE.md
 .playwright-mcp/
+
+# Impeccable captures and transient build evidence.
+/.impeccable/review/
+/.impeccable/mocks/
+/.impeccable/build/
+/.impeccable/config.local.json

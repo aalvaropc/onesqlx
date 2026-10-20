@@ -37,7 +37,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
 
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} wide>
-      <div class="flex flex-col h-[calc(100vh-10rem)]">
+      <div class="sql-workbench">
         <.tab_bar tabs={@tabs} tab_order={@tab_order} active_tab_id={@active_tab_id} />
         <.toolbar
           tab={@tab}
@@ -54,7 +54,7 @@ defmodule OnesqlxWeb.SqlEditorLive do
               id="sql-editor"
               phx-hook="SqlEditor"
               phx-update="ignore"
-              class="border border-base-300 rounded-lg overflow-hidden h-32 md:h-48 flex-shrink-0"
+              class="sql-editor-surface"
             >
             </div>
 

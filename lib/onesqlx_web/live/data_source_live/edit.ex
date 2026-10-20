@@ -29,7 +29,7 @@ defmodule OnesqlxWeb.DataSourceLive.Edit do
               Save Changes
             </.button>
 
-            <.link navigate={~p"/data-sources"} class="link text-sm">Cancel</.link>
+            <.link navigate={~p"/data-sources"} class="ui-link text-sm">Cancel</.link>
           </div>
 
           <div :if={@test_result} class="mt-4">

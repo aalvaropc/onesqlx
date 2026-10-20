@@ -19,33 +19,35 @@ defmodule OnesqlxWeb.AnalyticsLive do
       </.header>
 
       <div class="flex items-center gap-2 mt-4 mb-6">
-        <span class="text-sm text-base-content/60">Period:</span>
+        <span class="text-sm text-muted">Period:</span>
         <button
           :for={days <- [7, 30, 90]}
           phx-click="set_range"
           phx-value-days={days}
-          class={["btn btn-sm", @range_days == days && "btn-active"]}
+          class={["ui-button ui-button-sm", @range_days == days && "ui-button-active"]}
         >
           {days}d
         </button>
       </div>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div class="card border border-base-300 p-4 text-center">
-          <p class="text-3xl font-bold">{@stats.total_executions}</p>
-          <p class="text-sm text-base-content/60">Total Queries</p>
+      <div class="dashboard-metrics">
+        <div class="dashboard-metric">
+          <p>Total Queries</p>
+          <strong>{@stats.total_executions}</strong>
         </div>
-        <div class="card border border-base-300 p-4 text-center">
-          <p class="text-3xl font-bold">{success_rate(@stats)}%</p>
-          <p class="text-sm text-base-content/60">Success Rate</p>
+        <div class="dashboard-metric">
+          <p>Success Rate</p>
+          <strong>{success_rate(@stats)}%</strong>
         </div>
-        <div class="card border border-base-300 p-4 text-center">
-          <p class="text-3xl font-bold">{@stats.avg_duration_ms}ms</p>
-          <p class="text-sm text-base-content/60">Avg Duration</p>
+        <div class="dashboard-metric">
+          <p>Avg Duration</p>
+          <strong>
+            {@stats.avg_duration_ms}<span class="text-sm font-normal text-muted ml-1">ms</span>
+          </strong>
         </div>
-        <div class="card border border-base-300 p-4 text-center">
-          <p class="text-3xl font-bold">{length(@active_users)}</p>
-          <p class="text-sm text-base-content/60">Active Users</p>
+        <div class="dashboard-metric">
+          <p>Active Users</p>
+          <strong>{length(@active_users)}</strong>
         </div>
       </div>
 
@@ -55,21 +57,21 @@ defmodule OnesqlxWeb.AnalyticsLive do
           <div class="space-y-2">
             <div
               :for={run <- @slowest_queries}
-              class="card border border-base-300 p-3"
+              class="ui-panel border border-base-300 p-3"
             >
               <p class="font-mono text-xs truncate">{String.slice(run.sql, 0, 120)}</p>
-              <div class="flex items-center gap-3 mt-1 text-xs text-base-content/50">
+              <div class="flex items-center gap-3 mt-1 text-xs text-muted">
                 <span class="font-semibold text-warning">{run.duration_ms}ms</span>
                 <span class={[
-                  "badge badge-xs",
-                  run.status == "success" && "badge-success",
-                  run.status != "success" && "badge-error"
+                  "ui-badge ui-badge-xs",
+                  run.status == "success" && "ui-badge-success",
+                  run.status != "success" && "ui-badge-error"
                 ]}>
                   {run.status}
                 </span>
               </div>
             </div>
-            <p :if={@slowest_queries == []} class="text-sm text-base-content/50">No queries yet.</p>
+            <p :if={@slowest_queries == []} class="text-sm text-muted">No queries yet.</p>
           </div>
         </div>
 
@@ -77,7 +79,7 @@ defmodule OnesqlxWeb.AnalyticsLive do
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-lg font-semibold">Recent Activity</h3>
             <form phx-change="filter_activity">
-              <select name="event_type" class="select select-bordered select-xs w-40">
+              <select name="event_type" class="ui-select ui-select-bordered ui-select-xs w-40">
                 <option value="">All events</option>
                 <option
                   :for={t <- @event_types}
@@ -93,18 +95,18 @@ defmodule OnesqlxWeb.AnalyticsLive do
             <div
               :for={{dom_id, event} <- @streams.activity}
               id={dom_id}
-              class="card border border-base-300 p-3"
+              class="ui-panel border border-base-300 p-3"
             >
               <div class="flex items-center gap-2">
-                <span class="badge badge-xs badge-outline">{event.event_type}</span>
-                <span :if={event.user} class="text-xs text-base-content/60">{event.user.email}</span>
-                <span class="text-xs text-base-content/40 ml-auto">
+                <span class="ui-badge ui-badge-xs ui-badge-outline">{event.event_type}</span>
+                <span :if={event.user} class="text-xs text-muted">{event.user.email}</span>
+                <span class="text-xs text-muted ml-auto">
                   {Calendar.strftime(event.occurred_at, "%m/%d %H:%M")}
                 </span>
               </div>
             </div>
           </div>
-          <p :if={!@has_activity?} class="text-sm text-base-content/50">No activity yet.</p>
+          <p :if={!@has_activity?} class="text-sm text-muted">No activity yet.</p>
         </div>
       </div>
     </Layouts.app>

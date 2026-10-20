@@ -22,11 +22,11 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
   def toolbar(assigns) do
     ~H"""
     <div class="flex flex-wrap items-center gap-2 md:gap-4 mb-6">
-      <h1 class="text-2xl font-bold flex-1">{@dashboard.title}</h1>
+      <h1 class="dashboard-title">{@dashboard.title}</h1>
 
       <div :if={@dashboard_param_names != []} class="flex items-center gap-2">
         <div :for={param <- @dashboard_param_names} class="flex items-center gap-1">
-          <label class="text-xs font-mono text-base-content/60">
+          <label class="text-xs font-mono text-muted">
             {param_label(@dashboard.variables, param)}
           </label>
           <input
@@ -36,24 +36,24 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
             name={"params[#{param}]"}
             value={Map.get(@dashboard_params, param, "")}
             step={if param_input_type(@dashboard.variables, param) == "number", do: "any"}
-            class="input input-bordered input-xs w-24"
+            class="ui-input ui-input-bordered ui-input-xs w-24"
           />
         </div>
-        <button phx-click="apply_dashboard_params" class="btn btn-xs btn-primary">
+        <button phx-click="apply_dashboard_params" class="ui-button ui-button-xs ui-button-primary">
           Apply
         </button>
       </div>
 
-      <button :if={@editing?} phx-click="open_variables_modal" class="btn btn-sm">
+      <button :if={@editing?} phx-click="open_variables_modal" class="ui-button ui-button-sm">
         <.icon name="hero-variable" class="size-4" /> Variables
       </button>
-      <button phx-click="refresh" class="btn btn-sm">
+      <button phx-click="refresh" class="ui-button ui-button-sm">
         <.icon name="hero-arrow-path" class="size-4" /> Refresh
       </button>
       <select
         phx-change="set_auto_refresh"
         name="interval"
-        class="select select-bordered select-sm w-28"
+        class="ui-select ui-select-bordered ui-select-sm w-28"
       >
         <option value="0" selected={@auto_refresh_interval == 0}>Auto: Off</option>
         <option value="30000" selected={@auto_refresh_interval == 30_000}>30s</option>
@@ -61,19 +61,19 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
         <option value="300000" selected={@auto_refresh_interval == 300_000}>5m</option>
         <option value="900000" selected={@auto_refresh_interval == 900_000}>15m</option>
       </select>
-      <button :if={!@viewer?} phx-click="duplicate_dashboard" class="btn btn-sm">
+      <button :if={!@viewer?} phx-click="duplicate_dashboard" class="ui-button ui-button-sm">
         <.icon name="hero-document-duplicate" class="size-4" /> Duplicate
       </button>
-      <button id="fullscreen-btn" phx-hook="Fullscreen" class="btn btn-sm">
+      <button id="fullscreen-btn" phx-hook="Fullscreen" class="ui-button ui-button-sm">
         Fullscreen
       </button>
-      <button :if={!@viewer?} phx-click="toggle_share" class="btn btn-sm">
+      <button :if={!@viewer?} phx-click="toggle_share" class="ui-button ui-button-sm">
         <.icon name="hero-share" class="size-4" /> Share
       </button>
       <button
         :if={!@viewer?}
         phx-click="toggle_edit"
-        class={["btn btn-sm", @editing? && "btn-active"]}
+        class={["ui-button ui-button-sm", @editing? && "ui-button-active"]}
       >
         {if @editing?, do: "Done", else: "Edit"}
       </button>
@@ -86,14 +86,14 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
   def filters_bar(assigns) do
     ~H"""
     <div :if={@active_filters != %{}} class="flex items-center gap-2 mb-3">
-      <span class="text-xs text-base-content/60">Filters:</span>
+      <span class="text-xs text-muted">Filters:</span>
       <span
         :for={{field, value} <- @active_filters}
-        class="badge badge-sm badge-primary gap-1"
+        class="ui-badge ui-badge-sm ui-badge-primary gap-1"
       >
         {field} = {value}
       </span>
-      <button phx-click="clear_filters" class="btn btn-xs btn-ghost">
+      <button phx-click="clear_filters" class="ui-button ui-button-xs ui-button-ghost">
         <.icon name="hero-x-mark" class="size-3" /> Clear
       </button>
     </div>
@@ -116,12 +116,12 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
       <div
         :for={card <- @dashboard.cards}
         id={"card-#{card.id}"}
-        class={["card border border-base-300 p-4", card_span_class(card)]}
+        class={["ui-panel dashboard-card", card_span_class(card)]}
       >
         <div class="flex items-start justify-between mb-3">
           <div class="flex items-center gap-2">
             <div :if={@editing?} class="drag-handle cursor-grab active:cursor-grabbing">
-              <.icon name="hero-bars-3" class="size-4 text-base-content/40" />
+              <.icon name="hero-bars-3" class="size-4 text-muted" />
             </div>
             <h3 class="font-semibold">
               {card.title || (card.saved_query && card.saved_query.title) || "Untitled Card"}
@@ -131,7 +131,7 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
             <button
               phx-click="move_card_up"
               phx-value-id={card.id}
-              class="btn btn-xs btn-ghost"
+              class="ui-button ui-button-xs ui-button-ghost"
               aria-label="Move card up"
             >
               <.icon name="hero-arrow-up" class="size-3" />
@@ -139,7 +139,7 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
             <button
               phx-click="move_card_down"
               phx-value-id={card.id}
-              class="btn btn-xs btn-ghost"
+              class="ui-button ui-button-xs ui-button-ghost"
               aria-label="Move card down"
             >
               <.icon name="hero-arrow-down" class="size-3" />
@@ -147,7 +147,7 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
             <.link
               :if={card.saved_query_id}
               navigate={~p"/sql-editor?saved_query_id=#{card.saved_query_id}"}
-              class="btn btn-xs btn-ghost"
+              class="ui-button ui-button-xs ui-button-ghost"
               aria-label="Open in editor"
             >
               <.icon name="hero-arrow-top-right-on-square" class="size-3" />
@@ -170,7 +170,7 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
               phx-click="remove_card"
               phx-value-id={card.id}
               data-confirm="Remove this card?"
-              class="btn btn-xs btn-ghost text-error"
+              class="ui-button ui-button-xs ui-button-ghost text-error"
               aria-label="Remove card"
             >
               <.icon name="hero-x-mark" class="size-3" />
@@ -209,18 +209,18 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
           phx-submit="add_card"
           phx-change="validate_card"
         >
-          <div class="form-control mb-4">
-            <label class="label"><span class="label-text">Saved Query</span></label>
-            <select name="card[saved_query_id]" class="select select-bordered w-full">
+          <div class="ui-field mb-4">
+            <label class="ui-label"><span class="ui-label-text">Saved Query</span></label>
+            <select name="card[saved_query_id]" class="ui-select ui-select-bordered w-full">
               <option value="">None</option>
               <option :for={q <- @saved_queries} value={q.id}>
                 {q.title}
               </option>
             </select>
           </div>
-          <div class="form-control mb-4">
-            <label class="label"><span class="label-text">Type</span></label>
-            <select name="card[type]" class="select select-bordered w-full">
+          <div class="ui-field mb-4">
+            <label class="ui-label"><span class="ui-label-text">Type</span></label>
+            <select name="card[type]" class="ui-select ui-select-bordered w-full">
               <option value="table">Table</option>
               <option value="kpi">KPI</option>
               <option value="bar">Bar Chart</option>
@@ -234,49 +234,53 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
           </div>
           <.input field={@form[:title]} type="text" label="Title (optional)" />
           <div class="flex gap-2 mt-2">
-            <div class="form-control flex-1">
-              <label class="label"><span class="label-text text-xs">Prefix (e.g. $)</span></label>
+            <div class="ui-field flex-1">
+              <label class="ui-label">
+                <span class="ui-label-text text-xs">Prefix (e.g. $)</span>
+              </label>
               <input
                 type="text"
                 name="card[config][prefix]"
                 placeholder="$"
-                class="input input-bordered input-sm w-full"
+                class="ui-input ui-input-bordered ui-input-sm w-full"
               />
             </div>
-            <div class="form-control flex-1">
-              <label class="label"><span class="label-text text-xs">Suffix (e.g. %)</span></label>
+            <div class="ui-field flex-1">
+              <label class="ui-label">
+                <span class="ui-label-text text-xs">Suffix (e.g. %)</span>
+              </label>
               <input
                 type="text"
                 name="card[config][suffix]"
                 placeholder="%"
-                class="input input-bordered input-sm w-full"
+                class="ui-input ui-input-bordered ui-input-sm w-full"
               />
             </div>
           </div>
-          <div class="form-control mt-2">
-            <label class="label">
-              <span class="label-text text-xs">Content (for Markdown cards)</span>
+          <div class="ui-field mt-2">
+            <label class="ui-label">
+              <span class="ui-label-text text-xs">Content (for Markdown cards)</span>
             </label>
             <textarea
               name="card[config][content]"
               placeholder="## Section Title&#10;&#10;Some explanatory text..."
               rows="3"
-              class="textarea textarea-bordered textarea-sm w-full"
+              class="ui-textarea ui-textarea-bordered ui-textarea-sm w-full"
             ></textarea>
           </div>
-          <div class="form-control mt-2">
-            <label class="label">
-              <span class="label-text text-xs">Filter Field (cross-filtering param name)</span>
+          <div class="ui-field mt-2">
+            <label class="ui-label">
+              <span class="ui-label-text text-xs">Filter Field (cross-filtering param name)</span>
             </label>
             <input
               type="text"
               name="card[config][filter_field]"
               placeholder="e.g. category"
-              class="input input-bordered input-sm w-full"
+              class="ui-input ui-input-bordered ui-input-sm w-full"
             />
           </div>
           <div class="flex justify-end gap-2 mt-4">
-            <button type="button" phx-click="close_add_card_modal" class="btn btn-sm">
+            <button type="button" phx-click="close_add_card_modal" class="ui-button ui-button-sm">
               Cancel
             </button>
             <.button variant="primary" phx-disable-with="Adding...">Add</.button>
@@ -301,7 +305,7 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
       <div class="fixed inset-0 bg-black/50" phx-click="close_variables_modal"></div>
       <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-lg shadow-xl">
         <h3 class="text-lg font-semibold mb-1">Dashboard Variables</h3>
-        <p class="text-xs text-base-content/60 mb-4">
+        <p class="text-xs text-muted mb-4">
           Variables map to <span class="font-mono">:name</span>
           parameters in the cards' queries. They appear in the filter bar
           — also on public and embedded views via <span class="font-mono">?name=value</span>
@@ -314,21 +318,21 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
             class="flex items-center gap-2 p-2 border border-base-300 rounded"
           >
             <span class="font-mono text-sm flex-1">:{var["name"]}</span>
-            <span class="badge badge-sm">{var["type"]}</span>
-            <span :if={var["default"] not in [nil, ""]} class="text-xs text-base-content/60">
+            <span class="ui-badge ui-badge-sm">{var["type"]}</span>
+            <span :if={var["default"] not in [nil, ""]} class="text-xs text-muted">
               default: {var["default"]}
             </span>
             <button
               phx-click="remove_variable"
               phx-value-name={var["name"]}
-              class="btn btn-ghost btn-xs text-error"
+              class="ui-button ui-button-ghost ui-button-xs text-error"
               aria-label={"Remove variable #{var["name"]}"}
             >
               <.icon name="hero-trash" class="size-3" />
             </button>
           </div>
         </div>
-        <p :if={@variables == []} class="text-sm text-base-content/50 mb-4">
+        <p :if={@variables == []} class="text-sm text-muted mb-4">
           No variables defined yet.
         </p>
 
@@ -340,9 +344,9 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
               placeholder="name"
               required
               pattern="[a-zA-Z_][a-zA-Z0-9_]*"
-              class="input input-bordered input-sm flex-1 font-mono"
+              class="ui-input ui-input-bordered ui-input-sm flex-1 font-mono"
             />
-            <select name="variable[type]" class="select select-bordered select-sm w-28">
+            <select name="variable[type]" class="ui-select ui-select-bordered ui-select-sm w-28">
               <option value="text">Text</option>
               <option value="number">Number</option>
               <option value="date">Date</option>
@@ -351,14 +355,14 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
               type="text"
               name="variable[default]"
               placeholder="default (optional)"
-              class="input input-bordered input-sm flex-1"
+              class="ui-input ui-input-bordered ui-input-sm flex-1"
             />
-            <button type="submit" class="btn btn-sm btn-primary">Add</button>
+            <button type="submit" class="ui-button ui-button-sm ui-button-primary">Add</button>
           </div>
         </form>
 
         <div class="flex justify-end mt-4">
-          <button phx-click="close_variables_modal" class="btn btn-sm">Close</button>
+          <button phx-click="close_variables_modal" class="ui-button ui-button-sm">Close</button>
         </div>
       </div>
     </div>
@@ -403,28 +407,32 @@ defmodule OnesqlxWeb.DashboardLive.ShowComponents do
       <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-md shadow-xl">
         <h3 class="text-lg font-semibold mb-4">Share Dashboard</h3>
         <div :if={@dashboard.public_token}>
-          <p class="text-sm text-base-content/60 mb-2">
+          <p class="text-sm text-muted mb-2">
             Public link (anyone with this link can view):
           </p>
           <div class="bg-base-200 rounded p-3 font-mono text-sm break-all select-all mb-3">
             {url(~p"/share/#{@dashboard.public_token}")}
           </div>
-          <p class="text-sm text-base-content/60 mb-2">
+          <p class="text-sm text-muted mb-2">
             Embed in your site or app:
           </p>
           <div class="bg-base-200 rounded p-3 font-mono text-xs break-all select-all mb-4">
             {"<iframe src=\"#{url(~p"/embed/#{@dashboard.public_token}")}\" width=\"100%\" height=\"600\" frameborder=\"0\"></iframe>"}
           </div>
-          <button phx-click="revoke_share" class="btn btn-sm btn-error">Revoke Link</button>
+          <button phx-click="revoke_share" class="ui-button ui-button-sm ui-button-error">
+            Revoke Link
+          </button>
         </div>
         <div :if={!@dashboard.public_token}>
-          <p class="text-sm text-base-content/60 mb-4">
+          <p class="text-sm text-muted mb-4">
             Generate a public link to share this dashboard without requiring login.
           </p>
-          <button phx-click="generate_share" class="btn btn-sm btn-primary">Generate Link</button>
+          <button phx-click="generate_share" class="ui-button ui-button-sm ui-button-primary">
+            Generate Link
+          </button>
         </div>
         <div class="flex justify-end mt-4">
-          <button phx-click="toggle_share" class="btn btn-sm">Close</button>
+          <button phx-click="toggle_share" class="ui-button ui-button-sm">Close</button>
         </div>
       </div>
     </div>

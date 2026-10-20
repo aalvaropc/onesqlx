@@ -20,22 +20,22 @@ defmodule OnesqlxWeb.AuditLive do
 
       <div class="flex flex-wrap items-end gap-4 mt-6 mb-4">
         <form phx-change="filter" class="flex flex-wrap items-end gap-4">
-          <div class="form-control">
-            <label class="label"><span class="label-text text-xs">Event Type</span></label>
-            <select name="event_type" class="select select-bordered select-sm w-48">
+          <div class="ui-field">
+            <label class="ui-label"><span class="ui-label-text text-xs">Event Type</span></label>
+            <select name="event_type" class="ui-select ui-select-bordered ui-select-sm w-48">
               <option value="">All types</option>
               <option :for={t <- @event_types} value={t} selected={@filter_event_type == t}>
                 {t}
               </option>
             </select>
           </div>
-          <div class="form-control">
-            <label class="label"><span class="label-text text-xs">Since</span></label>
+          <div class="ui-field">
+            <label class="ui-label"><span class="ui-label-text text-xs">Since</span></label>
             <input
               type="date"
               name="since"
               value={@filter_since}
-              class="input input-bordered input-sm w-40"
+              class="ui-input ui-input-bordered ui-input-sm w-40"
             />
           </div>
         </form>
@@ -44,18 +44,18 @@ defmodule OnesqlxWeb.AuditLive do
           <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
           <input type="hidden" name="event_type" value={@filter_event_type || ""} />
           <input type="hidden" name="since" value={@filter_since || ""} />
-          <button type="submit" class="btn btn-sm">
+          <button type="submit" class="ui-button ui-button-sm">
             <.icon name="hero-arrow-down-tray" class="size-4" /> Export CSV
           </button>
         </form>
       </div>
 
-      <div class="text-xs text-base-content/50 mb-2">
+      <div class="text-xs text-muted mb-2">
         {@total} events
       </div>
 
       <div class="overflow-x-auto">
-        <table class="table table-xs">
+        <table class="ui-table ui-table-xs">
           <thead>
             <tr>
               <th>Timestamp</th>
@@ -74,7 +74,7 @@ defmodule OnesqlxWeb.AuditLive do
                 {(event.user && event.user.email) || "system"}
               </td>
               <td>
-                <span class="badge badge-xs badge-outline">{event.event_type}</span>
+                <span class="ui-badge ui-badge-xs ui-badge-outline">{event.event_type}</span>
               </td>
               <td class="text-xs">
                 <span :if={event.resource_type} class="font-mono">
@@ -91,25 +91,25 @@ defmodule OnesqlxWeb.AuditLive do
         </table>
       </div>
 
-      <div :if={@total == 0} class="text-center py-12">
-        <p class="text-base-content/60">No audit events found.</p>
+      <div :if={@total == 0} class="empty-state">
+        <p class="text-muted">No audit events found.</p>
       </div>
 
       <div :if={@total > 0} class="flex justify-center gap-2 mt-4">
         <button
           :if={@page > 0}
           phx-click="prev_page"
-          class="btn btn-sm"
+          class="ui-button ui-button-sm"
         >
           Previous
         </button>
-        <span class="text-sm text-base-content/60 self-center">
+        <span class="text-sm text-muted self-center">
           Page {@page + 1} of {ceil(@total / @page_size)}
         </span>
         <button
           :if={(@page + 1) * @page_size < @total}
           phx-click="next_page"
-          class="btn btn-sm"
+          class="ui-button ui-button-sm"
         >
           Next
         </button>

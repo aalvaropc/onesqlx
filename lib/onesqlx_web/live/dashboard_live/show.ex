@@ -23,7 +23,7 @@ defmodule OnesqlxWeb.DashboardLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <Layouts.app flash={@flash} current_scope={@current_scope} wide>
       <.breadcrumb items={[{"Dashboards", ~p"/dashboards"}, {@dashboard.title, nil}]} />
       <.toolbar
         dashboard={@dashboard}
@@ -41,16 +41,16 @@ defmodule OnesqlxWeb.DashboardLive.Show do
         dashboard_params={@dashboard_params}
       />
 
-      <div :if={@dashboard.cards == []} class="text-center py-12">
+      <div :if={@dashboard.cards == []} class="empty-state">
         <.icon name="hero-squares-plus" class="size-12 text-base-content/20 mx-auto mb-4" />
-        <p class="text-base-content/60 mb-2">No cards yet</p>
-        <p class="text-sm text-base-content/40">
+        <p class="text-muted mb-2">No cards yet</p>
+        <p class="text-sm text-muted">
           Click "Edit" then "Add Card" to add your first visualization.
         </p>
       </div>
 
       <div :if={@editing?} class="mt-6">
-        <button phx-click="open_add_card_modal" class="btn btn-primary">
+        <button phx-click="open_add_card_modal" class="ui-button ui-button-primary">
           <.icon name="hero-plus" class="size-4" /> Add Card
         </button>
       </div>

@@ -7,8 +7,8 @@ defmodule OnesqlxWeb.UserLive.Login do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm space-y-4">
-        <div class="text-center">
+      <div class="space-y-4">
+        <div class="text-left">
           <.header>
             <p>Log in</p>
             <:subtitle>
@@ -25,7 +25,7 @@ defmodule OnesqlxWeb.UserLive.Login do
           </.header>
         </div>
 
-        <div :if={local_mail_adapter?()} class="alert alert-info">
+        <div :if={local_mail_adapter?()} class="ui-alert ui-alert-info">
           <.icon name="hero-information-circle" class="size-6 shrink-0" />
           <div>
             <p>You are running the local mail adapter.</p>
@@ -36,7 +36,6 @@ defmodule OnesqlxWeb.UserLive.Login do
         </div>
 
         <.form
-          :let={f}
           for={@form}
           id="login_form_magic"
           action={~p"/users/log-in"}
@@ -44,7 +43,8 @@ defmodule OnesqlxWeb.UserLive.Login do
         >
           <.input
             readonly={!!@current_scope}
-            field={f[:email]}
+            id="login_form_magic_email"
+            field={@form[:email]}
             type="email"
             label="Email"
             autocomplete="username"
@@ -52,49 +52,54 @@ defmodule OnesqlxWeb.UserLive.Login do
             required
             phx-mounted={JS.focus()}
           />
-          <.button class="btn btn-primary w-full">
-            Log in with email <span aria-hidden="true">→</span>
+          <.button class="ui-button ui-button-primary w-full">
+            Log in with email <.icon name="hero-arrow-right" class="size-4" />
           </.button>
         </.form>
 
-        <div class="divider">or</div>
+        <details>
+          <summary>Use a password instead</summary>
 
-        <.form
-          :let={f}
-          for={@form}
-          id="login_form_password"
-          action={~p"/users/log-in"}
-          phx-submit="submit_password"
-          phx-trigger-action={@trigger_submit}
-        >
-          <.input
-            readonly={!!@current_scope}
-            field={f[:email]}
-            type="email"
-            label="Email"
-            autocomplete="username"
-            spellcheck="false"
-            required
-          />
-          <.input
-            field={@form[:password]}
-            type="password"
-            label="Password"
-            autocomplete="current-password"
-            spellcheck="false"
-          />
-          <.button class="btn btn-primary w-full" name={@form[:remember_me].name} value="true">
-            Log in and stay logged in <span aria-hidden="true">→</span>
-          </.button>
-          <.button class="btn btn-primary btn-soft w-full mt-2">
-            Log in only this time
-          </.button>
-        </.form>
-
-        <div class="divider">or continue with</div>
-        <div class="space-y-2">
-          <a href="/auth/google" class="btn btn-outline w-full">Login with Google</a>
-          <a href="/auth/github" class="btn btn-outline w-full">Login with GitHub</a>
+          <.form
+            for={@form}
+            id="login_form_password"
+            action={~p"/users/log-in"}
+            phx-submit="submit_password"
+            phx-trigger-action={@trigger_submit}
+          >
+            <.input
+              readonly={!!@current_scope}
+              id="login_form_password_email"
+              field={@form[:email]}
+              type="email"
+              label="Email"
+              autocomplete="username"
+              spellcheck="false"
+              required
+            />
+            <.input
+              field={@form[:password]}
+              type="password"
+              label="Password"
+              autocomplete="current-password"
+              spellcheck="false"
+            />
+            <.button
+              class="ui-button ui-button-primary w-full"
+              name={@form[:remember_me].name}
+              value="true"
+            >
+              Log in and stay logged in <.icon name="hero-arrow-right" class="size-4" />
+            </.button>
+            <.button class="ui-button ui-button-primary ui-button-soft w-full mt-2">
+              Log in only this time
+            </.button>
+          </.form>
+        </details>
+        <div class="ui-divider">or continue with</div>
+        <div class="grid grid-cols-2 gap-2">
+          <a href="/auth/google" class="ui-button ui-button-outline w-full">Google</a>
+          <a href="/auth/github" class="ui-button ui-button-outline w-full">GitHub</a>
         </div>
       </div>
     </Layouts.app>
