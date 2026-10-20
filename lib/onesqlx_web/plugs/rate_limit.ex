@@ -28,8 +28,6 @@ defmodule OnesqlxWeb.Plugs.RateLimit do
 
   @impl true
   def call(conn, %{max_requests: max, window_ms: window_ms}) do
-    ensure_table()
-
     key = rate_limit_key(conn)
     window_id = div(System.monotonic_time(:millisecond), window_ms)
     ets_key = {key, window_id}
@@ -55,20 +53,6 @@ defmodule OnesqlxWeb.Plugs.RateLimit do
     case conn.assigns[:current_scope] do
       %{user: %{id: user_id}} -> "api:#{user_id}"
       _ -> "api:#{:erlang.phash2(conn.remote_ip)}"
-    end
-  end
-
-  defp ensure_table do
-    case :ets.info(@table) do
-      :undefined ->
-        try do
-          :ets.new(@table, [:set, :public, :named_table])
-        rescue
-          ArgumentError -> :ok
-        end
-
-      _ ->
-        :ok
     end
   end
 
