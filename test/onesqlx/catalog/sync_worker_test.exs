@@ -1,5 +1,6 @@
 defmodule Onesqlx.Catalog.SyncWorkerTest do
-  use Onesqlx.DataCase, async: true
+  # These tests change the global :connection_module application environment.
+  use Onesqlx.DataCase, async: false
   use Oban.Testing, repo: Onesqlx.Repo
 
   alias Onesqlx.Catalog
