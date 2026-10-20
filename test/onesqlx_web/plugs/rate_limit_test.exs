@@ -52,6 +52,33 @@ defmodule OnesqlxWeb.Plugs.RateLimitTest do
     assert body["error"]["message"] =~ "Rate limit"
   end
 
+  test "counts persist after the request process exits", %{scope: scope} do
+    supervisor = start_supervised!(Task.Supervisor)
+    opts = RateLimit.init(max_requests: 1)
+
+    task =
+      Task.Supervisor.async_nolink(supervisor, fn ->
+        build_conn()
+        |> assign(:current_scope, scope)
+        |> RateLimit.call(opts)
+      end)
+
+    request_ref = Process.monitor(task.pid)
+    first_conn = Task.await(task)
+    assert_receive {:DOWN, ^request_ref, :process, _pid, _reason}
+    refute first_conn.halted
+    assert get_resp_header(first_conn, "x-ratelimit-remaining") == ["0"]
+
+    conn =
+      build_conn()
+      |> assign(:current_scope, scope)
+      |> RateLimit.call(opts)
+
+    assert conn.status == 429
+    assert conn.halted
+    assert get_resp_header(conn, "x-ratelimit-remaining") == ["0"]
+  end
+
   test "different users have independent limits" do
     opts = RateLimit.init(max_requests: 1)
 
