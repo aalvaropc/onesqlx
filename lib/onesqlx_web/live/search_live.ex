@@ -16,15 +16,16 @@ defmodule OnesqlxWeb.SearchLive do
         <:subtitle>Find queries, dashboards, schedules, and data sources.</:subtitle>
       </.header>
 
-      <form phx-change="search" class="mt-6 max-w-lg">
+      <form id="workspace-search" phx-change="search" class="mt-2 max-w-2xl">
         <input
           type="text"
           name="q"
           value={@query}
-          placeholder="Type to search..."
+          placeholder="Search queries, dashboards, schedules, and sources…"
+          aria-label="Search workspace"
           phx-debounce="300"
           autofocus
-          class="input input-bordered w-full"
+          class="ui-input w-full py-3 text-base"
         />
       </form>
 
@@ -69,7 +70,7 @@ defmodule OnesqlxWeb.SearchLive do
           }
           class="text-center py-8"
         >
-          <p class="text-base-content/60">No results found for "{@query}"</p>
+          <p class="text-muted">No results found for "{@query}"</p>
         </div>
       </div>
     </Layouts.app>
@@ -85,7 +86,7 @@ defmodule OnesqlxWeb.SearchLive do
   defp result_group(assigns) do
     ~H"""
     <div>
-      <h3 class="text-sm font-semibold text-base-content/60 mb-2 flex items-center gap-2">
+      <h3 class="text-sm font-semibold text-muted mb-2 flex items-center gap-2">
         <.icon name={@icon} class="size-4" />
         {@title}
       </h3>
@@ -96,7 +97,7 @@ defmodule OnesqlxWeb.SearchLive do
           class="flex flex-col gap-0.5 p-2 rounded hover:bg-base-200 transition-colors"
         >
           <span class="text-sm">{@label_fn.(item)}</span>
-          <span :if={item[:snippet]} class="font-mono text-xs text-base-content/50 truncate">
+          <span :if={item[:snippet]} class="font-mono text-xs text-muted truncate">
             {item[:snippet]}
           </span>
         </.link>

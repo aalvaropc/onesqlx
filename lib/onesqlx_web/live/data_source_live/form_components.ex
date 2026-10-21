@@ -47,7 +47,7 @@ defmodule OnesqlxWeb.DataSourceLive.FormComponents do
         max="100000"
       />
     </div>
-    <p class="text-xs text-base-content/60 -mt-1 mb-2">
+    <p class="text-xs text-muted -mt-1 mb-2">
       The timeout cancels queries server-side. The row cap bounds every
       result from this source — editor, exports, and schedules alike.
     </p>

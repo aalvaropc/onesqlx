@@ -18,7 +18,7 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
       </.header>
 
       <%!-- Rename section --%>
-      <div :if={@role in ["owner", "admin"]} class="card border border-base-300 p-4 mt-6">
+      <div :if={@role in ["owner", "admin"]} class="ui-panel p-6 mt-6">
         <h3 class="font-semibold mb-3">Workspace Name</h3>
         <.form for={@name_form} id="rename-form" phx-submit="rename" class="flex items-end gap-3">
           <div class="flex-1">
@@ -29,7 +29,7 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
       </div>
 
       <%!-- Members section --%>
-      <div class="card border border-base-300 p-4 mt-6">
+      <div class="ui-panel p-6 mt-6">
         <h3 class="font-semibold mb-3">Members</h3>
         <div class="space-y-3">
           <div
@@ -39,11 +39,11 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
             <div>
               <span class="font-medium">{member.user.email}</span>
               <span class={[
-                "badge badge-sm ml-2",
-                member.role == "owner" && "badge-primary",
-                member.role == "admin" && "badge-secondary",
-                member.role == "member" && "badge-ghost",
-                member.role == "viewer" && "badge-outline"
+                "ui-badge ui-badge-sm ml-2",
+                member.role == "owner" && "ui-badge-primary",
+                member.role == "admin" && "ui-badge-secondary",
+                member.role == "member" && "ui-badge-ghost",
+                member.role == "viewer" && "ui-badge-outline"
               ]}>
                 {member.role}
               </span>
@@ -53,7 +53,7 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
               phx-click="remove_member"
               phx-value-id={member.id}
               data-confirm="Remove this member from the workspace?"
-              class="btn btn-xs btn-ghost text-error"
+              class="ui-button ui-button-xs ui-button-ghost text-error"
             >
               Remove
             </button>
@@ -62,7 +62,7 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
       </div>
 
       <%!-- Invitations section --%>
-      <div :if={@role in ["owner", "admin"]} class="card border border-base-300 p-4 mt-6">
+      <div :if={@role in ["owner", "admin"]} class="ui-panel p-6 mt-6">
         <h3 class="font-semibold mb-3">Invite Members</h3>
         <.form for={@invite_form} id="invite-form" phx-submit="invite" class="flex items-end gap-3">
           <div class="flex-1">
@@ -89,7 +89,7 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
         </.form>
 
         <div :if={@pending_invitations != []} class="mt-4">
-          <h4 class="text-sm font-medium text-base-content/70 mb-2">Pending Invitations</h4>
+          <h4 class="text-sm font-medium text-muted mb-2">Pending Invitations</h4>
           <div class="space-y-2">
             <div
               :for={invitation <- @pending_invitations}
@@ -97,8 +97,8 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
             >
               <div>
                 <span class="font-medium">{invitation.email}</span>
-                <span class="badge badge-sm badge-ghost ml-2">{invitation.role}</span>
-                <span class="text-xs text-base-content/50 ml-2">
+                <span class="ui-badge ui-badge-sm ui-badge-ghost ml-2">{invitation.role}</span>
+                <span class="text-xs text-muted ml-2">
                   expires {Calendar.strftime(invitation.expires_at, "%b %d")}
                 </span>
               </div>
@@ -107,7 +107,7 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
                 phx-click="revoke_invitation"
                 phx-value-id={invitation.id}
                 data-confirm="Revoke this invitation?"
-                class="btn btn-xs btn-ghost text-error"
+                class="ui-button ui-button-xs ui-button-ghost text-error"
               >
                 Revoke
               </button>
@@ -117,15 +117,15 @@ defmodule OnesqlxWeb.WorkspaceLive.Settings do
       </div>
 
       <%!-- Danger zone --%>
-      <div :if={@role == "owner"} class="card border border-error/30 p-4 mt-6">
+      <div :if={@role == "owner"} class="ui-panel border-error/30 p-6 mt-6">
         <h3 class="font-semibold text-error mb-3">Danger Zone</h3>
-        <p class="text-sm text-base-content/60 mb-3">
+        <p class="text-sm text-muted mb-3">
           Deleting a workspace permanently removes all data sources, queries, dashboards, and schedules.
         </p>
         <button
           phx-click="delete_workspace"
           data-confirm="Are you absolutely sure? This cannot be undone."
-          class="btn btn-sm btn-error"
+          class="ui-button ui-button-sm ui-button-error"
         >
           Delete Workspace
         </button>

@@ -28,7 +28,7 @@ defmodule OnesqlxWeb.UserLive.Settings do
         <.button variant="primary" phx-disable-with="Changing...">Change Email</.button>
       </.form>
 
-      <div class="divider" />
+      <div class="ui-divider" />
 
       <.form
         for={@password_form}

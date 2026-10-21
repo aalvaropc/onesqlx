@@ -26,11 +26,14 @@ defmodule OnesqlxWeb.UserLive.Confirmation do
             name={@form[:remember_me].name}
             value="true"
             phx-disable-with="Confirming..."
-            class="btn btn-primary w-full"
+            class="ui-button ui-button-primary w-full"
           >
             Confirm and stay logged in
           </.button>
-          <.button phx-disable-with="Confirming..." class="btn btn-primary btn-soft w-full mt-2">
+          <.button
+            phx-disable-with="Confirming..."
+            class="ui-button ui-button-primary ui-button-soft w-full mt-2"
+          >
             Confirm and log in only this time
           </.button>
         </.form>
@@ -46,7 +49,7 @@ defmodule OnesqlxWeb.UserLive.Confirmation do
         >
           <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
           <%= if @current_scope do %>
-            <.button phx-disable-with="Logging in..." class="btn btn-primary w-full">
+            <.button phx-disable-with="Logging in..." class="ui-button ui-button-primary w-full">
               Log in
             </.button>
           <% else %>
@@ -54,17 +57,20 @@ defmodule OnesqlxWeb.UserLive.Confirmation do
               name={@form[:remember_me].name}
               value="true"
               phx-disable-with="Logging in..."
-              class="btn btn-primary w-full"
+              class="ui-button ui-button-primary w-full"
             >
               Keep me logged in on this device
             </.button>
-            <.button phx-disable-with="Logging in..." class="btn btn-primary btn-soft w-full mt-2">
+            <.button
+              phx-disable-with="Logging in..."
+              class="ui-button ui-button-primary ui-button-soft w-full mt-2"
+            >
               Log me in only this time
             </.button>
           <% end %>
         </.form>
 
-        <p :if={!@user.confirmed_at} class="alert alert-outline mt-8">
+        <p :if={!@user.confirmed_at} class="ui-alert ui-alert-outline mt-8">
           Tip: If you prefer passwords, you can enable them in the user settings.
         </p>
       </div>

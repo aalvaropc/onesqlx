@@ -45,14 +45,14 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
   def card_content(%{result: :loading} = assigns) do
     ~H"""
     <div class="flex items-center justify-center py-8">
-      <span class="loading loading-spinner loading-md"></span>
+      <span class="ui-loading ui-loading-spinner ui-loading-md"></span>
     </div>
     """
   end
 
   def card_content(%{result: {:error, _msg}} = assigns) do
     ~H"""
-    <div class="alert alert-error text-sm">{elem(@result, 1)}</div>
+    <div class="ui-alert ui-alert-error text-sm">{elem(@result, 1)}</div>
     """
   end
 
@@ -69,11 +69,11 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
     assigns = assign(assigns, :kpi, formatted)
 
     ~H"""
-    <div :if={@kpi} class="text-center py-4">
-      <p class="text-4xl font-bold">{elem(@kpi, 0)}</p>
-      <p class="text-sm text-base-content/60 mt-1">{elem(@kpi, 1)}</p>
+    <div :if={@kpi} class="py-5">
+      <p class="text-4xl font-semibold tracking-tight tabular-nums">{elem(@kpi, 0)}</p>
+      <p class="text-sm text-muted mt-1">{elem(@kpi, 1)}</p>
     </div>
-    <div :if={!@kpi} class="text-center py-4 text-base-content/50 text-sm">No data</div>
+    <div :if={!@kpi} class="text-center py-4 text-muted text-sm">No data</div>
     """
   end
 
@@ -96,9 +96,9 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
       data-chart-type={@chart_type}
       data-chart-data={@chart_data}
       data-filter-field={@filter_field}
-      class="h-48"
+      class="h-56"
     >
-      <canvas></canvas>
+      <canvas role="img" aria-label={@card.title || "Query result chart"}></canvas>
     </div>
     """
   end
@@ -109,7 +109,7 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
 
     ~H"""
     <div class="overflow-x-auto">
-      <table class="table table-xs">
+      <table class="ui-table ui-table-xs">
         <thead>
           <tr>
             <th :for={col <- @columns}>{col}</th>
@@ -121,7 +121,7 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
           </tr>
         </tbody>
       </table>
-      <p :if={length(@rows) < @total} class="text-xs text-base-content/50 mt-1">
+      <p :if={length(@rows) < @total} class="text-xs text-muted mt-1">
         Showing {length(@rows)} of {@total} rows
       </p>
       <form
@@ -140,7 +140,7 @@ defmodule OnesqlxWeb.DashboardLive.CardHelpers do
           name={"params[#{name}]"}
           value={value}
         />
-        <button type="submit" class="btn btn-xs">
+        <button type="submit" class="ui-button ui-button-xs">
           <.icon name="hero-arrow-down-tray" class="size-3" /> CSV
         </button>
       </form>

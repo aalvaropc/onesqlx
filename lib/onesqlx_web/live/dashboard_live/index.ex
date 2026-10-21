@@ -21,7 +21,7 @@ defmodule OnesqlxWeb.DashboardLive.Index do
             variant="primary"
             phx-click="open_new_modal"
           >
-            New Dashboard
+            <.icon name="hero-plus" class="size-4" /> New Dashboard
           </.button>
         </:actions>
       </.header>
@@ -29,30 +29,31 @@ defmodule OnesqlxWeb.DashboardLive.Index do
       <div
         id="dashboards"
         phx-update="stream"
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"
+        class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2"
       >
         <div
           :for={{dom_id, dashboard} <- @streams.dashboards}
           id={dom_id}
-          class="card border border-base-300 p-4"
+          class="ui-panel object-row p-5"
         >
-          <div class="flex items-start justify-between">
+          <div class="flex items-center justify-between">
+            <span class="object-symbol mr-4"><.icon name="hero-squares-2x2" class="size-5" /></span>
             <div class="flex-1 min-w-0">
               <h3 class="font-semibold truncate">{dashboard.title}</h3>
-              <p :if={dashboard.description} class="text-sm text-base-content/60 truncate mt-1">
+              <p :if={dashboard.description} class="text-sm text-muted truncate mt-1">
                 {dashboard.description}
               </p>
             </div>
             <div class="flex items-center gap-2 ml-4 flex-shrink-0">
-              <.link navigate={~p"/dashboards/#{dashboard.id}"} class="btn btn-sm btn-primary">
-                View
+              <.link navigate={~p"/dashboards/#{dashboard.id}"} class="ui-button ui-button-sm">
+                Open
               </.link>
               <button
                 :if={@current_scope.role != "viewer"}
                 phx-click="delete"
                 phx-value-id={dashboard.id}
                 data-confirm="Are you sure you want to delete this dashboard?"
-                class="btn btn-sm btn-ghost text-error"
+                class="ui-button ui-button-sm ui-button-ghost text-error"
                 aria-label="Delete dashboard"
               >
                 <.icon name="hero-trash" class="size-4" />
@@ -62,13 +63,13 @@ defmodule OnesqlxWeb.DashboardLive.Index do
         </div>
       </div>
 
-      <div :if={!@has_dashboards?} class="text-center py-12">
+      <div :if={!@has_dashboards?} class="empty-state">
         <.icon name="hero-chart-bar-square" class="size-12 text-base-content/20 mx-auto mb-4" />
-        <p class="text-base-content/60 mb-2">No dashboards yet</p>
-        <p class="text-sm text-base-content/40 mb-4">
+        <p class="text-muted mb-2">No dashboards yet</p>
+        <p class="text-sm text-muted mb-4">
           Start by saving a query, then create a dashboard to visualize it.
         </p>
-        <.link navigate={~p"/sql-editor"} class="btn btn-primary btn-sm">
+        <.link navigate={~p"/sql-editor"} class="ui-button ui-button-primary ui-button-sm">
           Open SQL Editor
         </.link>
       </div>
@@ -91,7 +92,9 @@ defmodule OnesqlxWeb.DashboardLive.Index do
             <.input field={@new_form[:title]} type="text" label="Title" required />
             <.input field={@new_form[:description]} type="textarea" label="Description (optional)" />
             <div class="flex justify-end gap-2 mt-4">
-              <button type="button" phx-click="close_new_modal" class="btn btn-sm">Cancel</button>
+              <button type="button" phx-click="close_new_modal" class="ui-button ui-button-sm">
+                Cancel
+              </button>
               <.button variant="primary" phx-disable-with="Creating...">Create</.button>
             </div>
           </.form>

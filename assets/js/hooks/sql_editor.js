@@ -67,7 +67,12 @@ const SqlEditor = {
           this.themeCompartment.of(isDark ? oneDark : []),
           updateListener,
           EditorView.theme({
-            "&": {height: "100%"},
+            "&": {height: "100%", backgroundColor: "var(--surface)", color: "var(--ink)"},
+            ".cm-content": {fontFamily: '"Source Code Pro", monospace', fontSize: "12px", padding: "18px 0"},
+            ".cm-gutters": {backgroundColor: "var(--surface)", color: "var(--muted)", borderRight: "1px solid var(--line)", paddingRight: "8px"},
+            ".cm-activeLine, .cm-activeLineGutter": {backgroundColor: "var(--accent-soft)"},
+            ".cm-cursor": {borderLeftColor: "var(--accent)"},
+            "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {backgroundColor: "color-mix(in srgb, var(--accent) 20%, transparent)"},
             ".cm-scroller": {overflow: "auto"},
           }),
         ]

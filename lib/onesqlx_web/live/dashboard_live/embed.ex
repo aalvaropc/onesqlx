@@ -15,26 +15,28 @@ defmodule OnesqlxWeb.DashboardLive.Embed do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="w-full px-4 py-3">
-      <h1 class="text-lg font-semibold mb-3">{@dashboard.title}</h1>
+    <Layouts.app flash={@flash} current_scope={@current_scope} mode="embed">
+      <div class="w-full px-4 py-3">
+        <h1 class="text-lg font-semibold mb-3">{@dashboard.title}</h1>
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div
-          :for={card <- @dashboard.cards}
-          id={"card-#{card.id}"}
-          class={["card border border-base-300 p-3", card_span_class(card)]}
-        >
-          <h3 class="font-medium text-sm mb-2">
-            {card.title || (card.saved_query && card.saved_query.title) || "Untitled Card"}
-          </h3>
-          <.card_content card={card} result={Map.get(@card_results, card.id, :loading)} />
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div
+            :for={card <- @dashboard.cards}
+            id={"card-#{card.id}"}
+            class={["ui-panel dashboard-card", card_span_class(card)]}
+          >
+            <h3 class="font-medium text-sm mb-2">
+              {card.title || (card.saved_query && card.saved_query.title) || "Untitled Card"}
+            </h3>
+            <.card_content card={card} result={Map.get(@card_results, card.id, :loading)} />
+          </div>
+        </div>
+
+        <div :if={@dashboard.cards == []} class="text-center py-8">
+          <p class="text-muted text-sm">This dashboard has no cards yet.</p>
         </div>
       </div>
-
-      <div :if={@dashboard.cards == []} class="text-center py-8">
-        <p class="text-base-content/60 text-sm">This dashboard has no cards yet.</p>
-      </div>
-    </div>
+    </Layouts.app>
     """
   end
 

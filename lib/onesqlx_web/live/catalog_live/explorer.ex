@@ -23,23 +23,24 @@ defmodule OnesqlxWeb.CatalogLive.Explorer do
         </:actions>
       </.header>
 
-      <div :if={!@synced? and !@syncing?} class="text-center py-12">
-        <p class="text-base-content/60">
+      <div :if={!@synced? and !@syncing?} class="empty-state">
+        <p class="text-muted">
           No catalog data. Click "Sync Catalog" to import schema metadata.
         </p>
       </div>
 
-      <div :if={@synced?} class="flex gap-6">
-        <div class="w-64 shrink-0">
+      <div :if={@synced?} class="flex flex-col md:flex-row gap-6">
+        <div class="w-full md:w-60 shrink-0">
           <input
             type="text"
-            placeholder="Filter..."
+            placeholder="Find a schema or table…"
+            aria-label="Filter schemas and tables"
             phx-keyup="filter"
             value={@filter}
-            class="input input-bordered input-sm w-full mb-3"
+            class="ui-input ui-input-bordered ui-input-sm w-full mb-3"
           />
 
-          <ul class="menu menu-sm bg-base-200 rounded-box w-full">
+          <ul class="ui-menu ui-menu-sm bg-base-200 rounded-xl w-full">
             <li :for={schema <- filtered_schemas(@schemas, @filter)}>
               <button
                 phx-click="select_schema"
@@ -69,7 +70,7 @@ defmodule OnesqlxWeb.CatalogLive.Explorer do
           <div :if={@selected_table && @columns != []}>
             <h3 class="text-lg font-semibold mb-3">
               {@selected_schema.name}.{@selected_table.name}
-              <span class="badge badge-sm ml-2">{@selected_table.table_type}</span>
+              <span class="ui-badge ui-badge-sm ml-2">{@selected_table.table_type}</span>
             </h3>
 
             <.table id="columns" rows={@columns} row_id={fn col -> col.id end}>
@@ -93,7 +94,7 @@ defmodule OnesqlxWeb.CatalogLive.Explorer do
             </.table>
           </div>
 
-          <div :if={!@selected_table} class="text-center py-12 text-base-content/60">
+          <div :if={!@selected_table} class="text-center py-12 text-muted">
             <p>Select a table from the sidebar to view its columns.</p>
           </div>
         </div>

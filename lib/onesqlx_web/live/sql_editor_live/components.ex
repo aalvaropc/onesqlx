@@ -17,28 +17,33 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
 
   def tab_bar(assigns) do
     ~H"""
-    <div class="flex items-center gap-1 mb-2 border-b border-base-300 overflow-x-auto">
+    <div class="sql-tabs" aria-label="SQL query tabs">
       <div
         :for={tab_id <- @tab_order}
-        class={[
-          "flex items-center gap-1 px-3 py-1.5 text-sm cursor-pointer border-b-2 whitespace-nowrap flex-shrink-0",
-          tab_id == @active_tab_id && "border-primary font-semibold",
-          tab_id != @active_tab_id && "border-transparent hover:bg-base-200"
-        ]}
+        class="sql-query-tab"
+        data-active={to_string(tab_id == @active_tab_id)}
       >
-        <span phx-click="switch_tab" phx-value-id={tab_id}>
+        <button
+          type="button"
+          id={"query-tab-#{tab_id}"}
+          phx-click="switch_tab"
+          phx-value-id={tab_id}
+          aria-pressed={to_string(tab_id == @active_tab_id)}
+          class="flex items-center gap-2 py-3"
+        >
+          <.icon name="hero-code-bracket" class="size-3.5" />
           {@tabs[tab_id].name}
           <span
             :if={@tabs[tab_id].running?}
-            class="loading loading-spinner loading-xs ml-1"
+            class="ui-loading ui-loading-spinner ui-loading-xs ml-1"
           >
           </span>
-        </span>
+        </button>
         <button
           :if={length(@tab_order) > 1}
           phx-click="close_tab"
           phx-value-id={tab_id}
-          class="btn btn-ghost btn-xs px-0.5 ml-1"
+          class="ui-button ui-button-ghost ui-button-xs px-0.5 ml-1"
           aria-label="Close tab"
         >
           <.icon name="hero-x-mark" class="size-3" />
@@ -46,7 +51,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
       </div>
       <button
         phx-click="new_tab"
-        class="btn btn-ghost btn-xs px-2 flex-shrink-0"
+        class="ui-button ui-button-ghost ui-button-xs px-2 flex-shrink-0"
         aria-label="New tab"
       >
         <.icon name="hero-plus" class="size-3" />
@@ -61,11 +66,12 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
 
   def toolbar(assigns) do
     ~H"""
-    <div class="flex items-center gap-4 mb-4">
-      <form id="ds-selector" phx-change="select_data_source" class="flex-1 max-w-xs">
+    <div class="sql-toolbar">
+      <form id="ds-selector" phx-change="select_data_source" class="flex-1 max-w-[240px]">
         <select
           name="data_source_id"
-          class="select select-bordered w-full"
+          aria-label="Data source"
+          class="ui-select ui-select-bordered w-full"
         >
           <option value="">Select a data source...</option>
           <option
@@ -83,22 +89,27 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
         phx-click="execute"
         disabled={@tab.data_source_id == nil}
         class={[
-          "btn btn-primary btn-sm",
-          @tab.data_source_id == nil && "btn-disabled"
+          "ui-button ui-button-primary ui-button-sm",
+          @tab.data_source_id == nil && "ui-button-disabled"
         ]}
+        id="execute-query"
       >
-        Run
+        <.icon name="hero-play-solid" class="size-3.5" /> Run query
       </button>
-      <button :if={@tab.running?} phx-click="cancel_query" class="btn btn-error btn-sm">
-        <span class="loading loading-spinner loading-xs"></span> Cancel
+      <button
+        :if={@tab.running?}
+        phx-click="cancel_query"
+        class="ui-button ui-button-error ui-button-sm"
+      >
+        <span class="ui-loading ui-loading-spinner ui-loading-xs"></span> Cancel
       </button>
 
       <button
         phx-click="explain"
         disabled={@tab.running? || @tab.data_source_id == nil}
         class={[
-          "btn btn-sm",
-          (@tab.running? || @tab.data_source_id == nil) && "btn-disabled"
+          "ui-button ui-button-sm",
+          (@tab.running? || @tab.data_source_id == nil) && "ui-button-disabled"
         ]}
       >
         Explain
@@ -109,8 +120,8 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
         phx-click="open_save_modal"
         disabled={@tab.data_source_id == nil || @tab.sql == ""}
         class={[
-          "btn btn-sm",
-          (@tab.data_source_id == nil || @tab.sql == "") && "btn-disabled"
+          "ui-button ui-button-sm",
+          (@tab.data_source_id == nil || @tab.sql == "") && "ui-button-disabled"
         ]}
       >
         Save
@@ -119,18 +130,18 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
       <button
         phx-click="format_sql"
         disabled={@tab.sql == ""}
-        class={["btn btn-sm", @tab.sql == "" && "btn-disabled"]}
+        class={["ui-button ui-button-sm", @tab.sql == "" && "ui-button-disabled"]}
       >
         Format
       </button>
 
-      <div :if={@tab.result && @tab.data_source_id} class="dropdown dropdown-end">
-        <div tabindex="0" role="button" class="btn btn-sm">
+      <details :if={@tab.result && @tab.data_source_id} class="ui-dropdown ui-dropdown-end">
+        <summary class="ui-button ui-button-sm">
           <.icon name="hero-arrow-down-tray" class="size-4" /> Export
-        </div>
+        </summary>
         <ul
           tabindex="0"
-          class="dropdown-content menu bg-base-100 rounded-box z-10 w-36 p-1 shadow border border-base-300"
+          class="ui-dropdown-content ui-menu bg-base-100 rounded-xl z-10 w-36 p-1 shadow border border-base-300"
         >
           <li :for={
             {label, path} <- [
@@ -159,10 +170,14 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
             </form>
           </li>
         </ul>
-      </div>
+      </details>
 
-      <form phx-change="set_row_limit" class="inline">
-        <select name="row_limit" class="select select-bordered select-sm w-28">
+      <form id="query-row-limit" phx-change="set_row_limit" class="inline ml-auto">
+        <select
+          name="row_limit"
+          aria-label="Maximum result rows"
+          class="ui-select ui-select-bordered ui-select-sm w-28"
+        >
           <option value="100" selected={@tab.row_limit == 100}>100 rows</option>
           <option value="500" selected={@tab.row_limit == 500}>500 rows</option>
           <option value="1000" selected={@tab.row_limit == 1000}>1,000 rows</option>
@@ -171,7 +186,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
         </select>
       </form>
 
-      <span class="text-xs text-base-content/50">Ctrl+Enter to run</span>
+      <span class="text-[10px] text-muted sql-shortcut">Ctrl+Enter</span>
     </div>
     """
   end
@@ -183,7 +198,11 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
     <div :if={@tab.show_params_form?} class="border border-base-300 rounded-lg p-4 mt-2">
       <div class="flex items-center justify-between mb-2">
         <h4 class="text-sm font-semibold">Query Parameters</h4>
-        <button phx-click="close_params_form" aria-label="Close" class="btn btn-xs btn-ghost">
+        <button
+          phx-click="close_params_form"
+          aria-label="Close"
+          class="ui-button ui-button-xs ui-button-ghost"
+        >
           <.icon name="hero-x-mark" class="size-3" />
         </button>
       </div>
@@ -197,10 +216,10 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
           value={Map.get(@tab.param_values, param, "")}
           phx-debounce="300"
           step={if Params.infer_input_type(param) == "number", do: "any"}
-          class="input input-bordered input-sm flex-1"
+          class="ui-input ui-input-bordered ui-input-sm flex-1"
         />
       </div>
-      <button phx-click="execute_with_params" class="btn btn-primary btn-sm mt-2">
+      <button phx-click="execute_with_params" class="ui-button ui-button-primary ui-button-sm mt-2">
         Run with Parameters
       </button>
     </div>
@@ -213,28 +232,28 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
     ~H"""
     <div class="flex flex-col flex-1 mt-4 min-h-0">
       <%!-- Result tabs --%>
-      <div class="tabs tabs-bordered">
+      <div class="ui-tabs ui-tabs-bordered">
         <button
           phx-click="set_result_tab"
           phx-value-tab="results"
-          class={["tab", @tab.active_result_tab == :results && "tab-active"]}
+          class={["ui-tab", @tab.active_result_tab == :results && "ui-tab-active"]}
         >
           Results
-          <span :if={@tab.result} class="badge badge-sm ml-1">
+          <span :if={@tab.result} class="ui-badge ui-badge-sm ml-1">
             {@tab.result.row_count}
           </span>
         </button>
         <button
           phx-click="set_result_tab"
           phx-value-tab="messages"
-          class={["tab", @tab.active_result_tab == :messages && "tab-active"]}
+          class={["ui-tab", @tab.active_result_tab == :messages && "ui-tab-active"]}
         >
           Messages
         </button>
         <button
           phx-click="set_result_tab"
           phx-value-tab="explain"
-          class={["tab", @tab.active_result_tab == :explain && "tab-active"]}
+          class={["ui-tab", @tab.active_result_tab == :explain && "ui-tab-active"]}
         >
           Explain
         </button>
@@ -247,9 +266,9 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
             :if={@tab.result}
             id="result-table"
             phx-hook="CopyTable"
-            class="overflow-x-auto"
+            class="sql-results"
           >
-            <table class="table table-xs table-pin-rows">
+            <table class="ui-table ui-table-xs ui-table-sticky">
               <thead>
                 <tr>
                   <th
@@ -280,7 +299,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
                       :if={truncated?(cell)}
                       phx-click="view_cell"
                       phx-value-text={raw_cell(cell)}
-                      class="btn btn-ghost btn-xs px-0.5 ml-1 opacity-40 hover:opacity-100"
+                      class="ui-button ui-button-ghost ui-button-xs px-0.5 ml-1 opacity-40 hover:opacity-100"
                       title="View full text"
                     >
                       <.icon name="hero-arrows-pointing-out" class="size-3" />
@@ -289,7 +308,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
                   <td class="px-1">
                     <button
                       data-copy-row
-                      class="btn btn-ghost btn-xs px-0.5 opacity-30 hover:opacity-100"
+                      class="ui-button ui-button-ghost ui-button-xs px-0.5 opacity-30 hover:opacity-100"
                       title="Copy row"
                     >
                       <.icon name="hero-clipboard" class="size-3" />
@@ -300,27 +319,40 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
             </table>
             <p
               :if={length(@tab.result.rows) < @tab.result.row_count}
-              class="text-xs text-base-content/50 mt-2"
+              class="text-xs text-muted mt-2"
             >
               Showing {length(@tab.result.rows)} of {@tab.result.row_count} rows
             </p>
-            <p class="text-xs text-base-content/50 mt-1">
+            <p class="text-xs text-muted mt-1">
               Completed in {@tab.result.duration_ms}ms
             </p>
           </div>
-          <p :if={!@tab.result && !@tab.error} class="text-base-content/50 text-sm py-4">
-            Run a query to see results.
-          </p>
+          <div :if={!@tab.result && !@tab.error && !@tab.running?} class="query-placeholder">
+            <.icon name="hero-table-cells" class="size-6" />
+            <p class="text-sm font-medium text-base-content">A question away from an insight.</p>
+            <p class="text-xs">Run a query to see results.</p>
+          </div>
+          <div
+            :if={@tab.running? && !@tab.result}
+            class="space-y-3 p-5"
+            role="status"
+            aria-label="Query running"
+          >
+            <div class="ui-skeleton h-8 w-full"></div>
+            <div class="ui-skeleton h-8 w-4/5"></div>
+            <div class="ui-skeleton h-8 w-full"></div>
+            <span class="sr-only">Running your query…</span>
+          </div>
         </div>
 
         <div :if={@tab.active_result_tab == :messages}>
-          <div :if={@tab.error} class="alert alert-error text-sm">
+          <div :if={@tab.error} class="ui-alert ui-alert-error text-sm">
             {@tab.error}
           </div>
           <p :if={!@tab.error && @tab.result} class="text-success text-sm py-4">
             Query executed successfully.
           </p>
-          <p :if={!@tab.error && !@tab.result} class="text-base-content/50 text-sm py-4">
+          <p :if={!@tab.error && !@tab.result} class="text-muted text-sm py-4">
             No messages.
           </p>
         </div>
@@ -330,12 +362,12 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
             :if={@tab.explain_plan}
             class="text-xs font-mono whitespace-pre overflow-x-auto bg-base-200 rounded p-4"
           >{@tab.explain_plan}</pre>
-          <div :if={@tab.explain_error} class="alert alert-error text-sm">
+          <div :if={@tab.explain_error} class="ui-alert ui-alert-error text-sm">
             {@tab.explain_error}
           </div>
           <p
             :if={!@tab.explain_plan && !@tab.explain_error}
-            class="text-base-content/50 text-sm py-4"
+            class="text-muted text-sm py-4"
           >
             Click "Explain" to see the query execution plan.
           </p>
@@ -353,25 +385,30 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
 
   def side_panel(assigns) do
     ~H"""
-    <div class="hidden lg:flex w-72 flex-shrink-0 flex-col min-h-0 border-l border-base-300 pl-4">
+    <div class="sql-rail flex flex-col min-h-0">
       <div class="flex items-center gap-2 mb-2">
         <button
           phx-click="set_side_tab"
           phx-value-tab="history"
-          class={["btn btn-xs", @side_panel_tab == :history && "btn-active"]}
+          class={["ui-button ui-button-xs", @side_panel_tab == :history && "ui-button-active"]}
         >
           History
         </button>
         <button
           phx-click="set_side_tab"
           phx-value-tab="snippets"
-          class={["btn btn-xs", @side_panel_tab == :snippets && "btn-active"]}
+          class={["ui-button ui-button-xs", @side_panel_tab == :snippets && "ui-button-active"]}
         >
           Snippets
         </button>
       </div>
 
-      <div :if={@side_panel_tab == :history} class="flex-1 overflow-y-auto space-y-2">
+      <div
+        :if={@side_panel_tab == :history}
+        id="query-history"
+        phx-update="stream"
+        class="flex-1 overflow-y-auto space-y-2"
+      >
         <div
           :for={{dom_id, run} <- @history}
           id={dom_id}
@@ -381,21 +418,21 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
         >
           <div class="flex items-center gap-2 mb-1">
             <span class={[
-              "badge badge-xs",
-              run.status == "success" && "badge-success",
-              run.status == "error" && "badge-error",
-              run.status == "timeout" && "badge-warning",
-              run.status == "blocked" && "badge-error"
+              "ui-badge ui-badge-xs",
+              run.status == "success" && "ui-badge-success",
+              run.status == "error" && "ui-badge-error",
+              run.status == "timeout" && "ui-badge-warning",
+              run.status == "blocked" && "ui-badge-error"
             ]}>
               {run.status}
             </span>
-            <span :if={run.duration_ms} class="text-xs text-base-content/50">
+            <span :if={run.duration_ms} class="text-xs text-muted">
               {run.duration_ms}ms
             </span>
           </div>
           <p class="text-xs font-mono truncate">{run.sql}</p>
         </div>
-        <p :if={@tab.data_source_id == nil} class="text-xs text-base-content/50">
+        <p :if={@tab.data_source_id == nil} id="query-history-empty" class="text-xs text-muted">
           Select a data source to view history.
         </p>
       </div>
@@ -404,7 +441,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
         <button
           :if={!@viewer?}
           phx-click="open_snippet_modal"
-          class="btn btn-xs btn-primary w-full mb-2"
+          class="ui-button ui-button-xs ui-button-primary w-full mb-2"
         >
           <.icon name="hero-plus" class="size-3" /> New Snippet
         </button>
@@ -418,7 +455,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
               <button
                 phx-click="insert_snippet"
                 phx-value-sql={snippet.sql}
-                class="btn btn-ghost btn-xs px-1"
+                class="ui-button ui-button-ghost ui-button-xs px-1"
                 title="Insert into editor"
               >
                 <.icon name="hero-arrow-down-on-square" class="size-3" />
@@ -428,16 +465,16 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
                 phx-click="delete_snippet"
                 phx-value-id={snippet.id}
                 data-confirm="Delete this snippet?"
-                class="btn btn-ghost btn-xs px-1 text-error"
+                class="ui-button ui-button-ghost ui-button-xs px-1 text-error"
                 title="Delete"
               >
                 <.icon name="hero-trash" class="size-3" />
               </button>
             </div>
           </div>
-          <p class="text-xs font-mono truncate text-base-content/60">{snippet.sql}</p>
+          <p class="text-xs font-mono truncate text-muted">{snippet.sql}</p>
         </div>
-        <p :if={@snippets == []} class="text-xs text-base-content/50">
+        <p :if={@snippets == []} class="text-xs text-muted">
           No snippets yet. Save reusable SQL here.
         </p>
       </div>
@@ -468,7 +505,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
           <.input field={@form[:title]} type="text" label="Title" required />
           <.input field={@form[:description]} type="textarea" label="Description (optional)" />
           <div class="flex justify-end gap-2 mt-4">
-            <button type="button" phx-click="close_save_modal" class="btn btn-sm">
+            <button type="button" phx-click="close_save_modal" class="ui-button ui-button-sm">
               Cancel
             </button>
             <.button variant="primary" phx-disable-with="Saving...">Save</.button>
@@ -493,7 +530,7 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
       <div class="relative bg-base-100 rounded-lg p-6 w-full max-w-2xl max-h-[70vh] shadow-xl flex flex-col">
         <div class="flex items-center justify-between mb-3">
           <h3 class="text-sm font-semibold">Cell Content</h3>
-          <button phx-click="close_cell_view" class="btn btn-sm btn-ghost">
+          <button phx-click="close_cell_view" class="ui-button ui-button-sm ui-button-ghost">
             <.icon name="hero-x-mark" class="size-4" />
           </button>
         </div>
@@ -526,7 +563,9 @@ defmodule OnesqlxWeb.SqlEditorLive.Components do
           <.input field={@form[:description]} type="text" label="Description (optional)" />
           <.input field={@form[:sql]} type="textarea" label="SQL" required />
           <div class="flex justify-end gap-2 mt-4">
-            <button type="button" phx-click="close_snippet_modal" class="btn btn-sm">Cancel</button>
+            <button type="button" phx-click="close_snippet_modal" class="ui-button ui-button-sm">
+              Cancel
+            </button>
             <.button variant="primary" phx-disable-with="Saving...">Save</.button>
           </div>
         </.form>

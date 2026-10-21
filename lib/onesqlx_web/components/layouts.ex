@@ -1,206 +1,261 @@
 defmodule OnesqlxWeb.Layouts do
-  @moduledoc """
-  This module holds layouts and related functionality
-  used by your application.
-  """
+  @moduledoc "Shared application, public, and authentication layouts."
   use OnesqlxWeb, :html
 
-  alias Phoenix.LiveView.JS
-
-  # Embed all files in layouts/* within this module.
-  # The default root.html.heex file contains the HTML
-  # skeleton of your application, namely HTML headers
-  # and other static content.
   embed_templates "layouts/*"
 
-  @doc """
-  Renders your app layout.
-
-  This function is typically invoked from every template,
-  and it often contains your application menu, sidebar,
-  or similar.
-
-  ## Examples
-
-      <Layouts.app flash={@flash}>
-        <h1>Content</h1>
-      </Layouts.app>
-
-  """
-  attr :flash, :map, required: true, doc: "the map of flash messages"
-
-  attr :current_scope, :map,
-    default: nil,
-    doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
-
-  attr :wide, :boolean, default: false, doc: "use wider max-width for the content area"
-
+  attr :flash, :map, required: true
+  attr :current_scope, :any, default: nil
+  attr :wide, :boolean, default: false
+  attr :mode, :string, default: "app", values: ~w(app marketing shared embed)
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
-    <div :if={@current_scope && @current_scope.user} class="flex h-screen">
-      <%!-- Desktop sidebar --%>
-      <nav class="hidden md:flex w-56 flex-shrink-0 border-r border-base-300 flex-col bg-base-200">
-        <.sidebar_content current_scope={@current_scope} />
-      </nav>
-
-      <%!-- Mobile overlay --%>
-      <div
-        id="mobile-menu-overlay"
-        class="fixed inset-0 z-40 hidden md:hidden"
-        phx-click={hide_mobile_menu()}
-      >
-        <div class="fixed inset-0 bg-black/50"></div>
-      </div>
-      <nav
-        id="mobile-menu"
-        class="fixed inset-y-0 left-0 z-50 w-64 flex-col bg-base-200 shadow-xl hidden md:hidden"
-      >
-        <.sidebar_content current_scope={@current_scope} mobile />
-      </nav>
-
-      <div class="flex-1 flex flex-col overflow-hidden">
-        <%!-- Mobile header with hamburger --%>
-        <div class="md:hidden flex items-center gap-3 px-4 py-3 border-b border-base-300">
-          <button
-            phx-click={show_mobile_menu()}
-            class="btn btn-sm btn-ghost"
-            aria-label="Open menu"
-          >
-            <.icon name="hero-bars-3" class="size-5" />
-          </button>
-          <a href="/" class="flex items-center gap-2">
-            <img src={~p"/images/logo.svg"} width="24" />
-            <span class="text-sm font-bold">OneSQLx</span>
-          </a>
-        </div>
-
-        <main class="flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div class={["mx-auto space-y-4", (@wide && "max-w-7xl") || "max-w-5xl"]}>
-            {render_slot(@inner_block)}
-          </div>
-        </main>
-      </div>
-    </div>
-
-    <div :if={!@current_scope || !@current_scope.user}>
-      <header class="navbar px-4 sm:px-6 lg:px-8">
-        <div class="flex-1">
-          <a href="/" class="flex-1 flex w-fit items-center gap-2">
-            <img src={~p"/images/logo.svg"} width="36" />
-            <span class="text-sm font-semibold">OneSQLx</span>
-          </a>
-        </div>
-        <div class="flex-none">
-          <ul class="flex flex-column px-1 space-x-4 items-center">
-            <li>
-              <a href="https://github.com/aalvaropc/onesqlx" class="btn btn-ghost">GitHub</a>
-            </li>
-            <li>
-              <.theme_toggle />
-            </li>
-          </ul>
-        </div>
-      </header>
-
-      <main class="px-4 py-20 sm:px-6 lg:px-8">
-        <div class={["mx-auto space-y-4", (@wide && "max-w-7xl") || "max-w-2xl"]}>
+    <%= cond do %>
+      <% @mode in ["shared", "embed"] -> %>
+        <div
+          id="main-content"
+          class={if(@mode == "embed", do: "p-4", else: "mx-auto max-w-7xl px-4 py-8 sm:px-8")}
+        >
+          <header :if={@mode == "shared"} class="flex items-center justify-between mb-8 gap-4">
+            <.brand />
+            <.theme_toggle />
+          </header>
           {render_slot(@inner_block)}
         </div>
-      </main>
-    </div>
-
+      <% @mode == "app" && @current_scope && @current_scope.user -> %>
+        <div id="application-shell" class="app-shell">
+          <aside class="app-sidebar" aria-label="Main navigation">
+            <.sidebar_content current_scope={@current_scope} />
+          </aside>
+          <dialog id="mobile-menu" class="mobile-drawer" aria-label="Main navigation">
+            <button type="button" data-close-menu class="mobile-drawer-close" aria-label="Close menu">
+              <.icon name="hero-x-mark" class="size-5" />
+            </button>
+            <.sidebar_content current_scope={@current_scope} />
+          </dialog>
+          <div class="app-frame">
+            <header class="app-topbar">
+              <div class="topbar-location">
+                <button
+                  id="open-navigation"
+                  type="button"
+                  data-open-menu
+                  class="mobile-menu-button"
+                  aria-label="Open menu"
+                  aria-haspopup="dialog"
+                  aria-controls="mobile-menu"
+                >
+                  <.icon name="hero-bars-3" class="size-5" />
+                </button>
+                <span class="topbar-workspace">
+                  {(@current_scope.workspace && @current_scope.workspace.name) || "My Workspace"}
+                </span>
+                <.icon name="hero-chevron-right-micro" class="size-3 topbar-divider" />
+                <strong data-section-title>Workspace</strong>
+              </div>
+              <div class="topbar-actions">
+                <a
+                  href="https://github.com/aalvaropc/onesqlx"
+                  class="topbar-source"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open source
+                </a>
+                <.theme_toggle />
+              </div>
+            </header>
+            <main id="main-content" class="app-main" tabindex="-1">
+              <div class={["app-content", @wide && "app-content-wide"]}>
+                {render_slot(@inner_block)}
+              </div>
+            </main>
+          </div>
+        </div>
+      <% true -> %>
+        <div class="public-site">
+          <.public_header current_scope={@current_scope} />
+          <main
+            id="main-content"
+            class={if(@mode == "marketing", do: "marketing-main", else: "auth-main")}
+            tabindex="-1"
+          >
+            <%= if @mode == "marketing" do %>
+              {render_slot(@inner_block)}
+            <% else %>
+              <div class="auth-layout">
+                <aside class="auth-story">
+                  <div>
+                    <h2>Your data.<br />Your next discovery.</h2>
+                    <p>
+                      A focused place to explore PostgreSQL, write your next query, and share what you find.
+                    </p>
+                    <pre class="auth-story-sql" phx-no-curly-interpolation>SELECT possibilities
+                    FROM your_data
+                    WHERE curiosity = true;</pre>
+                  </div>
+                  <p class="auth-story-note">Open source. SQL first. Built for your team.</p>
+                </aside>
+                <div class="auth-form-area">
+                  <div class="auth-form">{render_slot(@inner_block)}</div>
+                </div>
+              </div>
+            <% end %>
+          </main>
+          <footer class="public-footer">
+            <.brand />
+            <div class="footer-theme"><.theme_toggle /></div>
+            <p>SQL-first analytics platform. Open source under Apache 2.0.</p>
+            <a href="https://github.com/aalvaropc/onesqlx" class="ui-link">
+              View the source <.icon name="hero-arrow-up-right" class="size-3 inline-block" />
+            </a>
+          </footer>
+        </div>
+    <% end %>
     <.flash_group flash={@flash} />
     """
   end
 
+  attr :class, :string, default: ""
+
+  def brand(assigns) do
+    ~H"""
+    <.link href={~p"/"} class={["brand", @class]} aria-label="OneSQLx home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M4 6h6v6H4zM14 12h6v6h-6z" fill="currentColor" />
+          <path
+            d="m14 6 6 0M17 3v6M4 18h6"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      </span>
+      <span>OneSQL<span class="brand-x">x</span></span>
+    </.link>
+    """
+  end
+
+  attr :current_scope, :any, default: nil
+
+  def public_header(assigns) do
+    ~H"""
+    <header class="public-header">
+      <.brand />
+      <nav class="public-nav" aria-label="Public navigation">
+        <.link id="public-how-it-works" href={~p"/how-it-works"} class="desktop-link">
+          How it works
+        </.link>
+        <a
+          href="https://github.com/aalvaropc/onesqlx"
+          class="desktop-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub
+        </a>
+        <.theme_toggle />
+        <%= if @current_scope && @current_scope.user do %>
+          <.link
+            navigate={~p"/users/settings"}
+            class="desktop-link max-w-48 truncate"
+            title="Account settings"
+          >
+            {@current_scope.user.email}
+          </.link>
+          <.link href={~p"/users/log-out"} method="delete" class="desktop-link">Sign out</.link>
+          <.link navigate={~p"/sql-editor"} class="ui-button ui-button-primary">
+            Open workspace <.icon name="hero-arrow-up-right" class="size-3.5" />
+          </.link>
+        <% else %>
+          <.link navigate={~p"/users/log-in"}>Log in</.link>
+          <.link
+            navigate={~p"/users/register"}
+            class="ui-button ui-button-primary"
+            title="Register your workspace"
+          >
+            Get started <.icon name="hero-arrow-up-right" class="size-3.5" />
+          </.link>
+        <% end %>
+      </nav>
+    </header>
+    """
+  end
+
   attr :current_scope, :any, required: true
-  attr :mobile, :boolean, default: false
 
   defp sidebar_content(assigns) do
     ~H"""
-    <div class="p-4 border-b border-base-300">
-      <div class="flex items-center justify-between">
-        <a href="/" class="flex items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="28" />
-          <span class="text-sm font-bold">OneSQLx</span>
-        </a>
-        <button
-          :if={@mobile}
-          phx-click={hide_mobile_menu()}
-          class="btn btn-sm btn-ghost"
-          aria-label="Close menu"
-        >
-          <.icon name="hero-x-mark" class="size-4" />
-        </button>
+    <div class="sidebar-brand"><.brand /></div>
+    <.link navigate={~p"/workspace/settings"} class="workspace-selector">
+      <span class="workspace-avatar" aria-hidden="true">
+        {String.first((@current_scope.workspace && @current_scope.workspace.name) || "W")
+        |> String.upcase()}
+      </span>
+      <span class="min-w-0 flex-1">
+        <span class="workspace-name">
+          {(@current_scope.workspace && @current_scope.workspace.name) || "My Workspace"}
+        </span>
+        <span class="workspace-role">{@current_scope.role || "Personal workspace"}</span>
+      </span>
+      <.icon name="hero-chevron-down-micro" class="size-3 text-[#a0b8ad]" />
+    </.link>
+    <.link navigate={~p"/search"} class="sidebar-search" data-nav-path="/search">
+      <.icon name="hero-magnifying-glass" class="size-4" /> Search workspace <kbd>/</kbd>
+    </.link>
+    <nav class="sidebar-navigation" aria-label="Workspace navigation">
+      <div class="nav-section">
+        <span class="nav-section-label">Explore</span>
+        <.nav_link href={~p"/sql-editor"} icon="hero-code-bracket" label="SQL Editor" />
+        <.nav_link href={~p"/saved-queries"} icon="hero-bookmark" label="Saved Queries" />
+        <.nav_link href={~p"/dashboards"} icon="hero-squares-2x2" label="Dashboards" />
+        <.nav_link href={~p"/data-sources"} icon="hero-circle-stack" label="Data Sources" />
       </div>
-      <p :if={@current_scope.workspace} class="text-xs text-base-content/50 mt-1 truncate">
-        {@current_scope.workspace.name}
-      </p>
-    </div>
-    <div class="p-2">
-      <.link
-        navigate={~p"/search"}
-        class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-base-300/50 hover:bg-base-300 text-base-content/50 w-full"
-      >
-        <.icon name="hero-magnifying-glass" class="size-4" />
-        <span>Search...</span>
+      <div class="nav-section">
+        <span class="nav-section-label">Observe</span>
+        <.nav_link href={~p"/schedules"} icon="hero-clock" label="Schedules" />
+        <.nav_link href={~p"/analytics"} icon="hero-chart-bar" label="Usage Analytics" />
+        <.nav_link href={~p"/lineage"} icon="hero-share" label="Data Lineage" />
+        <.nav_link href={~p"/audit"} icon="hero-clipboard-document-list" label="Audit Log" />
+      </div>
+      <div class="nav-section">
+        <span class="nav-section-label">Workspace</span>
+        <.nav_link href={~p"/workspace/settings"} icon="hero-cog-6-tooth" label="Settings & Members" />
+        <.nav_link href={~p"/settings/api-tokens"} icon="hero-key" label="API Tokens" />
+      </div>
+    </nav>
+    <div class="sidebar-account">
+      <.link navigate={~p"/users/settings"} class="account-link">
+        <span class="workspace-avatar" aria-hidden="true">
+          {String.first(@current_scope.user.email) |> String.upcase()}
+        </span>
+        <span class="min-w-0">
+          <span class="account-email">{@current_scope.user.email}</span><span class="workspace-role">Account settings</span>
+        </span>
       </.link>
-    </div>
-    <div class="flex-1 overflow-y-auto p-2 space-y-1">
-      <.nav_link href={~p"/sql-editor"} icon="hero-command-line" label="SQL Editor" />
-      <.nav_link href={~p"/saved-queries"} icon="hero-bookmark" label="Saved Queries" />
-      <.nav_link href={~p"/dashboards"} icon="hero-chart-bar-square" label="Dashboards" />
-      <.nav_link href={~p"/schedules"} icon="hero-clock" label="Schedules" />
-      <.nav_link href={~p"/data-sources"} icon="hero-circle-stack" label="Data Sources" />
-      <.nav_link href={~p"/analytics"} icon="hero-chart-pie" label="Analytics" />
-      <.nav_link href={~p"/lineage"} icon="hero-map" label="Lineage" />
-      <.nav_link href={~p"/audit"} icon="hero-clipboard-document-list" label="Audit Log" />
-    </div>
-    <div class="p-2 border-t border-base-300 space-y-1">
-      <.nav_link href={~p"/workspace/settings"} icon="hero-cog-6-tooth" label="Workspace" />
-      <.nav_link href={~p"/settings/api-tokens"} icon="hero-key" label="API Tokens" />
-      <.nav_link href={~p"/users/settings"} icon="hero-user" label="Account" />
-      <div class="px-3 py-1">
-        <.link
-          href={~p"/users/log-out"}
-          method="delete"
-          class="text-xs text-base-content/50 hover:text-error"
-        >
-          Sign Out
-        </.link>
+      <div class="account-actions">
+        <a href="https://github.com/aalvaropc/onesqlx" target="_blank" rel="noopener noreferrer">
+          OneSQLx on GitHub
+        </a>
+        <.link href={~p"/users/log-out"} method="delete">Sign out</.link>
       </div>
     </div>
     """
   end
 
-  defp show_mobile_menu do
-    %JS{}
-    |> JS.show(
-      to: "#mobile-menu",
-      transition: {"transition-transform duration-200", "-translate-x-full", "translate-x-0"}
-    )
-    |> JS.show(to: "#mobile-menu-overlay")
-  end
-
-  defp hide_mobile_menu do
-    %JS{}
-    |> JS.hide(
-      to: "#mobile-menu",
-      transition: {"transition-transform duration-200", "translate-x-0", "-translate-x-full"}
-    )
-    |> JS.hide(to: "#mobile-menu-overlay")
-  end
+  attr :href, :string, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
 
   defp nav_link(assigns) do
     ~H"""
-    <.link
-      navigate={@href}
-      class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-base-300 transition-colors"
-    >
-      <.icon name={@icon} class="size-4" />
+    <.link navigate={@href} data-nav-path={@href} class="app-nav-link">
+      <.icon name={@icon} class="size-[17px]" />
       <span>{@label}</span>
+      <span class="nav-active-dot" aria-hidden="true"></span>
     </.link>
     """
   end
@@ -248,41 +303,36 @@ defmodule OnesqlxWeb.Layouts do
     """
   end
 
-  @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
-
-  See <head> in root.html.heex which applies the theme before page load.
-  """
+  @doc "Theme preference controls; events are handled by the bundled theme module."
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
-
+    <div class="theme-switcher" role="group" aria-label="Color theme">
       <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
+        type="button"
         data-phx-theme="system"
         aria-label="System theme"
+        aria-pressed="false"
+        title="Use system theme"
       >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-computer-desktop-micro" class="size-3.5" />
       </button>
-
       <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
+        type="button"
         data-phx-theme="light"
         aria-label="Light theme"
+        aria-pressed="false"
+        title="Use light theme"
       >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-sun-micro" class="size-3.5" />
       </button>
-
       <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
+        type="button"
         data-phx-theme="dark"
         aria-label="Dark theme"
+        aria-pressed="false"
+        title="Use dark theme"
       >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-moon-micro" class="size-3.5" />
       </button>
     </div>
     """

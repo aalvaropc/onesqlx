@@ -31,25 +31,25 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
         <div
           :for={{dom_id, sq} <- @streams.schedules}
           id={dom_id}
-          class="card border border-base-300 p-4"
+          class="ui-panel object-row p-5"
         >
-          <div class="flex items-start justify-between">
+          <div class="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
+              <div class="flex flex-wrap items-center gap-2">
                 <h3 class="font-semibold truncate">{sq.name}</h3>
                 <span class={[
-                  "badge badge-sm",
-                  sq.enabled && "badge-success",
-                  !sq.enabled && "badge-ghost"
+                  "ui-badge ui-badge-sm",
+                  sq.enabled && "ui-badge-success",
+                  !sq.enabled && "ui-badge-ghost"
                 ]}>
                   {if sq.enabled, do: "Active", else: "Disabled"}
                 </span>
-                <span class="badge badge-sm badge-outline">{sq.schedule_type}</span>
+                <span class="ui-badge ui-badge-sm ui-badge-outline">{sq.schedule_type}</span>
               </div>
-              <p :if={sq.saved_query} class="text-sm text-base-content/60 truncate mt-1">
+              <p :if={sq.saved_query} class="text-sm text-muted truncate mt-1">
                 {sq.saved_query.title}
               </p>
-              <div class="flex items-center gap-4 mt-2 text-xs text-base-content/50">
+              <div class="flex items-center gap-4 mt-2 text-xs text-muted">
                 <span :if={sq.last_run_at}>
                   Last run: {Calendar.strftime(sq.last_run_at, "%Y-%m-%d %H:%M")}
                 </span>
@@ -63,11 +63,14 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
                 phx-click="toggle_enabled"
                 phx-value-id={sq.id}
                 aria-label={if sq.enabled, do: "Pause schedule", else: "Resume schedule"}
-                class={["btn btn-sm btn-ghost", sq.enabled && "text-warning"]}
+                class={["ui-button ui-button-sm ui-button-ghost", sq.enabled && "text-warning"]}
               >
                 <.icon name={if sq.enabled, do: "hero-pause", else: "hero-play"} class="size-4" />
               </button>
-              <.link navigate={~p"/schedules/#{sq.id}"} class="btn btn-sm btn-primary">
+              <.link
+                navigate={~p"/schedules/#{sq.id}"}
+                class="ui-button ui-button-sm"
+              >
                 View
               </.link>
               <button
@@ -76,7 +79,7 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
                 phx-value-id={sq.id}
                 aria-label="Delete schedule"
                 data-confirm="Are you sure you want to delete this schedule?"
-                class="btn btn-sm btn-ghost text-error"
+                class="ui-button ui-button-sm ui-button-ghost text-error"
               >
                 <.icon name="hero-trash" class="size-4" />
               </button>
@@ -85,13 +88,13 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
         </div>
       </div>
 
-      <div :if={!@has_schedules?} class="text-center py-12">
+      <div :if={!@has_schedules?} class="empty-state">
         <.icon name="hero-clock" class="size-12 text-base-content/20 mx-auto mb-4" />
-        <p class="text-base-content/60 mb-2">No schedules yet</p>
-        <p class="text-sm text-base-content/40 mb-4">
+        <p class="text-muted mb-2">No schedules yet</p>
+        <p class="text-sm text-muted mb-4">
           Save a query first, then create a schedule to run it automatically.
         </p>
-        <.link navigate={~p"/saved-queries"} class="btn btn-primary btn-sm">
+        <.link navigate={~p"/saved-queries"} class="ui-button ui-button-primary ui-button-sm">
           View Saved Queries
         </.link>
       </div>
@@ -112,16 +115,20 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
             phx-change="validate_schedule"
           >
             <.input field={@new_form[:name]} type="text" label="Name" required />
-            <div class="form-control mb-4">
-              <label class="label"><span class="label-text">Saved Query</span></label>
-              <select name="schedule[saved_query_id]" class="select select-bordered w-full" required>
+            <div class="ui-field mb-4">
+              <label class="ui-label"><span class="ui-label-text">Saved Query</span></label>
+              <select
+                name="schedule[saved_query_id]"
+                class="ui-select ui-select-bordered w-full"
+                required
+              >
                 <option value="">Select a saved query...</option>
                 <option :for={q <- @saved_queries} value={q.id}>{q.title}</option>
               </select>
             </div>
-            <div class="form-control mb-4">
-              <label class="label"><span class="label-text">Schedule Type</span></label>
-              <select name="schedule[schedule_type]" class="select select-bordered w-full">
+            <div class="ui-field mb-4">
+              <label class="ui-label"><span class="ui-label-text">Schedule Type</span></label>
+              <select name="schedule[schedule_type]" class="ui-select ui-select-bordered w-full">
                 <option value="hourly">Hourly</option>
                 <option value="daily" selected>Daily</option>
                 <option value="weekly">Weekly</option>
@@ -143,7 +150,9 @@ defmodule OnesqlxWeb.ScheduledQueryLive.Index do
               placeholder="https://hooks.slack.com/..."
             />
             <div class="flex justify-end gap-2 mt-4">
-              <button type="button" phx-click="close_new_modal" class="btn btn-sm">Cancel</button>
+              <button type="button" phx-click="close_new_modal" class="ui-button ui-button-sm">
+                Cancel
+              </button>
               <.button variant="primary" phx-disable-with="Creating...">Create</.button>
             </div>
           </.form>
