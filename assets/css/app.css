@@ -342,6 +342,22 @@
 .feature-line > span { color: var(--accent); margin-top: 2px; flex-shrink: 0; }
 .feature-line h3 { font-size: 13px; font-weight: 600; }
 .feature-line p { margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.walkthrough { max-width: 1080px; margin: 0 auto; padding: 36px 36px 64px; }
+.walkthrough-intro { max-width: 680px; padding-bottom: 48px; }
+.walkthrough-intro h1 { margin-top: 32px; font-family: var(--font-display); font-size: clamp(36px, 5vw, 60px); line-height: 1.1; letter-spacing: -.03em; }
+.walkthrough-intro > p { margin-top: 20px; font-size: 18px; line-height: 1.7; color: var(--muted); }
+.walkthrough-step { display: grid; grid-template-columns: 1fr 1.6fr; gap: 48px; padding: 36px 0; border-top: 1px solid var(--line); }
+.walkthrough-step-title { display: flex; align-items: baseline; gap: 16px; }
+.walkthrough-step-number { color: var(--accent); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.walkthrough-step h2, .walkthrough-start h2 { font-size: 24px; line-height: 1.3; font-weight: 600; letter-spacing: -.02em; }
+.walkthrough-step-body { min-width: 0; font-size: 16px; line-height: 1.8; color: var(--muted); }
+.walkthrough-step-body > * + * { margin-top: 18px; }
+.walkthrough-step-body strong { color: var(--ink); font-weight: 500; }
+.walkthrough-example { border-radius: 12px; background: var(--surface); padding: 20px; }
+.walkthrough-example p { font-size: 14px; line-height: 1.6; }
+.walkthrough-example pre { margin-top: 16px; overflow-x: auto; color: var(--accent); font-family: var(--font-mono); font-size: 14px; }
+.walkthrough-start { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; margin-top: 24px; padding-top: 36px; border-top: 1px solid var(--line); }
+.walkthrough-start p { margin-top: 8px; color: var(--muted); font-size: 16px; }
 .public-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; padding: 30px 40px; max-width: 1280px; margin: 0 auto; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
 .public-footer .brand { font-size: 15px; color: var(--ink); }
 .public-footer .brand-mark { width: 23px; height: 23px; border-radius: 6px; }
@@ -397,6 +413,10 @@
   .product-path { grid-template-columns: 1fr; padding: 32px 12px; gap: 27px; }
   .marketing-details { grid-template-columns: 1fr; padding: 40px 12px; gap: 32px; }
   .marketing-details h2 { font-size: 32px; }
+  .walkthrough { padding: 20px 12px 40px; }
+  .walkthrough-intro { padding-bottom: 32px; }
+  .walkthrough-intro > p { font-size: 16px; }
+  .walkthrough-step { grid-template-columns: 1fr; gap: 18px; padding: 28px 0; }
   .public-footer { padding: 24px 20px; }
   .auth-main { padding: 0 16px; margin-top: 10px; }
   .auth-layout { grid-template-columns: 1fr; min-height: 0; }

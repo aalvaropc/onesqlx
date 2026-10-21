@@ -1,0 +1,86 @@
+<Layouts.app flash={@flash} current_scope={@current_scope} mode="marketing">
+  <div class="walkthrough">
+    <header class="walkthrough-intro">
+      <.link href={~p"/"} class="ui-link inline-flex items-center gap-2 text-sm">
+        <.icon name="hero-arrow-left" class="size-4" /> Back to home
+      </.link>
+      <h1 id="how-it-works-title">How OneSQLx works.</h1>
+      <p>
+        Start with a PostgreSQL connection. Follow a question with SQL.
+        Turn the answer into something your team can use.
+      </p>
+    </header>
+
+    <ol id="walkthrough-steps" class="walkthrough-steps">
+      <li class="walkthrough-step">
+        <div class="walkthrough-step-title">
+          <span class="walkthrough-step-number" aria-hidden="true">1</span>
+          <h2>Connect your data.</h2>
+        </div>
+        <div class="walkthrough-step-body">
+          <p>
+            In <strong>Data Sources</strong>, add a PostgreSQL source with its host,
+            port, database name, and credentials. Enable SSL if your database requires it;
+            keep read-only mode enabled for analytical work.
+          </p>
+          <p>
+            Open its catalog to explore schemas, tables, and columns before writing your first query.
+          </p>
+        </div>
+      </li>
+      <li class="walkthrough-step">
+        <div class="walkthrough-step-title">
+          <span class="walkthrough-step-number" aria-hidden="true">2</span>
+          <h2>Ask with SQL.</h2>
+        </div>
+        <div class="walkthrough-step-body">
+          <p>
+            Open the <strong>SQL Editor</strong>, select your data source, and write a query.
+            Use schema-aware autocomplete, run it, and inspect the results below the editor.
+          </p>
+          <div class="walkthrough-example">
+            <p>Example query · replace <code>your_table</code> with a table from your catalog.</p>
+            <pre><code>SELECT COUNT(*) AS total_rows
+FROM your_table;</code></pre>
+          </div>
+          <p>
+            Save the query with a title to reuse it in a dashboard, or export its results
+            as CSV, JSON, or Excel.
+          </p>
+        </div>
+      </li>
+      <li class="walkthrough-step">
+        <div class="walkthrough-step-title">
+          <span class="walkthrough-step-number" aria-hidden="true">3</span>
+          <h2>Share the insight.</h2>
+        </div>
+        <div class="walkthrough-step-body">
+          <p>
+            In <strong>Dashboards</strong>, create a dashboard and add a card using your saved
+            query. Choose a visualization that fits the result, then arrange it alongside
+            the other questions your team follows.
+          </p>
+          <p>
+            Work together in your workspace, or generate a read-only sharing link when
+            you want to make a dashboard available without a login.
+          </p>
+        </div>
+      </li>
+    </ol>
+
+    <section class="walkthrough-start" aria-labelledby="walkthrough-start-title">
+      <div>
+        <h2 id="walkthrough-start-title">Bring your first question.</h2>
+        <p>Open your workspace and start exploring your data.</p>
+      </div>
+      <.link
+        id="walkthrough-start"
+        href={if(@current_scope, do: ~p"/sql-editor", else: ~p"/users/register")}
+        class="ui-button ui-button-primary"
+      >
+        {if(@current_scope, do: "Open your workspace", else: "Start exploring")}
+        <.icon name="hero-arrow-up-right" class="size-4" />
+      </.link>
+    </section>
+  </div>
+</Layouts.app>

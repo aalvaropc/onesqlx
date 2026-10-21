@@ -146,7 +146,9 @@ defmodule OnesqlxWeb.Layouts do
     <header class="public-header">
       <.brand />
       <nav class="public-nav" aria-label="Public navigation">
-        <a href="/#workflow" class="desktop-link">How it works</a>
+        <.link id="public-how-it-works" href={~p"/how-it-works"} class="desktop-link">
+          How it works
+        </.link>
         <a
           href="https://github.com/aalvaropc/onesqlx"
           class="desktop-link"

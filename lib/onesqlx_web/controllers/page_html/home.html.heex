@@ -13,9 +13,9 @@
           {if(@current_scope, do: "Open your workspace", else: "Start exploring")}
           <.icon name="hero-arrow-up-right" class="size-4" />
         </.link>
-        <a href="#workflow" class="hero-secondary">
-          See how it works <.icon name="hero-arrow-down" class="size-3.5" />
-        </a>
+        <.link id="how-it-works-link" href={~p"/how-it-works"} class="hero-secondary">
+          See how it works <.icon name="hero-arrow-right" class="size-3.5" />
+        </.link>
       </div>
       <div class="hero-proof">
         <span><.icon name="hero-code-bracket" class="size-3.5" /> SQL first</span>
